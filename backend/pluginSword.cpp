@@ -1,0 +1,475 @@
+#include <stdio.h>
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <fstream>
+#include <sys/types.h>
+#include <dirent.h>
+#include <errno.h>
+#include <vector>
+#include <algorithm>
+#include <iterator>
+
+#include "unzip.h"
+
+/*PALM/HP HEADER */
+#include "SDL.h"
+#include "PDL.h"
+
+/*SWORD HEADER */
+#include <swmgr.h>
+#include <swmodule.h>
+#include <markupfiltmgr.h>
+#include <listkey.h>
+#include <versekey.h>
+
+#define WRITEBUFFERSIZE (20971520) // 20Mb buffer
+
+using namespace sword;
+
+std::string convertString(std::string s) {
+    std::stringstream ss;
+    for (size_t i = 0; i < s.length(); ++i) {
+        if (unsigned(s[i]) < '\x20' || s[i] == '\\' || s[i] == '"') {
+            ss << "\\u" << std::setfill('0') << std::setw(4) << std::hex << unsigned(s[i]);
+        } else {
+            ss << s[i];
+        }
+    } 
+    return ss.str();
+}
+
+void splitstring(std::string str, std::string separator, std::string &first, std::string &second) {
+	size_t i = str.find(separator); //find seperator
+	if(i != std::string::npos) {
+		size_t y = 0;
+		if(!str.empty()) {
+			first=""; second="";
+			while(y != i) {
+				first += str[y++]; //creating first string
+			}
+			y += separator.length(); //jumping forward separator length
+			while(y != str.length()) {
+				second += str[y++]; //creating second string
+			}               
+		}
+	} else {
+		first = str;
+		second = ""; //if seperator is not there then second string == empty string 
+	}
+}
+
+int getdir (std::string dir, std::vector<std::string> &files)
+{
+    DIR *dp;
+    struct dirent *dirp;
+    if((dp  = opendir(dir.c_str())) == NULL) {
+        std::cout << "Error(" << errno << ") opening " << dir << std::endl;
+        return errno;
+    }
+
+    while ((dirp = readdir(dp)) != NULL) {
+        files.push_back(std::string(dirp->d_name));
+    }
+    closedir(dp);
+    return 0;
+}
+
+std::string UpToLow(std::string str) {
+    for (int i=0;i<strlen(str.c_str());i++) 
+        if (str[i] >= 0x41 && str[i] <= 0x5A) 
+            str[i] = str[i] + 0x20;
+    return str;
+}
+
+std::vector<std::string> split(const std::string& s, const std::string& delim, const bool keep_empty = true) {
+    std::vector<std::string> result;
+    if (delim.empty()) {
+        result.push_back(s);
+        return result;
+    }
+    std::string::const_iterator substart = s.begin(), subend;
+    while (true) {
+        subend = search(substart, s.end(), delim.begin(), delim.end());
+        std::string temp(substart, subend);
+        if (keep_empty || !temp.empty()) {
+            result.push_back(temp);
+        }
+        if (subend == s.end()) {
+            break;
+        }
+        substart = subend + delim.size();
+    }
+    return result;
+}
+
+PDL_bool getModules(PDL_JSParameters *parms) {
+	/*Get all installed modules or all modules of a specific type. Set modType to e.g. "Biblical Texts"
+	getModules() returns a JSON string*/
+	std::stringstream modules;
+	std::string modStr;
+	SWMgr library;
+	ModMap::iterator it;
+	const char* modType = PDL_GetJSParamString(parms, 0);
+	
+	modules << "[";
+	
+	for (it = library.Modules.begin(); it != library.Modules.end(); it++) {
+		SWModule *module = (*it).second;
+		if (strcmp(modType, "all") != 0) {
+			if (!strcmp(module->Type(), modType)) {
+				if (it != library.Modules.begin()) {
+					modules << ",";
+				}
+				modules << "{\"name\": \"" << module->Name() << "\", \"modType\":\"" << module->Type() << "\", \"descr\": \"" << convertString(module->Description()) << "\"}";
+			}
+		} else {
+			if (it != library.Modules.begin()) {
+				modules << ",";
+			}
+			modules << "{\"name\": \"" << module->Name() << "\", \"modType\":\"" << module->Type() << "\", \"descr\": \"" << convertString(module->Description()) << "\"}";
+		}		
+	}
+
+	modules << "]";
+	
+	modStr = modules.str();
+	const char *params[1];
+	params[0] = modStr.c_str();
+	PDL_Err mjErr = PDL_CallJS("returnModules", params, 1);
+    return PDL_TRUE;
+}
+
+PDL_bool getVerses(PDL_JSParameters *parms) {
+	/*Get verses from a specific module (e.g. "ESV"). Set your biblepassage in key e.g. "James 1:19" */
+	const char* moduleName = PDL_GetJSParamString(parms, 0);
+	const char* key = PDL_GetJSParamString(parms, 1);
+	std::string verseText;
+	std::stringstream out;
+	
+	SWMgr library(new MarkupFilterMgr(FMT_HTMLHREF));
+	//library.setGlobalOption("Footnotes","On");
+	//library.setGlobalOption("Headings", "On");
+	SWModule *module = library.getModule(moduleName);
+	ListKey verses = VerseKey().ParseVerseList(key, "", true);
+	
+	const char *params[2];
+	
+	out << "[";
+	
+	for (verses = TOP; !verses.Error(); verses++) {
+		module->setKey(verses);
+		if (strcmp(module->RenderText(), "") != 0) {
+			out << "{\"content\": \"" << convertString(module->RenderText()) << "\", ";
+			out << "\"vnumber\": \"" << VerseKey(module->getKeyText()).Verse() << "\", ";
+			out << "\"cnumber\": \"" << VerseKey(module->getKeyText()).Chapter() << "\"}";
+			ListKey helper = verses;
+			helper++;
+			if (!helper.Error()) {
+				out << ", ";
+			}
+		}
+	}
+	
+	out << "]";
+
+	const std::string& tmp = out.str();
+	const char* cstr = tmp.c_str();
+	
+	params[0] = cstr;
+	params[1] = key;
+	PDL_Err mjErr = PDL_CallJS("returnVerses", params, 2);
+    return PDL_TRUE;
+}
+
+PDL_bool getBooknames(PDL_JSParameters *parms) {
+	std::stringstream bnames;
+	std::string bnStr;
+	VerseKey vk;
+	bnames << "[";
+	for (int b = 0; b < 2; b++)	{
+		vk.setTestament(b+1);
+		for (int i = 0; i < vk.BMAX[b]; i++) {
+			vk.setBook(i+1);
+			bnames << "{\"name\": \"" << convertString(vk.getBookName()) << "\", ";
+			bnames << "\"abbrev\": \"" << convertString(vk.getBookAbbrev()) << "\", ";
+			bnames << "\"cmax\": \"" << vk.getChapterMax() << "\"}";
+			if (i+1 == vk.BMAX[b] && b == 1) {
+				bnames << "]";
+			} else {
+				bnames << ", ";
+			}
+		}
+	}
+	
+	const std::string& tmp = bnames.str();
+	const char* cstr = tmp.c_str();
+	
+	const char *params[1];
+	params[0] = cstr;
+	PDL_Err mjErr = PDL_CallJS("returnBooknames", params, 1);
+    return PDL_TRUE;
+}
+
+PDL_bool getVMax(PDL_JSParameters *parms) {
+	/*Get max number of verses in a chapter*/
+	std::stringstream vmax;
+	const char* key = PDL_GetJSParamString(parms, 0);
+	
+	VerseKey vk(key);
+	vmax << vk.getVerseMax();
+	
+	const std::string& tmp = vmax.str();
+	const char* cstr = tmp.c_str();
+	
+	const char *params[1];
+	params[0] = cstr;
+	PDL_Err mjErr = PDL_CallJS("returnVMax", params, 1);
+    return PDL_TRUE;
+}
+
+PDL_bool untarMods(PDL_JSParameters *parms) {
+	const char* pathMods = PDL_GetJSParamString(parms, 0);
+	std::stringstream pathBuilder;
+	std::stringstream errString;
+	pathBuilder << "tar -xzf " << pathMods << " -C /media/internal/.sword/install/";
+	const std::string& tmp = pathBuilder.str();
+	const char* cstr = tmp.c_str();
+	
+	int err = system(cstr);
+	/*if (err != 0) {
+		return PDL_FALSE;
+	}*/
+	
+	errString << err;
+	const std::string& tmp2 = errString.str();
+	const char* cstr2 = tmp2.c_str();
+	
+    const char *params[1];
+	params[0] = cstr2;
+	PDL_Err mjErr = PDL_CallJS("returnUntar", params, 1);
+    return PDL_TRUE;
+}
+
+PDL_bool checkPlugin(PDL_JSParameters *parms) {
+	const char *params[1];
+	params[0] = "Yes";
+	PDL_Err mjErr = PDL_CallJS("returnVerses", params, 1);
+    return PDL_TRUE;
+}
+
+PDL_bool readConfs(PDL_JSParameters *parms) {
+	/*Get max number of verses in a chapter*/
+	std::stringstream mods;
+	std::ifstream infile;
+	std::string key;
+	std::string value;
+	std::string path;
+	
+	mods << "[";
+	
+	std::string dir = std::string("/media/internal/.sword/install/mods.d/");
+    std::vector<std::string> files = std::vector<std::string>();
+
+    getdir(dir,files);
+
+    for (unsigned int i = 2;i < files.size();i++) {
+		path = dir + files[i];
+		//std::cout << path << std::endl;
+        infile.open(path.c_str()); // open file
+		if(infile) {
+			//std::cout << "OK" << std::endl;
+			mods << "{";
+			std::string line="";
+			std::string key="";
+			while(getline(infile, line, '\n')) {
+				if (line.find("=") !=  std::string::npos) {
+					splitstring(line, "=", key, value);
+					if (key.find("Lang") !=  std::string::npos) {
+						mods << ", \"" << UpToLow(key) << "\": \"" << convertString(value) << "\"";
+					} else if (key.find("DataPath") !=  std::string::npos) {
+						mods << ", \"" << UpToLow(key) << "\": \"" << convertString(value) << "\"";
+					} else if (key.find("Description") !=  std::string::npos) {
+						mods << ", \"" << UpToLow(key) << "\": \"" << convertString(value) << "\"";
+					}
+				} else {
+					if (line.find("[") != std::string::npos && line.find("]") != std::string::npos) {
+						line.erase(line.find("]"),1);
+						mods << "\"name\": \"" << convertString(line.erase(0,1)) << "\"";
+					}
+				}
+			}
+			if (i+1 != files.size()) {
+				mods << "}, ";
+			} else {
+				mods << "}";
+			}
+			
+			infile.close();
+		}
+    }
+	
+	mods << "]";
+	
+	const std::string& tmp = mods.str();
+	const char* cstr = tmp.c_str();
+		
+	const char *params[1];
+	params[0] = cstr;
+	PDL_Err mjErr = PDL_CallJS("returnReadConfs", params, 1);
+    return PDL_TRUE;
+}
+
+PDL_bool unzipModule(PDL_JSParameters *parms) {
+	const char* pathModule = PDL_GetJSParamString(parms, 0);
+	uLong i;
+    unz_global_info64 gi;
+    int err;
+    FILE* fout=NULL;
+	uInt size_buf = WRITEBUFFERSIZE;  // byte size of buffer to store raw csv data
+    void* buf;                        // the buffer  
+    char filename_inzip[256];         // for unzGetCurrentFileInfo
+    unz_file_info file_info;          // for unzGetCurrentFileInfo	
+	std::string tmpPath = "";
+	std::string writeFilename = "";
+	std::string pathPrefix = "/media/internal/.sword/";
+	std::string sout;
+	std::stringstream pathBuilder;
+	unzFile uf=NULL;
+	
+	uf = unzOpen(pathModule);
+
+    err = unzGetGlobalInfo64(uf,&gi);
+	
+	if (err!=UNZ_OK)
+        std::cout << "error with zipfile in unzGetGlobalInfo \n";
+		
+	//std::cout << gi.number_entry << "\n";
+	
+	for (i=0;i<gi.number_entry;i++) {
+		tmpPath = "";
+		writeFilename = "";
+		err = unzGetCurrentFileInfo(uf,&file_info,filename_inzip,sizeof(filename_inzip),NULL,0,NULL,0);
+		
+		//std::cout << filename_inzip << std::endl;
+		
+		const std::vector<std::string> words = split(filename_inzip, "/");
+		for (int j = 0; j < words.size()-1; j++) {
+			tmpPath = tmpPath + words[j] + "/";
+			/*if(j<words.size()-1) {
+				tmpPath = tmpPath + words[j] + "/";
+			} else {
+				writeFilename = words[j];
+			}*/
+		}
+		
+		pathBuilder.str("");
+		pathBuilder << "mkdir -p " << pathPrefix << tmpPath;		
+		const std::string& tmp = pathBuilder.str();
+		const char* cstr = tmp.c_str();
+		
+		writeFilename = pathPrefix + filename_inzip;
+		
+		std::cout << writeFilename << std::endl;
+		
+		err = system(cstr);
+		
+		
+		buf = (void*)malloc(size_buf); // setup buffer
+		if (buf==NULL) {
+			std::cerr << "Error allocating memory for read buffer" << std::endl;
+		} // buffer ready
+		
+		err = unzOpenCurrentFile(uf); // Open the file inside the zip (password = NULL)
+		if (err!=UNZ_OK) {
+			std::cerr << "Error " << err << " with zipfile in unzOpenCurrentFilePassword." << std::endl;
+		} // file inside the zip is open
+		
+		
+		std::ofstream fout(writeFilename.c_str(), std::ios::binary);
+		
+		do {
+			err = unzReadCurrentFile(uf,buf,size_buf);
+			if (err<0) {
+				std::cerr << "Error " << err << " with zipfile in unzReadCurrentFile" << std::endl;
+				break;
+			}
+			//std::cout << err << ":" << size_buf << std::endl;
+			fout.write((const char*)buf,err);
+			//if (err>0) for (int i = 0; i < (int) err; i++) fout.write((char*)&buf[i],sizeof(&buf[i]);
+		} while (err>0);
+		
+		fout.close();
+		
+		err = unzCloseCurrentFile (uf);  // close the zipfile
+		if (err!=UNZ_OK) {
+				std::cerr << "Error " << err << " with zipfile in unzCloseCurrentFile" << std::endl;
+			}
+	 
+		
+		
+        if ((i+1)<gi.number_entry) {
+            err = unzGoToNextFile(uf);
+            if (err!=UNZ_OK) {
+                std::cout << "error with zipfile in unzGoToNextFile\n";
+                break;
+            }
+        }
+    }
+	
+	free(buf); // free up buffer memory
+	
+	const char *params[1];
+	params[0] = "true";
+	PDL_Err mjErr = PDL_CallJS("returnUnzip", params, 1);
+    return PDL_TRUE;
+}
+
+int main () {
+	//syslog(LOG_INFO, "Start logging...");
+	//std::cout << getenv("SWORD_PATH");
+	system("mkdir -p /media/internal/.sword/install/mods.d/");
+	system("chmod -R 777 /media/internal/.sword/");
+	putenv("SWORD_PATH=/media/internal/.sword");
+	//std::cout << getenv("SWORD_PATH");
+	
+	// Initialize the SDL library
+    int result = SDL_Init(SDL_INIT_VIDEO);
+		
+	if (result != 0) {
+        //std::cout << "Could not init SDL";
+		//std::cout << SDL_GetError();
+        exit(1);
+    }
+
+    PDL_Init(0);
+    
+    // register the js callback
+    PDL_RegisterJSHandler("getModules", getModules);
+	PDL_RegisterJSHandler("getVerses", getVerses);
+	PDL_RegisterJSHandler("checkPlugin", checkPlugin);
+	PDL_RegisterJSHandler("getBooknames", getBooknames);
+	PDL_RegisterJSHandler("getVMax", getVMax);
+	PDL_RegisterJSHandler("untarMods", untarMods);
+	PDL_RegisterJSHandler("unzipModule", unzipModule);
+	PDL_RegisterJSHandler("readConfs", readConfs);
+	PDL_JSRegistrationComplete();
+	
+	PDL_CallJS("ready", NULL, 0);
+	
+	// Event descriptor
+    SDL_Event event;
+
+    do {
+		SDL_WaitEvent(&event);
+
+    } while (event.type != SDL_QUIT);
+	
+	// Cleanup
+    PDL_Quit();
+    SDL_Quit();
+	
+	return 0;
+}
