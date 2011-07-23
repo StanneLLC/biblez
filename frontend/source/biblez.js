@@ -319,7 +319,7 @@ enyo.kind({
 	},
 	
 	handleReadConfs: function(modules) {
-		this.log("INFO", enyo.json.parse(modules).length);
+		this.log("INFO", modules);
 		//this.$.modManView.readData(enyo.json.parse(modules));
 		biblezTools.prepareModules(enyo.json.parse(modules), enyo.bind(this.$.modManView, this.$.modManView.getLang));
 	},
@@ -497,4 +497,4 @@ enyo.kind({
 });
 
 //Turn Logging off
-console.log = function(){}
+//console.log = function(){}

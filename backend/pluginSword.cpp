@@ -45,6 +45,10 @@
 
 using namespace sword;
 
+SWMgr *displayLibrary = 0;
+SWMgr *searchLibrary = 0;
+
+
 std::string convertString(std::string s) {
     std::stringstream ss;
     for (size_t i = 0; i < s.length(); ++i) {
@@ -121,23 +125,30 @@ std::vector<std::string> split(const std::string& s, const std::string& delim, c
     return result;
 }
 
+void refreshManagers() {
+	delete displayLibrary;
+	delete searchLibrary;
+	displayLibrary = new SWMgr(new MarkupFilterMgr(FMT_HTMLHREF));
+	searchLibrary = new SWMgr();
+}
+
 PDL_bool getModules(PDL_JSParameters *parms) {
 	/*Get all installed modules or all modules of a specific type. Set modType to e.g. "Biblical Texts"
 	getModules() returns a JSON string*/
 	std::stringstream modules;
 	std::string modStr;
-	SWMgr library;
+
 	ModMap::iterator it;
 	const char* modType = PDL_GetJSParamString(parms, 0);
 	
 	modules << "[";
 	
-	for (it = library.Modules.begin(); it != library.Modules.end(); it++) {
+	for (it = displayLibrary->Modules.begin(); it != displayLibrary->Modules.end(); it++) {
 		SWModule *module = (*it).second;
 		if (strcmp(modType, "all") != 0) {
 			if (!strcmp(module->Type(), modType)) {
-				if (it != library.Modules.begin()) {
-					modules << ",";
+				if (it != displayLibrary->Modules.begin()) {
+					modules << ", ";
 				}
 				modules << "{\"name\": \"" << module->Name() << "\", ";
 				modules << "\"modType\":\"" << module->Type() << "\", ";
@@ -145,8 +156,8 @@ PDL_bool getModules(PDL_JSParameters *parms) {
 				modules << "\"descr\": \"" << convertString(module->Description()) << "\"}";
 			}
 		} else {
-			if (it != library.Modules.begin()) {
-				modules << ",";
+			if (it != displayLibrary->Modules.begin()) {
+				modules << ", ";
 			}
 			modules << "{\"name\": \"" << module->Name() << "\", ";
 			modules << "\"modType\":\"" << module->Type() << "\", ";
@@ -171,10 +182,10 @@ PDL_bool getVerses(PDL_JSParameters *parms) {
 	std::string verseText;
 	std::stringstream out;
 	
-	SWMgr library(new MarkupFilterMgr(FMT_HTMLHREF));
+	//SWMgr library(new MarkupFilterMgr(FMT_HTMLHREF));
 	//library.setGlobalOption("Footnotes","On");
 	//library.setGlobalOption("Headings", "On");
-	SWModule *module = library.getModule(moduleName);
+	SWModule *module = displayLibrary->getModule(moduleName);
 	ListKey verses = VerseKey().ParseVerseList(key, "", true);
 	
 	const char *params[2];
@@ -287,8 +298,10 @@ PDL_bool removeModule(PDL_JSParameters *parms) {
 	
 	pathBuilder.str("");
 	pathBuilder << "rm " << "/media/internal/.sword/mods.d/" << modName << ".conf";
-	
 	int err2 = system(pathBuilder.str().c_str());
+	
+	//Refresh Mgr
+	refreshManagers();
 	
 	const std::string& tmp = errString.str();
 	const char* cstr = tmp.c_str();
@@ -314,7 +327,21 @@ PDL_bool readConfs(PDL_JSParameters *parms) {
 	std::string value;
 	std::string path;
 	
+	//SWMgr confReader("/media/internal/.sword/install");
+	//ModMap::iterator it;
+	
 	mods << "[";
+	
+	/*for (it = confReader.Modules.begin(); it != confReader.Modules.end(); it++) {
+		SWModule *module = it->second;
+		if (it != confReader.Modules.begin()) {
+			mods << ", ";
+		}
+		mods << "{\"lang\": \"" << module->getConfigEntry("Lang") << "\", ";
+		mods << "\"datapath\": \"" << module->getConfigEntry("DataPath") << "\", ";
+		mods << "\"description\": \"" << convertString(module->getConfigEntry("Description"))<< "\"}";
+	}*/
+
 	
 	std::string dir = std::string("/media/internal/.sword/install/mods.d/");
     std::vector<std::string> files = std::vector<std::string>();
@@ -467,6 +494,9 @@ PDL_bool unzipModule(PDL_JSParameters *parms) {
 	
 	free(buf); // free up buffer memory
 	
+	//Refresh Mgr
+	refreshManagers();
+	
 	const char *params[1];
 	params[0] = "true";
 	PDL_Err mjErr = PDL_CallJS("returnUnzip", params, 1);
@@ -474,19 +504,18 @@ PDL_bool unzipModule(PDL_JSParameters *parms) {
 }
 
 int main () {
-	//syslog(LOG_INFO, "Start logging...");
-	//std::cout << getenv("SWORD_PATH");
+	//Basic settings
 	system("mkdir -p /media/internal/.sword/install/mods.d/");
 	system("chmod -R 777 /media/internal/.sword/");
 	putenv("SWORD_PATH=/media/internal/.sword");
-	//std::cout << getenv("SWORD_PATH");
+	
+	//Initialize Mgr
+	refreshManagers();
 	
 	// Initialize the SDL library
     int result = SDL_Init(SDL_INIT_VIDEO);
 		
 	if (result != 0) {
-        //std::cout << "Could not init SDL";
-		//std::cout << SDL_GetError();
         exit(1);
     }
 
