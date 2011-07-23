@@ -36,6 +36,7 @@
 /*SWORD HEADER */
 #include <swmgr.h>
 #include <swmodule.h>
+#include <filemgr.h>
 #include <markupfiltmgr.h>
 #include <listkey.h>
 #include <versekey.h>
@@ -138,13 +139,19 @@ PDL_bool getModules(PDL_JSParameters *parms) {
 				if (it != library.Modules.begin()) {
 					modules << ",";
 				}
-				modules << "{\"name\": \"" << module->Name() << "\", \"modType\":\"" << module->Type() << "\", \"descr\": \"" << convertString(module->Description()) << "\"}";
+				modules << "{\"name\": \"" << module->Name() << "\", ";
+				modules << "\"modType\":\"" << module->Type() << "\", ";
+				modules << "\"dataPath\":\"" << module->getConfigEntry("DataPath") << "\", ";
+				modules << "\"descr\": \"" << convertString(module->Description()) << "\"}";
 			}
 		} else {
 			if (it != library.Modules.begin()) {
 				modules << ",";
 			}
-			modules << "{\"name\": \"" << module->Name() << "\", \"modType\":\"" << module->Type() << "\", \"descr\": \"" << convertString(module->Description()) << "\"}";
+			modules << "{\"name\": \"" << module->Name() << "\", ";
+			modules << "\"modType\":\"" << module->Type() << "\", ";
+			modules << "\"dataPath\":\"" << module->getConfigEntry("DataPath") << "\", ";
+			modules << "\"descr\": \"" << convertString(module->Description()) << "\"}";
 		}		
 	}
 
@@ -265,6 +272,30 @@ PDL_bool untarMods(PDL_JSParameters *parms) {
     const char *params[1];
 	params[0] = cstr2;
 	PDL_Err mjErr = PDL_CallJS("returnUntar", params, 1);
+    return PDL_TRUE;
+}
+
+PDL_bool removeModule(PDL_JSParameters *parms) {
+	const char* pathMod = PDL_GetJSParamString(parms, 0);
+	const char* modName = PDL_GetJSParamString(parms, 1);
+	
+	std::stringstream pathBuilder;
+	std::stringstream errString;
+	
+	pathBuilder << "rm -R " << "/media/internal/.sword/" << pathMod;
+	int err1 = system(pathBuilder.str().c_str());
+	
+	pathBuilder.str("");
+	pathBuilder << "rm " << "/media/internal/.sword/mods.d/" << modName << ".conf";
+	
+	int err2 = system(pathBuilder.str().c_str());
+	
+	const std::string& tmp = errString.str();
+	const char* cstr = tmp.c_str();
+	
+    const char *params[1];
+	params[0] = cstr;
+	PDL_Err mjErr = PDL_CallJS("returnRemove", params, 1);
     return PDL_TRUE;
 }
 
@@ -469,6 +500,7 @@ int main () {
 	PDL_RegisterJSHandler("getVMax", getVMax);
 	PDL_RegisterJSHandler("untarMods", untarMods);
 	PDL_RegisterJSHandler("unzipModule", unzipModule);
+	PDL_RegisterJSHandler("removeModule", removeModule);
 	PDL_RegisterJSHandler("readConfs", readConfs);
 	PDL_JSRegistrationComplete();
 	

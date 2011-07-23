@@ -19,8 +19,13 @@ enyo.kind({
     events: {
         onUntar: "",
 		onBack: "",
-		onUnzip: ""
+		onUnzip: "",
+		onRemove: ""
     },
+	published: {
+		installedModules: [],
+		moduleToRemove: {}
+	},
 	components: [
         {kind: enyo.PalmService, 
             name: "DownloadMgr",
@@ -81,7 +86,8 @@ enyo.kind({
 							{kind: "HFlexBox", components: [
 								{name:"btInstallCaption", content: $L("Install")}
 							]}
-						]}
+						]},
+						{name: "btRemove", caption: $L("Remove"), kind: "Button", onclick: "removeModule", className: "enyo-button-negative modules-button-remove"}
 					]}					
                 ]},
                 {kind: "Toolbar", components: [
@@ -198,6 +204,10 @@ enyo.kind({
 		
 	},
 	
+	setInstalledModules: function (modules) {
+		this.installedModules = modules;
+	},
+	
 	getModListItem: function(inSender, inIndex) {
         var r = this.modules[inIndex];
         if (r) {
@@ -214,16 +224,35 @@ enyo.kind({
 	getDetails: function (inSender, inEvent, rowIndex) {
 		this.lastModItem = rowIndex;
 		this.$.modList.render();
+		
 		this.currentModule = this.modules[rowIndex].modName;
+		
+		this.$.btInstall.show();
+		this.$.btRemove.hide();
 		this.$.btInstallCaption.setContent($L("Install"));
 		this.$.btInstall.setMaximum(100);
 		this.$.btInstall.setPosition(100);
-		this.$.detailsContainer.show();
 		this.$.detailsName.setContent(this.modules[rowIndex].modName);
 		this.$.detailsDescription.setContent(this.modules[rowIndex].descr);
 		this.$.detailsType.setContent($L("Type") + ": " + this.modules[rowIndex].modType);
 		var tmpLang = (languages[this.modules[rowIndex].lang]) ? (languages[this.modules[rowIndex].lang]) : this.modules[rowIndex].lang;
 		this.$.detailsLang.setContent($L("Language") + ": " + tmpLang);
+		
+		for(var i=0;i<this.installedModules.length;i++) {
+			if(this.installedModules[i].name ==  this.modules[rowIndex].modName) {
+				this.$.btInstall.hide();
+				this.$.btRemove.show();
+				this.moduleToRemove = this.installedModules[i];
+			}
+		}
+		
+		this.$.detailsContainer.show();
+	},
+	
+	removeModule: function(inSender, inEvent) {
+		this.doRemove();
+		this.$.btInstall.show();
+		this.$.btRemove.hide();
 	},
 	
 	stopSpinner: function () {

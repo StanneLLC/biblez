@@ -166,9 +166,16 @@
 }
 
 .modules-button-install {
+    margin-top: 10px;
     width: 150px;
     margin-left: 20px;
     background-color: #2AA100;
+}
+
+.modules-button-remove {
+    margin-top: 10px;
+    width: 150px;
+    margin-left: 20px;
 }
 
 .hint {

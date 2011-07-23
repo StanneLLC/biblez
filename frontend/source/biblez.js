@@ -50,11 +50,11 @@ enyo.kind({
 								 <br><br>This is a BETA version! Report any bugs to <a href='mailto:info@zefanjas.de?subject=Bug BibleZ HD - Version " + enyo.fetchAppInfo().version + "'>info@zefanjas.de</a>")},
 					{kind: "Button", caption: "Open Module Manager", className: "first-start-button", onclick: "openModuleMgr"}
 				]},
-				{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"},
+				{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", /*onVerseTap: "handleVerseTap", */ onShowNote: "openShowNote"},
 				{name: "biblezHint", flex: 1, className: "scroller-background biblez-hint", content: "ERROR"}
 			]},
 			{name: "selector", kind: "BibleZ.Selector", onChapter: "getVMax", onVerse: "getPassage"},
-			{name: "modManView", kind: "BibleZ.ModMan", onUntar: "untarModules", onUnzip: "unzipModule", onBack: "goToMainView"}
+			{name: "modManView", kind: "BibleZ.ModMan", onUntar: "untarModules", onUnzip: "unzipModule", onRemove: "removeModule", onBack: "goToMainView"}
 		]},
 		{kind: "Hybrid", name: "plugin", executable: "pluginSword", width:"0", height:"0", onPluginReady: "handlePluginReady", style: "float: left;"}
 	],
@@ -81,6 +81,7 @@ enyo.kind({
 		this.$.plugin.addCallback("returnVMax", enyo.bind(this, "handleVMax"), true);
 		this.$.plugin.addCallback("returnUntar", enyo.bind(this, "handleUntar"), true);
 		this.$.plugin.addCallback("returnUnzip", enyo.bind(this, "handleUnzip"), true);
+		this.$.plugin.addCallback("returnRemove", enyo.bind(this, "handleRemove"), true);
 		this.$.plugin.addCallback("returnReadConfs", enyo.bind(this, "handleReadConfs"), true);
 		
 		//console.log(enyo.fetchDeviceInfo().platformVersion);
@@ -137,8 +138,9 @@ enyo.kind({
 	},
 	
 	handleGetModules: function(modules) {
-		//console.log("INFO: " + modules);
+		console.log("INFO: " + modules);
 		var mods = enyo.json.parse(modules);
+		this.$.modManView.setInstalledModules(enyo.json.parse(modules));
 
 		var comp = this.getComponents()
 		for (var j=0;j<comp.length;j++) {
@@ -150,8 +152,18 @@ enyo.kind({
 		if (mods.length > 0) {
 			this.$.mainToolbar.show();
 			this.$.firstStart.hide();
-			console.log(this.dbSets["lastRead"]);
-			this.currentModule = (this.dbSets["lastRead"])? enyo.json.parse(this.dbSets["lastRead"]).module : mods[0];
+			
+			//Check if saved Module currently exists
+			var ifModule = 0;
+			if (this.dbSets["lastRead"]) {
+				for (var k=0;k<mods.length;k++) {
+					if (enyo.json.parse(this.dbSets["lastRead"]).module.name == mods[k].name) {
+						ifModule = 1;
+					}
+				}
+			}				
+			this.currentModule = (this.dbSets["lastRead"] && ifModule == 1)? enyo.json.parse(this.dbSets["lastRead"]).module : mods[0];
+			
 			//this.currentModule = mods[0];
 			var kindName = "";
 			for (var i=0;i<mods.length;i++) {
@@ -200,7 +212,7 @@ enyo.kind({
 	},
 	
 	handleGetVerses: function(verses, passage) {
-		//this.outputMessage(enyo.json.parse(verses));
+		//this.showError(enyo.json.parse(verses));
 		//console.log(verses);
 		if (enyo.json.parse(verses).length != 0) {
 			this.$.mainView.show();
@@ -263,7 +275,7 @@ enyo.kind({
 	},
 	
 	handleBooknames: function(response) {
-		//this.outputMessage(response);
+		//this.showError(response);
 		this.$.selector.createSection("books", enyo.json.parse(response));
 		this.$.selector.setBookNames(enyo.json.parse(response));
 		this.getModules();
@@ -316,10 +328,10 @@ enyo.kind({
 		console.log(inSender.modulePath);
 		if (this.pluginReady) {
 			try { var status = this.$.plugin.callPluginMethod("unzipModule", inSender.modulePath); }
-			catch (e) { this.outputMessage("Plugin exception: " + e);}
+			catch (e) { this.showError("Plugin exception: " + e);}
 		}
 		else {
-			this.outputMessage("plugin not ready");
+			this.showError("plugin not ready");
 		}
 	},
 	
@@ -331,19 +343,31 @@ enyo.kind({
 		}
 	},
 	
-	outputMessage: function(message) {
-		console.log("*** " + message);
-		this.$.mainView.setPlain(message);
+	removeModule: function (inSender, inEvent) {
+		console.log(inSender.moduleToRemove.dataPath + "," + inSender.moduleToRemove.name.toLowerCase());
+		if (this.pluginReady) {
+			try { var status = this.$.plugin.callPluginMethod("removeModule", inSender.moduleToRemove.dataPath, inSender.moduleToRemove.name.toLowerCase()); }
+			catch (e) { this.showError("Plugin exception: " + e);}
+		}
+		else {
+			this.showError("plugin not ready");
+		}
+	},
+	
+	handleRemove: function (response) {
+		console.log("REMOVE: " + response);
+		enyo.windows.addBannerMessage($L("Uninstalled Module!"), enyo.json.stringify({}));
+		this.getModules();
 	},
 	
 	getModules:function(inSender, inEvent) {
 		//this.log(inSender, inEvent);
 		if (this.pluginReady) {
 			try { var status = this.$.plugin.callPluginMethod("getModules", "all"); }
-			catch (e) { this.outputMessage("Plugin exception: " + e);}
+			catch (e) { this.showError("Plugin exception: " + e);}
 		}
 		else {
-			this.outputMessage("plugin not ready");
+			this.showError("plugin not ready");
 		}
 	},
 	
@@ -355,20 +379,20 @@ enyo.kind({
 		if(!module) {module = this.currentModule.name}
 		if (this.pluginReady) {
 			try {var status = this.$.plugin.callPluginMethod("getVerses", module, passage);}
-			catch (e) {this.outputMessage("Plugin exception: " + e);}
+			catch (e) {this.showError("Plugin exception: " + e);}
 		}
 		else {
-			this.outputMessage("plugin not ready");
+			this.showError("plugin not ready");
 		}
 	},
 	
 	getBooknames:function() {
 		if (this.pluginReady) {
 			try {var status = this.$.plugin.callPluginMethod("getBooknames");}
-			catch (e) {this.outputMessage("Plugin exception: " + e);}
+			catch (e) {this.showError("Plugin exception: " + e);}
 		}
 		else {
-			this.outputMessage("plugin not ready");
+			this.showError("plugin not ready");
 		}
 	},
 	
@@ -377,10 +401,10 @@ enyo.kind({
 		console.log(passage);
 		if (this.pluginReady) {
 			try {var status = this.$.plugin.callPluginMethod("getVMax", passage);}
-			catch (e) {this.outputMessage("Plugin exception: " + e);}
+			catch (e) {this.showError("Plugin exception: " + e);}
 		}
 		else {
-			this.outputMessage("plugin not ready");
+			this.showError("plugin not ready");
 		}
 	},
 	
@@ -427,7 +451,10 @@ enyo.kind({
 			this.$.modManView.downloadMods();
 			//this.$.modManView.getLang();
 		} else if (inView.name == "verseView") {
-			this.getVerses(this.$.selector.getBook().name + " " + this.$.selector.getChapter(), this.currentModule.name);
+			if(this.$.modManView.installedModules.length != 0) {
+				this.getVerses(this.$.selector.getBook().name + " " + this.$.selector.getChapter(), this.currentModule.name);
+			}
+			
 		}
 	},
 	
@@ -470,4 +497,4 @@ enyo.kind({
 });
 
 //Turn Logging off
-//console.log = function(){}
+console.log = function(){}

@@ -145,7 +145,7 @@ enyo.kind({
 	
 	setNotes: function(notes) {
 		this.notes = notes;
-		console.log(enyo.json.stringify(notes));
+		//console.log(enyo.json.stringify(notes));
 		for (var i=0;i<notes.length; i++) {
 			enyo.byId("noteIcon"+notes[i].vnumber).innerHTML = "<a href='note://" + i + "'><img id='note" + i + "' src='images/note.png' /></a>";
 		}

@@ -188,11 +188,11 @@ var biblezTools = {
 	},
 	
 	getNotes: function(bnumber, cnumber, inCallback) {
-		enyo.log(bnumber, cnumber);
+		//enyo.log(bnumber, cnumber);
 		var notes = [];
 		try {
 			var sql = "SELECT * FROM notes WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;"
-		    console.log(sql);
+		    //console.log(sql);
 			//var sql = "SELECT * FROM notes;";
 			this.db.transaction( 
 		        enyo.bind(this,(function (transaction) { 
