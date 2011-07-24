@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include <string>
 #include <iostream>
-#include <fstream>
 #include <sstream>
 #include <iomanip>
 #include <fstream>
@@ -320,30 +319,33 @@ PDL_bool checkPlugin(PDL_JSParameters *parms) {
 }
 
 PDL_bool readConfs(PDL_JSParameters *parms) {
-	/*Get max number of verses in a chapter*/
+	/*Get information about all available modules*/
 	std::stringstream mods;
-	std::ifstream infile;
-	std::string key;
-	std::string value;
-	std::string path;
+	//std::ifstream infile;
+	//std::string key;
+	//std::string value;
+	//std::string path;
 	
-	//SWMgr confReader("/media/internal/.sword/install");
-	//ModMap::iterator it;
+	SWMgr confReader("/media/internal/.sword/install", new MarkupFilterMgr(FMT_HTMLHREF));
+	ModMap::iterator it;
 	
 	mods << "[";
 	
-	/*for (it = confReader.Modules.begin(); it != confReader.Modules.end(); it++) {
+	for (it = confReader.Modules.begin(); it != confReader.Modules.end(); it++) {
 		SWModule *module = it->second;
-		if (it != confReader.Modules.begin()) {
-			mods << ", ";
-		}
-		mods << "{\"lang\": \"" << module->getConfigEntry("Lang") << "\", ";
-		mods << "\"datapath\": \"" << module->getConfigEntry("DataPath") << "\", ";
-		mods << "\"description\": \"" << convertString(module->getConfigEntry("Description"))<< "\"}";
-	}*/
+			if (it != confReader.Modules.begin()) {
+				mods << ", ";
+			}
+			mods << "{\"name\": \"" << module->Name() << "\", ";
+			if (module->getConfigEntry("Lang")) {
+				mods << "\"lang\": \"" << module->getConfigEntry("Lang") << "\", ";
+			}			
+			mods << "\"datapath\": \"" << module->getConfigEntry("DataPath") << "\", ";			
+			mods << "\"description\": \"" << module->getConfigEntry("Description") << "\"}";
+	}
 
 	
-	std::string dir = std::string("/media/internal/.sword/install/mods.d/");
+	/*std::string dir = std::string("/media/internal/.sword/install/mods.d/");
     std::vector<std::string> files = std::vector<std::string>();
 
     getdir(dir,files);
@@ -382,7 +384,7 @@ PDL_bool readConfs(PDL_JSParameters *parms) {
 			
 			infile.close();
 		}
-    }
+    } */
 	
 	mods << "]";
 	

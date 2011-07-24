@@ -319,8 +319,7 @@ enyo.kind({
 	},
 	
 	handleReadConfs: function(modules) {
-		this.log("INFO", modules);
-		//this.$.modManView.readData(enyo.json.parse(modules));
+		this.log("INFO", modules.length);
 		biblezTools.prepareModules(enyo.json.parse(modules), enyo.bind(this.$.modManView, this.$.modManView.getLang));
 	},
 	
