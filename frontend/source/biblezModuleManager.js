@@ -250,8 +250,8 @@ enyo.kind({
 		this.$.detailsAbout.setContent(details.about.replace(/\\par/g, "<br>"));
 		this.$.detailsSize.setContent($L("Install Size") + ": " + Math.round(parseInt(details.installSize) / 1048576 * 100) / 100 + " MB");
 		this.$.detailsVersion.setContent($L("Version") + ": " + details.version);
-		if (details.copyright) {this.$.detailsCopyright.setContent($L("Copyright") + ": " + details.copyright)};		
-		this.$.detailsLicense.setContent($L("License") + ": " + details.distributionLicense);
+		if (details.copyright) {this.$.detailsCopyright.setContent($L("Copyright") + ": " + details.copyright)};
+		if (details.distributionLicense) {this.$.detailsLicense.setContent($L("License") + ": " + details.distributionLicense)};
 		//this.$.detailsType.setContent($L("Type") + ": " + details.category);
 		//var tmpLang = (languages[details.lang]) ? (languages[details.lang]) : details.lang;
 		//this.$.detailsLang.setContent($L("Language") + ": " + tmpLang);

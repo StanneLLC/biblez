@@ -19,20 +19,27 @@ enyo.kind({
     kind: "Popup",
     lazy: false,
     events: {
-      onNote: ""
+      onNote: "",
+      onBookmark: ""
     },
     components:[
         {kind: "VFlexBox", flex: 1, components: [
             {kind: "ToolButtonGroup", components: [
-                {content: "Copy"},
-                {content: "Bookmark"},
-                {content: "Note", onclick: "doNote"},
-                {content: "Highlight"},
+                //{content: "Copy"},
+                {name: "bmCaption", caption: $L("Bookmark") + " + ", onclick: "doBookmark"},
+                {name: "noteCaption", caption: $L("Note") + " + ", onclick: "doNote"}
+                //{content: "Highlight"},
             ]}
-        ]}
-        
-       
+        ]}       
     ],
+    
+    setBmCaption: function (caption) {
+        this.$.bmCaption.setCaption(caption);
+    },
+    
+    setNoteCaption: function (caption) {
+        this.$.noteCaption.setCaption(caption);
+    },
     
     closePopup: function() {
        this.close();
@@ -42,24 +49,23 @@ enyo.kind({
 enyo.kind({
     name: "BibleZ.AddNote",
     kind: "ModalDialog",
+    lazy: false,
     events: {
       onAddNote: ""
     },
+    published: {
+		edit: false
+	},
     caption: $L("Add A Note"), components:[        
-        {name: "noteInput", kind: "RichText", className: "note-input", hint: $L("Add your note here.")},
+        {name: "noteInput", kind: "RichText", className: "note-input", hint: $L("Add your note here."), onfocus: "openCenter"},
         {layoutKind: "HFlexLayout", style: "margin-top: 10px;", components: [  
             {kind: "Button", caption: $L("Cancel"), flex: 1, onclick: "closePopup"},
-            {kind: "Button", caption: $L("Add"), flex: 1, onclick: "addNote", className: "enyo-button-affirmative"},
+            {name: "btAdd", kind: "Button", caption: $L("Add"), flex: 1, onclick: "addNote", className: "enyo-button-affirmative"},
         ]}
     ],
     
-    rendered: function () {
-        this.inherited(arguments);
-        this.setFocus();
-    },
-    
     getNote: function () {
-        return this.$.noteInput.getValue();
+        return this.$.noteInput.getHtml();
     },
     
     setFocus: function () {
@@ -68,6 +74,14 @@ enyo.kind({
     
     clearInput: function () {
         this.$.noteInput.setValue("");
+        this.$.btAdd.setCaption($L("Add"));
+        this.edit = false;
+        this.setFocus();
+    },
+    
+    setNote: function(noteText) {
+        this.$.btAdd.hide();
+        this.$.noteInput.setValue(noteText.replace(/"/g,""));
     },
     
     addNote: function (inSender, inEvent) {
@@ -76,7 +90,24 @@ enyo.kind({
         this.closePopup();
     },
     
-    closePopup: function() {
+    setEditMode: function () {
+        this.edit = true;
+    },
+    
+    showEditBt: function () {
+        if (this.edit == true) {
+            this.$.btAdd.setCaption($L("Edit"));
+            this.$.btAdd.show();    
+        }        
+    },
+    
+    openCenter: function() {
+        this.close()
+        this.openAtCenter();
+        this.showEditBt();
+    },
+    
+    closePopup: function () {
        this.close();
     }
 });
@@ -87,12 +118,12 @@ enyo.kind({
     //caption: "",
     lazy: false,
     components:[
-        {name: "noteContent", content: "", className: "popup-note"}
+        {name: "noteContent", allowHtml: true, content: "", className: "popup-note"}
         //{kind: "Button", caption: $L("OK"), onclick: "closePopup", style: "margin-top:10px"}
     ],
     
     setNote: function (note) {
-        this.$.noteContent.setContent(note);
+        this.$.noteContent.setContent(note.replace(/"/g,""));
     },
     
     closePopup: function() {

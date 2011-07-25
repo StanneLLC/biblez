@@ -28,7 +28,8 @@ enyo.kind({
 		popupTop: 0,
 		tappedVerse: 1,
 		tappedNote: 0,
-		notes: []
+		notes: [],
+		bookmarks: []
 	},
 	index: 1,
 	//onSnap: "changeChapter",
@@ -48,29 +49,17 @@ enyo.kind({
 		this.inherited(arguments);
 		this.setIndex(1);
 		this.$.prevChapter.hide();
+		this.starter = 0;
 	},
 	
 	rendered: function () {
 		this.inherited(arguments);
-		this.setIndex(1);
-		//this.$.mainView.addStyles("width: " + this.node.clientWidth + "px;");
-		this.$.firstSnapper.addStyles("width: " + this.node.clientWidth + "px;");
-	},
-    
-    windowRotated: function(inSender) {
-		var height = this.node.clientHeight - 30;
-		this.$.mainView.addStyles("height: " + height + "px;");
-		var comp = this.getComponents()
-		for (var j=0;j<comp.length;j++) {
-			if (comp[j].name.search(/snapper\d+/) != -1) {
-				comp[j].addStyles("width: " + this.node.clientWidth + "px;");
-			}
+		if (this.starter == 0) {
+			this.setIndex(1);
+			//this.$.mainView.addStyles("width: " + this.node.clientWidth + "px;");
+			this.$.firstSnapper.addStyles("width: " + this.node.clientWidth + "px;");
 		}
-		//this.$.mainView.addStyles("width: " + this.node.clientWidth + "px;");
-		this.$.firstSnapper.addStyles("width: " + this.node.clientWidth + "px;");
-		this.$.lastSnapper.addStyles("width: " + this.node.clientWidth + "px;");
-		
-		this.snapTo(this.index);
+		this.starter = 1;		
 	},
 	
 	changeChapter: function (inSender, inEvent) {
@@ -80,6 +69,10 @@ enyo.kind({
 		} else if (this.index == this.numberOfSnappers + 2) {
 			this.doNextChapter();
 		}
+	},
+	
+	getVerseContent: function(vnumber) {
+		
 	},
     
     setVerses: function (verses, vnumber) {
@@ -106,6 +99,7 @@ enyo.kind({
 			content = content + " <span id='" + verses[i].vnumber + "' class='verse-number'>" + verses[i].vnumber + "</span> </a>";
 			content = (parseInt(vnumber) != 1 && parseInt(vnumber) == parseInt(verses[i].vnumber)) ? content + "<span class='verse-highlighted'>" + tmpVerse + "</span>" : content + tmpVerse;
 			content = content + " <span id='noteIcon" + verses[i].vnumber + "'></span> ";
+			content = content + " <span id='bmIcon" + verses[i].vnumber + "'></span> ";
 		}
 		this.resized();
 		var height = this.node.clientHeight - 30;
@@ -122,6 +116,7 @@ enyo.kind({
 		}
 		
 		this.createComponent({name: "lastSnapper", style: "width: " + this.node.clientWidth + "px;", components: [{name: "nextChapter", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}]}).render();
+		this.$.mainView.render();
 		
 		this.$.prevChapter.show();
 	},
@@ -134,9 +129,10 @@ enyo.kind({
 			this.popupLeft = enyo.byId(inUrl.replace("verse://","")).getBoundingClientRect().left;
 			this.doVerseTap();
 		} else if (inUrl.match(/.*\:\/\//i) == "note://") {
-			this.tappedNote = parseInt(inUrl.replace("note://",""));
-			this.popupTop = enyo.byId("note" + inUrl.replace("note://","")).getBoundingClientRect().top;
-			this.popupLeft = enyo.byId("note" + inUrl.replace("note://","")).getBoundingClientRect().left;
+			this.tappedNote = parseInt(inUrl.replace("note://","").split(":")[0]);
+			this.tappedVerse = parseInt(inUrl.replace("note://","").split(":")[1]);			
+			this.popupTop = enyo.byId("note" + this.tappedNote).getBoundingClientRect().top;
+			this.popupLeft = enyo.byId("note" + this.tappedNote).getBoundingClientRect().left;
 			this.doShowNote();
 		}
 		
@@ -147,7 +143,15 @@ enyo.kind({
 		this.notes = notes;
 		//console.log(enyo.json.stringify(notes));
 		for (var i=0;i<notes.length; i++) {
-			enyo.byId("noteIcon"+notes[i].vnumber).innerHTML = "<a href='note://" + i + "'><img id='note" + i + "' src='images/note.png' /></a>";
+			enyo.byId("noteIcon"+notes[i].vnumber).innerHTML = "<a href='note://" + i + ":" + notes[i].vnumber + "'><img id='note" + i + "' src='images/note.png' /></a>";
+		}
+	},
+	
+	setBookmarks: function(bookmarks) {
+		this.bookmarks = bookmarks;
+		//console.log(enyo.json.stringify(notes));
+		for (var i=0;i<bookmarks.length; i++) {
+			enyo.byId("bmIcon"+bookmarks[i].vnumber).innerHTML = "<a href='bookmark://" + i + ":" + bookmarks[i].vnumber + "'><img id='bookmark" + i + "' src='images/bookmark.png' /></a>";
 		}
 	},
 	
@@ -162,6 +166,22 @@ enyo.kind({
 	
 	setNextChapter: function (passage) {
 		this.$.nextChapter.setContent(passage + " >");
+	},
+	
+	windowRotated: function(inSender) {
+		var height = this.node.clientHeight - 30;
+		this.$.mainView.addStyles("height: " + height + "px;");
+		var comp = this.getComponents()
+		for (var j=0;j<comp.length;j++) {
+			if (comp[j].name.search(/snapper\d+/) != -1) {
+				comp[j].addStyles("width: " + this.node.clientWidth + "px;");
+			}
+		}
+		//this.$.mainView.addStyles("width: " + this.node.clientWidth + "px;");
+		this.$.firstSnapper.addStyles("width: " + this.node.clientWidth + "px;");
+		this.$.lastSnapper.addStyles("width: " + this.node.clientWidth + "px;");
+		
+		this.snapTo(this.index);
 	},
 	
 	//WORKAROUND

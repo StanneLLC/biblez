@@ -17,18 +17,18 @@ var biblezTools = {
     createDB: function() {
 		try {
 			this.db = openDatabase('ext:settings', '', 'BibleZ Settings Data', 200000);
-			console.log("Created/Opened database")
+			enyo.log("Created/Opened database")
 		} catch (e) {
-			console.log("ERROR", e);		
+			enyo.log("ERROR", e);		
 		}
 		
 		switch (this.db.version) {
 			case '':
-				console.log("Create Tables...");
+				enyo.log("Create Tables...");
                 this.dbCreateTables("1");
 			break;
 			case "1":
-				console.log("Update Tables to 2");
+				enyo.log("Update Tables to 2");
                 //this.dbCreateTables("2");
 			break;
 		}
@@ -41,30 +41,30 @@ var biblezTools = {
 		    this.db.changeVersion('', version,
 		        enyo.bind(this,(function (transaction) { 
 		            transaction.executeSql(sqlNote, [], 
-						enyo.bind(this, function () {console.log("SUCCESS: Created notes table");}),
+						enyo.bind(this, function () {enyo.log("SUCCESS: Created notes table");}),
 						enyo.bind(this,this.errorHandler)
 					);
 					
 					transaction.executeSql(sqlBook, [], 
-						enyo.bind(this, function () {console.log("SUCCESS: Created bookmarks table");}),
+						enyo.bind(this, function () {enyo.log("SUCCESS: Created bookmarks table");}),
 						enyo.bind(this,this.errorHandler)
 					); 
 		        }))
 		    );
 		} catch (e) {
-			console.log("ERROR", e);
+			enyo.log("ERROR", e);
 		}
 	},
     
     prepareModules: function (modules, inCallback) {
-        //console.log(this.db);
+        //enyo.log(this.db);
         try {
 			var sql = 'DROP TABLE IF EXISTS modules;'
 		    this.db.transaction( 
 		        enyo.bind(this,(function (transaction) { 
 		            transaction.executeSql(sql, [], 
 					enyo.bind(this, function () {
-                        console.log("SUCCESS: Dropped modules table");
+                        enyo.log("SUCCESS: Dropped modules table");
                         //this.importModuleData(modules);
                         try {
                             var sql = 'CREATE TABLE IF NOT EXISTS modules (lang TEXT, modType TEXT, modName TEXT, descr TEXT, source TEXT);'
@@ -72,26 +72,26 @@ var biblezTools = {
                                 enyo.bind(this,(function (transaction) { 
                                     transaction.executeSql(sql, [], 
                                     enyo.bind(this, function () {
-                                        console.log("SUCCESS: Created modules table");
+                                        enyo.log("SUCCESS: Created modules table");
 										this.importModuleData(modules, inCallback);
                                     }),
                                     enyo.bind(this,this.errorHandler)); 
                                 }))
                             );
                         } catch (e) {
-                            console.log("ERROR", e);
+                            enyo.log("ERROR", e);
                         }
 					}),
                     enyo.bind(this,this.errorHandler)); 
 		        }))
 		    );
 		} catch (e) {
-			console.log("ERROR", e);
+			enyo.log("ERROR", e);
 		}
     },
     
     importModuleData: function(modules, inCallback)  {
-        console.log("Reading Module Data...");
+        enyo.log("Reading Module Data...");
 		var z = 0;
         try {
 			var sql = "";
@@ -102,7 +102,7 @@ var biblezTools = {
 						if(modules[i].datapath) {
 							transaction.executeSql(sql, [modules[i].lang, modules[i].datapath.split("/")[2], modules[i].name, modules[i].description, "crosswire"], 
 							enyo.bind(this, function () {
-								//console.log("SUCCESS: Insert Module " + z);
+								//enyo.log("SUCCESS: Insert Module " + z);
 								z++;
 								if (z == modules.length) {
 									inCallback();
@@ -116,7 +116,7 @@ var biblezTools = {
 		        }))
 		    );
 		} catch (e) {
-			console.log("ERROR", e);
+			enyo.log("ERROR", e);
 		}
     },
 	
@@ -143,7 +143,7 @@ var biblezTools = {
 		        }))
 		    );
 		} catch (e) {
-			console.log("ERROR", e);
+			enyo.log("ERROR", e);
 		}
 	},
 	
@@ -164,7 +164,7 @@ var biblezTools = {
 		        }))
 		    );
 		} catch (e) {
-			console.log("ERROR", e);
+			enyo.log("ERROR", e);
 		}
 	},
 	
@@ -176,14 +176,53 @@ var biblezTools = {
 		        enyo.bind(this,(function (transaction) { 
 		            transaction.executeSql(sql, [bnumber, cnumber, vnumber, noteText, title, folder, tags], 
 					enyo.bind(this, function () {
-                        console.log("Successfully inserted note!");
+                        enyo.log("Successfully inserted note!");
 						inCallback();
 					}),
                     enyo.bind(this,this.errorHandler)); 
 		        }))
 		    );
 		} catch (e) {
-			console.log("ERROR", e);
+			enyo.log("ERROR", e);
+		}
+	},
+	
+	removeNote: function (bnumber, cnumber, vnumber, inCallback) {
+		enyo.log(bnumber, cnumber, vnumber);
+		try {
+			var sql = "DELETE FROM notes WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' AND vnumber = '" + vnumber + "'";
+		    this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [], 
+					enyo.bind(this, function () {
+                        enyo.log("Successfully deleted note!");
+						inCallback();
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.log("ERROR", e);
+		}
+	},
+	
+	updateNote: function (bnumber, cnumber, vnumber, noteText, title, folder, tags, inCallback) {
+		enyo.log(bnumber, cnumber, vnumber, noteText, title, folder, tags);
+		try {
+			var sql = 'UPDATE notes SET note = "' + noteText.replace(/"/g,"") + '", title = "' + title + '", folder = "' + folder + '", tags = "' + tags + '" WHERE bnumber = "' + bnumber + '" AND cnumber = "' + cnumber + '" AND vnumber = "' + vnumber + '"';
+		    enyo.log(sql);
+			this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [], 
+					enyo.bind(this, function () {
+                        enyo.log("Successfully updated note!");
+						inCallback();
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.log("ERROR", e);
 		}
 	},
 	
@@ -192,7 +231,7 @@ var biblezTools = {
 		var notes = [];
 		try {
 			var sql = "SELECT * FROM notes WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;"
-		    //console.log(sql);
+		    //enyo.log(sql);
 			//var sql = "SELECT * FROM notes;";
 			this.db.transaction( 
 		        enyo.bind(this,(function (transaction) { 
@@ -207,29 +246,91 @@ var biblezTools = {
 		        }))
 		    );
 		} catch (e) {
-			console.log("ERROR", e);
+			enyo.log("ERROR", e);
+		}
+	},
+	
+	addBookmark: function (bnumber, cnumber, vnumber, title, folder, tags, inCallback) {
+		enyo.log(bnumber, cnumber, vnumber, title, folder, tags);
+		try {
+			var sql = "INSERT INTO bookmarks (bnumber, cnumber, vnumber, title, folder, tags) VALUES (?,?,?,?,?,?)";
+		    this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [bnumber, cnumber, vnumber, title, folder, tags], 
+					enyo.bind(this, function () {
+                        enyo.log("Successfully inserted bookmark!");
+						inCallback();
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.log("ERROR", e);
+		}
+	},
+	
+	removeBookmark: function (bnumber, cnumber, vnumber, inCallback) {
+		enyo.log(bnumber, cnumber, vnumber);
+		try {
+			var sql = "DELETE FROM bookmarks WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' AND vnumber = '" + vnumber + "'";
+		    this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [], 
+					enyo.bind(this, function () {
+                        enyo.log("Successfully deleted bookmark!");
+						inCallback();
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.log("ERROR", e);
+		}
+	},
+	
+	getBookmarks: function(bnumber, cnumber, inCallback) {
+		//enyo.log(bnumber, cnumber);
+		var bm = [];
+		try {
+			var sql = "SELECT * FROM bookmarks WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;"
+		    //enyo.log(sql);
+			//var sql = "SELECT * FROM notes;";
+			this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [], 
+					enyo.bind(this, function (transaction, results) {
+                        for (var j=0; j<results.rows.length; j++) {
+							bm.push({"bnumber": results.rows.item(j).bnumber, "cnumber": results.rows.item(j).cnumber, "vnumber": results.rows.item(j).vnumber, "title": results.rows.item(j).title, "folder": results.rows.item(j).folder, "tags": results.rows.item(j).tags});
+						}
+						inCallback(bm);
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.log("ERROR", e);
 		}
 	},
 	
 	errorHandler: function (transaction, error) {
-		console.log("ERROR", error.message);
+		enyo.log("ERROR", error.message);
 	},
 	
 	logDB: function() {
-		//console.log(this.db);
+		//enyo.log(this.db);
 		try {
 			var sql = 'SELECT * FROM modules;'
 		    this.db.transaction( 
 		        enyo.bind(this,(function (transaction) { 
 		            transaction.executeSql(sql, [], 
 					enyo.bind(this, function (transaction, results) {
-                        console.log(results.rows.item(1));
+                        enyo.log(results.rows.item(1));
 					}),
                     enyo.bind(this,this.errorHandler)); 
 		        }))
 		    );
 		} catch (e) {
-			console.log("ERROR", e);
+			enyo.log("ERROR", e);
 		}
 	},
 };

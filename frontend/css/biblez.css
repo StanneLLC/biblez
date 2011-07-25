@@ -207,6 +207,11 @@
 .verse-popup {
     font-size: .8em;
     -webkit-border-image: none;
-    background-color: #3A8BCB;
+    background-color: #D8D8D8; /*#3A8BCB; */
     position: absolute;
+    min-width: 30px;
+}
+
+.popup-note {
+    font-size: 0.8em;
 }
