@@ -112,7 +112,7 @@ enyo.kind({
 		this.$.mainView.addStyles("height: " + height + "px;");
 		//this.$.mainView.addStyles("width: " + this.node.clientWidth + "px;");
 		this.$.mainView.setContent(content);
-		this.log(this.node.clientWidth, this.node.scrollWidth, this.node.scrollWidth - this.node.clientWidth, parseInt((this.node.scrollWidth - this.node.clientWidth) / this.node.clientWidth));
+		//this.log(this.node.clientWidth, this.node.scrollWidth, this.node.scrollWidth - this.node.clientWidth, parseInt((this.node.scrollWidth - this.node.clientWidth) / this.node.clientWidth));
 		this.numberOfSnappers = (this.node.scrollWidth - this.node.clientWidth !== this.node.clientWidth) ? parseInt((this.node.scrollWidth - this.node.clientWidth) / this.node.clientWidth) : 0;
 		
 		var kindName = "";
@@ -263,7 +263,8 @@ enyo.kind({
 				nextBook = this.bookNames[this.bnumber];
 			}
 		}
-		passage = (nextBook !== "" && nextChapter !== 0) ? nextBook.name + " " + nextChapter : "End of Bible =)";
+		//enyo.log(this.bnumber, this.chapter, nextChapter, nextBook);
+		passage = (nextBook !== "" && nextChapter !== 0) ? nextBook.abbrev + " " + nextChapter : "End of Bible =)";
 		return {"passage": passage, "nextChapter": nextChapter, "nextBook": nextBook, "nextBnumber": nextBnumber};
 	},
 	
@@ -284,10 +285,10 @@ enyo.kind({
 		} else {
 			if (parseInt(this.chapter, 10) > 1) {
 				prevChapter = parseInt(this.chapter, 10) - 1;
-				prevtBook = this.bookNames[this.bnumber];
+				prevBook = this.bookNames[this.bnumber];
 			}
 		}
-		passage = (prevBook !== "" && prevChapter !== 0) ? prevBook.name + " " + prevChapter : "Beginning of Bible =)";
+		passage = (prevBook !== "" && prevChapter !== 0) ? prevBook.abbrev + " " + prevChapter : "Beginning of Bible =)";
 		return {"passage": passage, "prevChapter": prevChapter, "prevBook": prevBook, "prevBnumber": prevBnumber};
 	},
 	

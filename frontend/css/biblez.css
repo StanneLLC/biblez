@@ -57,7 +57,7 @@
 	-webkit-column-width: 220px;
 	-webkit-column-gap: 40px;
     overflow: visible;
-    /*font-family:georgia,garamond,serif;
+    /* font-family:georgia,garamond,serif;
     font-size: 22px; */
 }
 
@@ -152,28 +152,28 @@
 
 .details-descr {
     padding-left: 20px;
+    padding-right: 20px;
     padding-bottom: 0.5em;
 }
 
-.details-type {
+.details-info {
     font-size: 0.9em;
     padding-left: 20px;
-}
-
-.details-lang {
-    font-size: 0.9em;
-    padding-left: 20px;
+    padding-right: 20px;
+    
 }
 
 .modules-button-install {
     margin-top: 10px;
     width: 150px;
     margin-left: 20px;
+    margin-bottom: 10px;
     background-color: #2AA100;
 }
 
 .modules-button-remove {
     margin-top: 10px;
+    margin-bottom: 10px;
     width: 150px;
     margin-left: 20px;
 }

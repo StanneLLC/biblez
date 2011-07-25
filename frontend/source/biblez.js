@@ -54,7 +54,7 @@ enyo.kind({
 				{name: "biblezHint", flex: 1, className: "scroller-background biblez-hint", content: "ERROR"}
 			]},
 			{name: "selector", kind: "BibleZ.Selector", onChapter: "getVMax", onVerse: "getPassage"},
-			{name: "modManView", kind: "BibleZ.ModMan", onUntar: "untarModules", onUnzip: "unzipModule", onRemove: "removeModule", onBack: "goToMainView"}
+			{name: "modManView", kind: "BibleZ.ModMan", onUntar: "untarModules", onUnzip: "unzipModule", onGetDetails: "getDetails", onRemove: "removeModule", onBack: "goToMainView"}
 		]},
 		{kind: "Hybrid", name: "plugin", executable: "pluginSword", width:"0", height:"0", onPluginReady: "handlePluginReady", style: "float: left;"}
 	],
@@ -83,8 +83,9 @@ enyo.kind({
 		this.$.plugin.addCallback("returnUnzip", enyo.bind(this, "handleUnzip"), true);
 		this.$.plugin.addCallback("returnRemove", enyo.bind(this, "handleRemove"), true);
 		this.$.plugin.addCallback("returnReadConfs", enyo.bind(this, "handleReadConfs"), true);
+		this.$.plugin.addCallback("returnGetDetails", enyo.bind(this, "handleGetDetails"), true);
 		
-		//console.log(enyo.fetchDeviceInfo().platformVersion);
+		//enyo.log(enyo.fetchDeviceInfo().platformVersion);
 	},
 	
 	rendered: function() {
@@ -111,7 +112,7 @@ enyo.kind({
 	},
 	
 	openShowNote: function (inSender, inEvent) {
-		console.log("Show Notes...");
+		enyo.log("Show Notes...");
 		this.$.noteView.setNote(inSender.notes[inSender.tappedNote].note);
 		this.$.noteView.openAt({top: inSender.popupTop, left: inSender.popupLeft}, true);
 	},
@@ -134,11 +135,12 @@ enyo.kind({
 	handlePluginReady: function(inSender) {
 		this.pluginReady = true;
 		//this.$.plugin.hide();
-		this.getBooknames();
+		
+		this.getModules();
 	},
 	
 	handleGetModules: function(modules) {
-		console.log("INFO: " + modules);
+		enyo.log("INFO: " + modules);
 		var mods = enyo.json.parse(modules);
 		this.$.modManView.setInstalledModules(enyo.json.parse(modules));
 
@@ -164,6 +166,9 @@ enyo.kind({
 			}				
 			this.currentModule = (this.dbSets["lastRead"] && ifModule == 1)? enyo.json.parse(this.dbSets["lastRead"]).module : mods[0];
 			
+			//Get current Booknames
+			this.getBooknames(this.currentModule.name);
+			
 			//this.currentModule = mods[0];
 			var kindName = "";
 			for (var i=0;i<mods.length;i++) {
@@ -183,15 +188,11 @@ enyo.kind({
 					this.$.selector.setChapter(lastRead.chapter);
 					this.$.selector.setVerse(lastRead.verse);
 					this.$.selector.setBook(lastRead.book);
-				}
-				if (this.$.mainPane.getViewName() == "verseView") {
-					this.getVerses(this.$.selector.getBook().name + " " + this.$.selector.getChapter(), this.currentModule.name);
-				}
-				
+				}				
 			}
 			this.start = 1;	
 		} else {
-			console.log("NO MODULES");
+			enyo.log("NO MODULES");
 			this.$.mainToolbar.hide();
 			this.$.mainView.hide();
 			this.$.firstStart.show();
@@ -199,7 +200,7 @@ enyo.kind({
 	},
 	
 	handleSelectModules: function (inSender, inEvent) {
-		console.log("MODULE: " + inSender.module.name);
+		enyo.log("MODULE: " + inSender.module.name);
 		this.currentModule = inSender.module;
 		var comp = this.getComponents()
 		for (var j=0;j<comp.length;j++) {
@@ -208,12 +209,23 @@ enyo.kind({
 			}
 		}
 		inSender.setChecked(true);
-		this.getVerses(this.$.selector.getBook().name + " " + this.$.selector.getChapter(), inSender.module.name);
+        this.getBooknames(this.currentModule.name);
+		//this.getVerses(this.$.selector.getBook().name + " " + this.$.selector.getChapter(), inSender.module.name);
+	},
+	
+	handleBooknames: function(response) {
+		//enyo.log(response);
+		this.$.selector.createSection("books", enyo.json.parse(response));
+		this.$.selector.setBookNames(enyo.json.parse(response));
+		if (this.$.mainPane.getViewName() == "verseView") {
+		    this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), this.currentModule.name);
+		}
+		
 	},
 	
 	handleGetVerses: function(verses, passage) {
 		//this.showError(enyo.json.parse(verses));
-		//console.log(verses);
+		//enyo.log(verses);
 		if (enyo.json.parse(verses).length != 0) {
 			this.$.mainView.show();
 			this.$.biblezHint.hide();
@@ -227,13 +239,13 @@ enyo.kind({
 			//Need to wait for setCurrentPassage???
 			this.getNotes();
 		} else {
-			console.log("Chapter not available!");
+			enyo.log("Chapter not available!");
 			this.$.biblezHint.setContent($L("The chapter is not available in this module! :-("));
 			this.$.mainView.hide();
 			this.$.biblezHint.show();
 		}
 		
-		//console.log(enyo.json.stringify(this.dbSets["history"]));
+		//enyo.log(enyo.json.stringify(this.dbSets["history"]));
 		this.$.tbPassage.setCaption(this.currentModule.name + " - " + this.$.selector.getBook().name + " " + this.$.selector.getChapter());
 		this.$.spinner.hide();
 	},
@@ -274,15 +286,8 @@ enyo.kind({
 		biblezTools.getNotes(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setNotes));
 	},
 	
-	handleBooknames: function(response) {
-		//this.showError(response);
-		this.$.selector.createSection("books", enyo.json.parse(response));
-		this.$.selector.setBookNames(enyo.json.parse(response));
-		this.getModules();
-	},
-	
 	handleVMax: function(response) {
-		console.log(response)
+		enyo.log(response)
 		this.$.selector.createSection("verses", parseInt(response, 10));
 	},
 	
@@ -298,7 +303,7 @@ enyo.kind({
 	},
 	
 	handleUntar: function (response) {
-		console.log(response);
+		enyo.log(response);
 		
 		if (response == "0") {
 			this.log("INFO", "Read available confs...");
@@ -313,7 +318,7 @@ enyo.kind({
 			}
 		} else {
 			this.$.modManView.stopSpinner();
-			console.log("Couldn't untar mods.d.gz");
+			enyo.log("Couldn't untar mods.d.gz");
 			this.showError("Couldn't untar mods.d.tar. You need to remove the /media/internal/.sword/ directory!");
 		}
 	},
@@ -324,7 +329,7 @@ enyo.kind({
 	},
 	
 	unzipModule: function(inSender, inEvent) {
-		console.log(inSender.modulePath);
+		enyo.log(inSender.modulePath);
 		if (this.pluginReady) {
 			try { var status = this.$.plugin.callPluginMethod("unzipModule", inSender.modulePath); }
 			catch (e) { this.showError("Plugin exception: " + e);}
@@ -343,7 +348,7 @@ enyo.kind({
 	},
 	
 	removeModule: function (inSender, inEvent) {
-		console.log(inSender.moduleToRemove.dataPath + "," + inSender.moduleToRemove.name.toLowerCase());
+		enyo.log(inSender.moduleToRemove.dataPath + "," + inSender.moduleToRemove.name.toLowerCase());
 		if (this.pluginReady) {
 			try { var status = this.$.plugin.callPluginMethod("removeModule", inSender.moduleToRemove.dataPath, inSender.moduleToRemove.name.toLowerCase()); }
 			catch (e) { this.showError("Plugin exception: " + e);}
@@ -354,9 +359,24 @@ enyo.kind({
 	},
 	
 	handleRemove: function (response) {
-		console.log("REMOVE: " + response);
+		enyo.log("REMOVE: " + response);
 		enyo.windows.addBannerMessage($L("Uninstalled Module!"), enyo.json.stringify({}));
 		this.getModules();
+	},
+	
+	getDetails: function (inSender, inEvent) {
+		if (this.pluginReady) {
+			try { var status = this.$.plugin.callPluginMethod("getModuleDetails", inSender.currentModule); }
+			catch (e) { this.showError("Plugin exception: " + e);}
+		}
+		else {
+			this.showError("plugin not ready");
+		}
+	},
+	
+	handleGetDetails: function (details) {
+		//enyo.log("DETAILS", details);
+		this.$.modManView.showDetails(enyo.json.parse(details));
 	},
 	
 	getModules:function(inSender, inEvent) {
@@ -371,7 +391,7 @@ enyo.kind({
 	},
 	
 	getPassage: function (inSender, inEvent) {
-		this.getVerses(this.$.selector.getBook().name + " " + this.$.selector.getChapter());
+		this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter());
 	},
 	
 	getVerses:function(passage, module) {
@@ -385,9 +405,9 @@ enyo.kind({
 		}
 	},
 	
-	getBooknames:function() {
+	getBooknames:function(modName) {
 		if (this.pluginReady) {
-			try {var status = this.$.plugin.callPluginMethod("getBooknames");}
+			try {var status = this.$.plugin.callPluginMethod("getBooknames", modName);}
 			catch (e) {this.showError("Plugin exception: " + e);}
 		}
 		else {
@@ -397,7 +417,7 @@ enyo.kind({
 	
 	getVMax:function() {
 		var passage = this.$.selector.getBook().name + " " + this.$.selector.getChapter();
-		console.log(passage);
+		enyo.log(passage);
 		if (this.pluginReady) {
 			try {var status = this.$.plugin.callPluginMethod("getVMax", passage);}
 			catch (e) {this.showError("Plugin exception: " + e);}
@@ -414,7 +434,7 @@ enyo.kind({
 	},
 	
 	changeChapter: function (inSender, inEvent) {
-		//console.log("CHANGE CHAPTER... " + inSender.index, inSender.numberOfSnappers);
+		//enyo.log("CHANGE CHAPTER... " + inSender.index, inSender.numberOfSnappers);
 		if (inSender.index == 0) {
 			var prev = this.$.selector.getPrevPassage();
 			this.getVerses(prev.passage);
@@ -445,13 +465,13 @@ enyo.kind({
 	},
 	
 	viewSelected: function(inSender, inView, inPreviousView) {
-		console.log(inView.name);
+		enyo.log(inView.name);
 		if (inView.name == "modManView") {
 			this.$.modManView.downloadMods();
 			//this.$.modManView.getLang();
 		} else if (inView.name == "verseView") {
 			if(this.$.modManView.installedModules.length != 0) {
-				this.getVerses(this.$.selector.getBook().name + " " + this.$.selector.getChapter(), this.currentModule.name);
+				this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), this.currentModule.name);
 			}
 			
 		}
@@ -481,14 +501,14 @@ enyo.kind({
 	
 	savePassage: function () {
 		var lastRead = {
-			"passage" : this.$.selector.getBook().name + " " + this.$.selector.getChapter(),
+			"passage" : this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(),
 			"module" : this.currentModule,
 			"bnumber": this.$.selector.bnumber,
 			"chapter": this.$.selector.chapter,
 			"verse": this.$.selector.verse,
 			"book": this.$.selector.book
 		};
-		//console.log(enyo.json.stringify(lastRead));
+		//enyo.log(enyo.json.stringify(lastRead));
 		if(this.currentModule) {
 			this.dbSets["lastRead"] = enyo.json.stringify(lastRead);
 		}
@@ -496,4 +516,4 @@ enyo.kind({
 });
 
 //Turn Logging off
-//console.log = function(){}
+//enyo.log = function(){}

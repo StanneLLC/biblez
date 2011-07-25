@@ -174,21 +174,56 @@ PDL_bool getModules(PDL_JSParameters *parms) {
     return PDL_TRUE;
 }
 
+PDL_bool getModuleDetails (PDL_JSParameters *parms) {
+	/*Get information about a module*/
+	const char* moduleName = PDL_GetJSParamString(parms, 0);
+	std::stringstream mod;
+	SWMgr confReader("/media/internal/.sword/install", new MarkupFilterMgr(FMT_HTMLHREF));
+	
+	SWModule *module = confReader.getModule(moduleName);
+	if (!module) {
+		PDL_JSException(parms, "getModuleDetails: Couldn't find Module");
+		return PDL_FALSE;
+	}
+	
+	mod << "{";	
+	
+	mod << "\"name\": \"" << module->Name() << "\"";			
+	mod << ", \"datapath\": \"" << module->getConfigEntry("DataPath") << "\"";			
+	mod << ", \"description\": \"" << convertString(module->getConfigEntry("Description")) << "\"";
+	if (module->getConfigEntry("Lang")) mod << ", \"lang\": \"" << module->getConfigEntry("Lang") << "\"";
+	if (module->getConfigEntry("Versification")) mod << ", \"versification\": \"" << module->getConfigEntry("Versification") << "\"";
+	if (module->getConfigEntry("About")) mod << ", \"about\": \"" << convertString(module->getConfigEntry("About")) << "\"";
+	if (module->getConfigEntry("Version")) mod << ", \"version\": \"" << module->getConfigEntry("Version") << "\"";
+	if (module->getConfigEntry("InstallSize")) mod << ", \"installSize\": \"" << module->getConfigEntry("InstallSize") << "\"";
+	if (module->getConfigEntry("Copyright")) mod << ", \"copyright\": \"" << convertString(module->getConfigEntry("Copyright")) << "\"";
+	if (module->getConfigEntry("DistributionLicense")) mod << ", \"distributionLicense\": \"" << module->getConfigEntry("DistributionLicense") << "\"";
+	if (module->getConfigEntry("Category")) mod << ", \"category\": \"" << module->getConfigEntry("Category") << "\"";
+	
+	mod << "}";
+	
+	const std::string& tmp = mod.str();
+	const char* cstr = tmp.c_str();
+		
+	const char *params[1];
+	params[0] = cstr;
+	PDL_Err mjErr = PDL_CallJS("returnGetDetails", params, 1);
+    return PDL_TRUE;
+}
+
 PDL_bool getVerses(PDL_JSParameters *parms) {
 	/*Get verses from a specific module (e.g. "ESV"). Set your biblepassage in key e.g. "James 1:19" */
 	const char* moduleName = PDL_GetJSParamString(parms, 0);
 	const char* key = PDL_GetJSParamString(parms, 1);
 	std::string verseText;
 	std::stringstream out;
-	
-	//SWMgr library(new MarkupFilterMgr(FMT_HTMLHREF));
-	//library.setGlobalOption("Footnotes","On");
-	//library.setGlobalOption("Headings", "On");
+
 	SWModule *module = displayLibrary->getModule(moduleName);
 	ListKey verses = VerseKey().ParseVerseList(key, "", true);
-	
-	const char *params[2];
-	
+
+	//library.setGlobalOption("Footnotes","On");
+	//library.setGlobalOption("Headings", "On");
+
 	out << "[";
 	
 	for (verses = TOP; !verses.Error(); verses++) {
@@ -206,10 +241,16 @@ PDL_bool getVerses(PDL_JSParameters *parms) {
 	}
 	
 	out << "]";
+	
+	/*if (out.str() == "[]") {
+		PDL_JSException(parms, "getVerses: Chapter is not available in this module!");
+		return PDL_FALSE;
+	}*/
 
 	const std::string& tmp = out.str();
 	const char* cstr = tmp.c_str();
 	
+	const char *params[2];
 	params[0] = cstr;
 	params[1] = key;
 	PDL_Err mjErr = PDL_CallJS("returnVerses", params, 2);
@@ -217,9 +258,24 @@ PDL_bool getVerses(PDL_JSParameters *parms) {
 }
 
 PDL_bool getBooknames(PDL_JSParameters *parms) {
+	const char* moduleName = PDL_GetJSParamString(parms, 0);
 	std::stringstream bnames;
 	std::string bnStr;
-	VerseKey vk;
+	
+	SWModule *module = displayLibrary->getModule(moduleName);
+	if (!module) {
+		PDL_JSException(parms, "getBooknames: Couldn't find Module");
+		return PDL_FALSE;  // assert we found the module
+	}
+	
+	VerseKey *vkey = dynamic_cast<VerseKey *>(module->getKey());
+	if (!vkey) {
+		PDL_JSException(parms, "getBooknames: Couldn't find verse!");
+		return PDL_FALSE;    // assert our module uses verses
+	}
+	
+	VerseKey &vk = *vkey;
+	
 	bnames << "[";
 	for (int b = 0; b < 2; b++)	{
 		vk.setTestament(b+1);
@@ -533,6 +589,7 @@ int main () {
 	PDL_RegisterJSHandler("unzipModule", unzipModule);
 	PDL_RegisterJSHandler("removeModule", removeModule);
 	PDL_RegisterJSHandler("readConfs", readConfs);
+	PDL_RegisterJSHandler("getModuleDetails", getModuleDetails);
 	PDL_JSRegistrationComplete();
 	
 	PDL_CallJS("ready", NULL, 0);

@@ -20,7 +20,8 @@ enyo.kind({
         onUntar: "",
 		onBack: "",
 		onUnzip: "",
-		onRemove: ""
+		onRemove: "",
+		onGetDetails: ""
     },
 	published: {
 		installedModules: [],
@@ -61,7 +62,7 @@ enyo.kind({
                 ]}
 			]},
 			{name: "middle", width: "320px", kind:"SlidingView", peekWidth: 50, components: [
-                {kind: "Scroller", flex: 1, components: [
+                {name: "scrollerMiddle", kind: "Scroller", flex: 1, components: [
                     {name: "modList", kind: "VirtualRepeater", onSetupRow: "getModListItem", components: [
 						{name: "itemMod", kind: "Item", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
 							{name: "modName"}
@@ -76,18 +77,24 @@ enyo.kind({
                 ]}
 			]},
 			{name: "right", kind:"SlidingView", flex: 1, components: [
-                {kind: "Scroller", flex: 1, style: "background-color: transparent;", components: [
+                {name: "scrollerRight", kind: "Scroller", flex: 1, style: "background-color: transparent;", components: [
                     {name: "detailsContainer", components: [
 						{name: "detailsName", className: "details-name"},
 						{name: "detailsDescription", className: "details-descr"},
-						{name: "detailsType", className: "details-type"},
-						{name: "detailsLang", className: "details-lang"},
+						{name: "detailsSize", className: "details-info"},
+						{name: "detailsVersion", className: "details-info"},
 						{name: "btInstall", kind: "ProgressButton", cancelable: false, position: 100, onclick: "downloadAddIn", className: "modules-button-install", components: [
 							{kind: "HFlexBox", components: [
 								{name:"btInstallCaption", content: $L("Install")}
 							]}
 						]},
-						{name: "btRemove", caption: $L("Remove"), kind: "Button", onclick: "removeModule", className: "enyo-button-negative modules-button-remove"}
+						{name: "btRemove", caption: $L("Remove"), kind: "Button", onclick: "removeModule", className: "enyo-button-negative modules-button-remove"},
+						{kind: "Divider", caption: $L("About")},
+						{name: "detailsAbout", allowHtml: true, className: "details-info"},
+						{kind: "Divider", caption: $L("Copyright & License")},
+						{name: "detailsCopyright", className: "details-info"},
+						{name: "detailsLicense", className: "details-info"},
+						{name: "detailsAVN", className: "details-info"},
 					]}					
                 ]},
                 {kind: "Toolbar", components: [
@@ -188,7 +195,7 @@ enyo.kind({
 		this.lastLangItem = rowIndex;
 		this.lastModItem = null;
 		this.$.langList.render();
-		
+		this.$.scrollerMiddle.scrollTo(0,0);
 	},
 	
 	setModules: function (modules) {
@@ -222,24 +229,35 @@ enyo.kind({
     },
 	
 	getDetails: function (inSender, inEvent, rowIndex) {
+		//this.$.spinner.show();
 		this.lastModItem = rowIndex;
 		this.$.modList.render();
+		this.$.scrollerRight.scrollTo(0,0);
 		
 		this.currentModule = this.modules[rowIndex].modName;
-		
+		this.doGetDetails();
+	},
+	
+	showDetails: function (details) {
 		this.$.btInstall.show();
 		this.$.btRemove.hide();
 		this.$.btInstallCaption.setContent($L("Install"));
 		this.$.btInstall.setMaximum(100);
 		this.$.btInstall.setPosition(100);
-		this.$.detailsName.setContent(this.modules[rowIndex].modName);
-		this.$.detailsDescription.setContent(this.modules[rowIndex].descr);
-		this.$.detailsType.setContent($L("Type") + ": " + this.modules[rowIndex].modType);
-		var tmpLang = (languages[this.modules[rowIndex].lang]) ? (languages[this.modules[rowIndex].lang]) : this.modules[rowIndex].lang;
-		this.$.detailsLang.setContent($L("Language") + ": " + tmpLang);
+		
+		this.$.detailsName.setContent(details.name);
+		this.$.detailsDescription.setContent(details.description);
+		this.$.detailsAbout.setContent(details.about.replace(/\\par/g, "<br>"));
+		this.$.detailsSize.setContent($L("Install Size") + ": " + Math.round(parseInt(details.installSize) / 1048576 * 100) / 100 + " MB");
+		this.$.detailsVersion.setContent($L("Version") + ": " + details.version);
+		if (details.copyright) {this.$.detailsCopyright.setContent($L("Copyright") + ": " + details.copyright)};		
+		this.$.detailsLicense.setContent($L("License") + ": " + details.distributionLicense);
+		//this.$.detailsType.setContent($L("Type") + ": " + details.category);
+		//var tmpLang = (languages[details.lang]) ? (languages[details.lang]) : details.lang;
+		//this.$.detailsLang.setContent($L("Language") + ": " + tmpLang);
 		
 		for(var i=0;i<this.installedModules.length;i++) {
-			if(this.installedModules[i].name ==  this.modules[rowIndex].modName) {
+			if(this.installedModules[i].name ==  details.name) {
 				this.$.btInstall.hide();
 				this.$.btRemove.show();
 				this.moduleToRemove = this.installedModules[i];
@@ -247,6 +265,7 @@ enyo.kind({
 		}
 		
 		this.$.detailsContainer.show();
+		//this.$.spinner.hide();
 	},
 	
 	removeModule: function(inSender, inEvent) {

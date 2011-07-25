@@ -108,6 +108,7 @@ enyo.kind({
       {content: "About " + enyo.fetchAppInfo().title, className: "popup-title"},
       {content: "Version " + enyo.fetchAppInfo().version, className: "popup-version"},
       {content: "BibleZ HD is based on the <a href='http://www.crosswire.org/sword'>SWORD Project</a>. \
+                <br>BibleZ HD is licensed  under <a href='http://www.gnu.org/licenses/gpl.txt'>GPLv3</a>. \
                 <br><br>&copy; 2010-2011 by <a href='http://zefanjas.de'>zefanjas.de</a>", className: "popup-info"},      
       {kind: "Button", flex: 1, caption: $L("Send eMail"), onclick: "sendMail"},
       {kind: "Button", flex: 1, caption: "Close", onclick: "doCancel"}
