@@ -94,9 +94,13 @@ enyo.kind({
 		this.$.versePopup.openAt({top: inSender.popupTop, left: inSender.popupLeft}, true);
 		if (enyo.byId("bmIcon"+this.$.mainView.tappedVerse).innerHTML !== "") {
 			this.$.versePopup.setBmCaption($L("Bookmark") + " - ");
-			//this.$.versePopup.render();
 		} else {
 			this.$.versePopup.setBmCaption($L("Bookmark") + " + ");
+		}
+		if (enyo.byId("noteIcon"+this.$.mainView.tappedVerse).innerHTML !== "") {
+			this.$.versePopup.setNoteCaption($L("Note") + " - ");
+		} else {
+			this.$.versePopup.setNoteCaption($L("Note") + " + ");
 		}
 	},
 	
@@ -104,6 +108,7 @@ enyo.kind({
 		if (enyo.byId("noteIcon"+this.$.mainView.tappedVerse).innerHTML !== "") {
 			biblezTools.removeNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, enyo.bind(this, this.getBookmarks));
 			enyo.byId("noteIcon"+this.$.mainView.tappedVerse).innerHTML = "";
+			this.$.versePopup.close();
 		} else {
 			this.openAddNote();
 		}
@@ -118,14 +123,11 @@ enyo.kind({
 	},
 	
 	addNote: function (inSender, inEvent) {
-		enyo.log("EDIT NOTE:", inSender.edit);
 		if (inSender.edit == false) {
 			biblezTools.addNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, enyo.json.stringify(this.$.notePopup.getNote()), "", "", "", enyo.bind(this, this.getNotes));
 		} else {
 			biblezTools.updateNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, enyo.json.stringify(this.$.notePopup.getNote()), "", "", "", enyo.bind(this, this.getNotes));
-		}
-		
-		
+		}		
 	},
 	
 	getNotes: function() {
@@ -139,6 +141,8 @@ enyo.kind({
 		this.$.notePopup.setCaption("");
 		this.$.notePopup.setNote(inSender.notes[inSender.tappedNote].note);
 		this.$.notePopup.setEditMode();
+		this.$.notePopup.setDismissWithClick(true);
+        this.$.notePopup.hideCancel();
 		this.$.notePopup.openAt({top: inSender.popupTop, left: inSender.popupLeft}, true);
 	},
 	
@@ -509,7 +513,7 @@ enyo.kind({
 	},
 	
 	viewSelected: function(inSender, inView, inPreviousView) {
-		enyo.log(inView.name);
+		//enyo.log(inView.name);
 		if (inView.name == "modManView") {
 			this.$.modManView.downloadMods();
 			//this.$.modManView.getLang();

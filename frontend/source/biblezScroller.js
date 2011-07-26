@@ -16,7 +16,14 @@
 enyo.kind({
     name: "BibleZ.Scroller",
     kind: "SnapScroller",
-    events: {
+    index: 1,
+	//onSnap: "changeChapter",
+    flex: 1,
+    autoVertical: false,
+    vertical: false,
+	fpsShowing: true,
+	className: "scroller-background",
+	events: {
       onVerseTap: "",
 	  onShowNote: "",
 	  onPrevChapter: "",
@@ -31,12 +38,6 @@ enyo.kind({
 		notes: [],
 		bookmarks: []
 	},
-	index: 1,
-	//onSnap: "changeChapter",
-    flex: 1,
-    autoVertical: false,
-    vertical: false,
-	className: "scroller-background",
     components: [
         {kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
 		{name: "firstSnapper", components: [
@@ -99,7 +100,7 @@ enyo.kind({
 			content = content + " <span id='" + verses[i].vnumber + "' class='verse-number'>" + verses[i].vnumber + "</span> </a>";
 			content = (parseInt(vnumber) != 1 && parseInt(vnumber) == parseInt(verses[i].vnumber)) ? content + "<span class='verse-highlighted'>" + tmpVerse + "</span>" : content + tmpVerse;
 			content = content + " <span id='noteIcon" + verses[i].vnumber + "'></span> ";
-			content = content + " <span id='bmIcon" + verses[i].vnumber + "'></span> ";
+			content = content + " <span id='bmIcon" + verses[i].vnumber + "'></span> ";			
 		}
 		this.resized();
 		var height = this.node.clientHeight - 30;
@@ -116,7 +117,7 @@ enyo.kind({
 		}
 		
 		this.createComponent({name: "lastSnapper", style: "width: " + this.node.clientWidth + "px;", components: [{name: "nextChapter", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}]}).render();
-		this.$.mainView.render();
+		//this.$.mainView.render();
 		
 		this.$.prevChapter.show();
 	},
@@ -367,16 +368,24 @@ enyo.kind({
 	createSection: function (section, data) {
 		switch (section) {
 			case "books":
-				this.$.bookSelector.destroyComponents();
-				this.$.bookSelector.createComponent({kind: "Divider", caption: "Old Testament"});
+				var kindName = "";
+				var comp = this.getComponents()
+				for (var j=0;j<comp.length;j++) {
+					if (comp[j].name.search(/book\d+/) != -1) {
+						comp[j].destroy();
+					}
+				}		
+				this.$.bookSelector.createComponent({name: "book1000", kind: "Divider", caption: "Old Testament"}, {owner: this});
 				for (var i=0;i<data.length;i++) {
+					kindName = "book" + i;
 					this.$.bookSelector.createComponent({kind: "Button",
 						caption: data[i].abbrev.slice(0,5),
 						onclick: "handleBooks",
 						className: "book-selector",
+						name: kindName,
 						key: i}, {owner: this});
 					if (i==38) {
-						this.$.bookSelector.createComponent({kind: "Divider", caption: "New Testament", style: "clear: both;"});
+						this.$.bookSelector.createComponent({name: "book1001", kind: "Divider", caption: "New Testament", style: "clear: both;"}, {owner: this});
 					}
 				}
 				this.$.bookSelector.render();

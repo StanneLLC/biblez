@@ -59,7 +59,7 @@ enyo.kind({
     caption: $L("Add A Note"), components:[        
         {name: "noteInput", kind: "RichText", className: "note-input", hint: $L("Add your note here."), onfocus: "openCenter"},
         {layoutKind: "HFlexLayout", style: "margin-top: 10px;", components: [  
-            {kind: "Button", caption: $L("Cancel"), flex: 1, onclick: "closePopup"},
+            {name: "btCancel", kind: "Button", caption: $L("Cancel"), flex: 1, onclick: "closePopup"},
             {name: "btAdd", kind: "Button", caption: $L("Add"), flex: 1, onclick: "addNote", className: "enyo-button-affirmative"},
         ]}
     ],
@@ -73,7 +73,9 @@ enyo.kind({
     },
     
     clearInput: function () {
+        this.dismissWithClick = false;
         this.$.noteInput.setValue("");
+		this.$.btAdd.show();
         this.$.btAdd.setCaption($L("Add"));
         this.edit = false;
         this.setFocus();
@@ -100,8 +102,14 @@ enyo.kind({
             this.$.btAdd.show();    
         }        
     },
+	
+	hideCancel: function () {
+		this.$.btCancel.hide();
+	},
     
     openCenter: function() {
+        this.dismissWithClick = false;
+		this.$.btCancel.show();
         this.close()
         this.openAtCenter();
         this.showEditBt();

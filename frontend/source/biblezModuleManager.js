@@ -38,7 +38,7 @@ enyo.kind({
             onSuccess : "downloadFinished"
         },
 		{kind: "Header", components: [
-			{kind: "Button", caption: "Back", onclick: "doBack"},
+			{kind: "Button", caption: $L("Back"), onclick: "doBack"},
 			{kind: "Spacer"},
 			{content: "Module Manger"},
 			{kind: "Spacer"},
@@ -118,7 +118,7 @@ enyo.kind({
     },
     
     downloadMods: function(update) {
-		console.log(enyo.json.stringify(this.dbSets["lastModUpdate"]));
+		//console.log(enyo.json.stringify(this.dbSets["lastModUpdate"]));
         if (!this.dbSets["lastModUpdate"]) {
             console.log("mods.d.tar.gz missing. Downloading now...");
 			enyo.windows.addBannerMessage("Downloading List of available Modules...", enyo.json.stringify({}));
@@ -162,7 +162,7 @@ enyo.kind({
 	
 	getLang: function () {
 		//this.$.langList.render();
-		console.log("Getting languages...");
+		//console.log("Getting languages...");
 		biblezTools.getLang("crosswire", enyo.bind(this, this.setLang));
 	},
 	
