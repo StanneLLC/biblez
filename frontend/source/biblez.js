@@ -39,19 +39,25 @@ enyo.kind({
 					{icon: "images/history.png", onclick: "openHistoryMenu"},
 					{kind: "Spacer"},
 					{kind: "Spinner", showing: true},
-					/*{icon: "images/notes.png", onclick: ""}*/
+					{name: "btNote", icon: "images/notes.png", toggling: true,  onclick: "openSidebar"}
 					//{icon: "images/bookmarks.png"}
 				]},
 				{name: "modMenu", kind: "Menu", lazy: false},
 				{name: "historyMenu", kind: "Menu", lazy: false},
-				{name: "firstStart", flex: 1, className: "first-start scroller-background", components: [
-					{allowHtml: true, content: $L("Thank you for installing BibleZ. Currently there are no modules installed. \
-								 Please open the Module Manager and add at least one module!  \
-								 <br><br>This is a BETA version! Report any bugs to <a href='mailto:info@zefanjas.de?subject=Bug BibleZ HD - Version " + enyo.fetchAppInfo().version + "'>info@zefanjas.de</a>")},
-					{kind: "Button", caption: "Open Module Manager", className: "first-start-button", onclick: "openModuleMgr"}
-				]},
-				{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"},
-				{name: "biblezHint", flex: 1, className: "scroller-background biblez-hint", content: "ERROR"}
+				//{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"},
+				{name: "mainViewContainer", kind: "HFlexBox", flex: 1, components: [
+					{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"},
+					{name: "biblezHint", flex: 1, className: "scroller-background biblez-hint", content: "ERROR"},
+					{name: "firstStart", flex: 1, className: "first-start scroller-background", components: [
+						{allowHtml: true, content: $L("Thank you for installing BibleZ. Currently there are no modules installed. \
+									 Please open the Module Manager and add at least one module!  \
+									 <br><br>This is a BETA version! Report any bugs to <a href='mailto:info@zefanjas.de?subject=Bug BibleZ HD - Version " + enyo.fetchAppInfo().version + "'>info@zefanjas.de</a>")},
+						{kind: "Button", caption: "Open Module Manager", className: "first-start-button", onclick: "openModuleMgr"}
+					]},
+					{name: "sidebarContainer", className: "main-sidebar",components: [
+						{name: "noteBmSidebar", kind: "BibleZ.Sidebar", onVerse: "handleSidebarVerse"}			
+					]}
+				]}
 			]},
 			{name: "selector", kind: "BibleZ.Selector", onChapter: "getVMax", onVerse: "getPassage"},
 			{name: "modManView", kind: "BibleZ.ModMan", onUntar: "untarModules", onUnzip: "unzipModule", onGetDetails: "getDetails", onRemove: "removeModule", onBack: "goToMainView"}
@@ -70,6 +76,7 @@ enyo.kind({
 		this.$.firstStart.hide();
 		this.$.mainToolbar.hide();
 		this.$.biblezHint.hide();
+		this.$.sidebarContainer.hide();
 		biblezTools.createDB();
 		this.start = 0;
 		this.currentModule = undefined;
@@ -86,6 +93,29 @@ enyo.kind({
 		this.$.plugin.addCallback("returnGetDetails", enyo.bind(this, "handleGetDetails"), true);
 		
 		//enyo.log(enyo.fetchDeviceInfo().platformVersion);
+	},
+	
+	//SIDEBAR STUFF
+	openSidebar: function () {
+		enyo.log("TOGGLE:", this.$.btNote.depressed);
+		//this.$.sidebarContainer.addStyles("heigth: " + this.$.mainView.node.clientHeight + "px;")
+		if (this.$.btNote.depressed == true) {
+			this.$.sidebarContainer.show();
+			this.$.mainView.setSidebarWidth(320);
+		} else {
+			this.$.sidebarContainer.hide();
+			this.$.mainView.setSidebarWidth(0);
+		}
+		this.$.mainView.setSnappers();
+		this.$.mainView.setPrevChapter(this.$.selector.getPrevPassage().passage);
+		this.$.mainView.setNextChapter(this.$.selector.getNextPassage().passage);
+		this.$.mainView.snapto(this.$.mainView.index);
+	},
+	
+	handleSidebarVerse: function (inSender, inEvent) {
+		//enyo.log(this.$.noteBmSidebar.getPassage());
+		this.$.selector.setVerse(this.$.noteBmSidebar.getVerse());
+		this.getVerses(this.$.noteBmSidebar.getPassage());
 	},
 	
 	//POPUP STUFF
@@ -186,7 +216,6 @@ enyo.kind({
 	handlePluginReady: function(inSender) {
 		this.pluginReady = true;
 		//this.$.plugin.hide();
-		
 		this.getModules();
 	},
 	
@@ -204,7 +233,6 @@ enyo.kind({
 		
 		if (mods.length > 0) {
 			this.$.mainToolbar.show();
-			this.$.firstStart.hide();
 			
 			//Check if saved Module currently exists
 			var ifModule = 0;
@@ -260,14 +288,15 @@ enyo.kind({
 			}
 		}
 		inSender.setChecked(true);
-        this.getBooknames(this.currentModule.name);
-		//this.getVerses(this.$.selector.getBook().name + " " + this.$.selector.getChapter(), inSender.module.name);
+        //this.getBooknames(this.currentModule.name);
+		this.getVerses(this.$.selector.getBook().name + " " + this.$.selector.getChapter(), inSender.module.name);
 	},
 	
 	handleBooknames: function(response) {
 		//enyo.log(response);
 		this.$.selector.createSection("books", enyo.json.parse(response));
 		this.$.selector.setBookNames(enyo.json.parse(response));
+		this.$.noteBmSidebar.setBookNames(enyo.json.parse(response));
 		if (this.$.mainPane.getViewName() == "verseView") {
 		    this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), this.currentModule.name);
 		}
@@ -292,6 +321,7 @@ enyo.kind({
 			this.getBookmarks();
 		} else {
 			enyo.log("Chapter not available!");
+			this.$.firstStart.hide();
 			this.$.biblezHint.setContent($L("The chapter is not available in this module! :-("));
 			this.$.mainView.hide();
 			this.$.biblezHint.show();

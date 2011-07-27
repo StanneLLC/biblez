@@ -230,7 +230,7 @@ var biblezTools = {
 		//enyo.log(bnumber, cnumber);
 		var notes = [];
 		try {
-			var sql = "SELECT * FROM notes WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;"
+			var sql = (bnumber !== 0 && cnumber !== 0) ? "SELECT * FROM notes WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM notes ORDER BY bnumber, cnumber, vnumber ASC;"
 		    //enyo.log(sql);
 			//var sql = "SELECT * FROM notes;";
 			this.db.transaction( 
@@ -292,7 +292,7 @@ var biblezTools = {
 		//enyo.log(bnumber, cnumber);
 		var bm = [];
 		try {
-			var sql = "SELECT * FROM bookmarks WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;"
+			var sql = (bnumber !== 0 && cnumber !== 0) ? "SELECT * FROM bookmarks WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM bookmarks ORDER BY bnumber, cnumber, vnumber ASC;"
 		    //enyo.log(sql);
 			//var sql = "SELECT * FROM notes;";
 			this.db.transaction( 

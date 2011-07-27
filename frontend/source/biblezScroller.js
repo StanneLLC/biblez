@@ -21,7 +21,6 @@ enyo.kind({
     flex: 1,
     autoVertical: false,
     vertical: false,
-	fpsShowing: true,
 	className: "scroller-background",
 	events: {
       onVerseTap: "",
@@ -31,6 +30,7 @@ enyo.kind({
     },
 	published: {
 		numberOfSnappers: 0,
+		sidebarWidth: 0,
 		popupLeft: 0,
 		popupTop: 0,
 		tappedVerse: 1,
@@ -60,7 +60,9 @@ enyo.kind({
 			//this.$.mainView.addStyles("width: " + this.node.clientWidth + "px;");
 			this.$.firstSnapper.addStyles("width: " + this.node.clientWidth + "px;");
 		}
-		this.starter = 1;		
+		this.starter = 1;
+		
+		//enyo.log(this.$.mainView.hasNode());
 	},
 	
 	changeChapter: function (inSender, inEvent) {
@@ -105,11 +107,11 @@ enyo.kind({
 		this.resized();
 		var height = this.node.clientHeight - 30;
 		this.$.mainView.addStyles("height: " + height + "px;");
-		//this.$.mainView.addStyles("width: " + this.node.clientWidth + "px;");
-		this.$.mainView.setContent(content);
-		//this.log(this.node.clientWidth, this.node.scrollWidth, this.node.scrollWidth - this.node.clientWidth, parseInt((this.node.scrollWidth - this.node.clientWidth) / this.node.clientWidth));
-		this.numberOfSnappers = (this.node.scrollWidth - this.node.clientWidth !== this.node.clientWidth) ? parseInt((this.node.scrollWidth - this.node.clientWidth) / this.node.clientWidth) : 0;
 		
+		this.$.mainView.setContent(content);
+		this.setSnappers();
+		//this.log(this.node.clientWidth, this.node.scrollWidth, this.node.scrollWidth - this.node.clientWidth, parseInt((this.node.scrollWidth - this.node.clientWidth) / this.node.clientWidth));
+		/*this.numberOfSnappers = (this.node.scrollWidth - this.node.clientWidth !== this.node.clientWidth) ? parseInt((this.node.scrollWidth - this.node.clientWidth) / this.node.clientWidth) : 0;
 		var kindName = "";
 		for (var j=0;j<this.numberOfSnappers; j++) {
 			kindName = "snapper" + j;
@@ -117,9 +119,7 @@ enyo.kind({
 		}
 		
 		this.createComponent({name: "lastSnapper", style: "width: " + this.node.clientWidth + "px;", components: [{name: "nextChapter", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}]}).render();
-		//this.$.mainView.render();
-		
-		this.$.prevChapter.show();
+		//this.$.mainView.render(); */
 	},
 	
 	handleVerseTap: function(inSender, inUrl) {
@@ -169,18 +169,40 @@ enyo.kind({
 		this.$.nextChapter.setContent(passage + " >");
 	},
 	
+	setSnappers: function () {
+		var comp = this.getComponents()
+		for (var j=0;j<comp.length;j++) {
+			if (comp[j].name.search(/snapper\d+/) != -1) {
+				comp[j].destroy();
+			}
+		}
+		if(this.$.lastSnapper) {
+			this.$.lastSnapper.destroy();
+		}
+		
+		//enyo.log(this.$.mainView.node.clientWidth, this.sidebarWidth, this.node.scrollWidth, this.node.scrollWidth - this.$.mainView.node.clientWidth, parseInt((this.node.scrollWidth - this.$.mainView.node.clientWidth) / this.$.mainView.node.clientWidth));
+		this.numberOfSnappers = (this.node.scrollWidth - this.$.mainView.node.clientWidth - this.sidebarWidth > this.$.mainView.node.clientWidth) ? parseInt((this.node.scrollWidth - this.$.mainView.node.clientWidth - this.sidebarWidth) / this.$.mainView.node.clientWidth) : 0;
+		var kindName = "";
+		for (var j=0;j<this.numberOfSnappers; j++) {
+			kindName = "snapper" + j;
+			this.createComponent({name: kindName, style: "width: " + this.$.mainView.node.clientWidth + "px;"}).render();
+		}
+		this.createComponent({name: "lastSnapper", style: "width: " + this.$.mainView.node.clientWidth + "px;", components: [{name: "nextChapter", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}]}).render();
+		this.$.prevChapter.show();
+	},
+	
 	windowRotated: function(inSender) {
 		var height = this.node.clientHeight - 30;
 		this.$.mainView.addStyles("height: " + height + "px;");
 		var comp = this.getComponents()
 		for (var j=0;j<comp.length;j++) {
 			if (comp[j].name.search(/snapper\d+/) != -1) {
-				comp[j].addStyles("width: " + this.node.clientWidth + "px;");
+				comp[j].addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
 			}
 		}
 		//this.$.mainView.addStyles("width: " + this.node.clientWidth + "px;");
-		this.$.firstSnapper.addStyles("width: " + this.node.clientWidth + "px;");
-		this.$.lastSnapper.addStyles("width: " + this.node.clientWidth + "px;");
+		this.$.firstSnapper.addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
+		this.$.lastSnapper.addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
 		
 		this.snapTo(this.index);
 	},
@@ -470,5 +492,182 @@ enyo.kind({
 		} else {
 			this.$.selectorSnapper.snapTo(ctx);
 		}
+	}
+})
+
+enyo.kind({
+	name: "BibleZ.Sidebar",
+	kind: "VFlexBox",
+	className: "sidebar-inner",
+	width: "320px",
+	events: {
+		onVerse: ""
+	},
+	published: {
+        bookNames: [],
+		notes: [],
+		bookmarks: [],
+		passage: "",
+		verse: 0
+    },
+	components: [
+		/*enyo.fetchDeviceInfo().screenHeight-138 +"px"*/
+		{kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
+		{className: "sidebar-shadow"},
+		{name: "sidebarPane", kind: "Pane", flex: 1, onSelectView: "viewSelected", components: [
+			{name: "noteView", kind: "VFlexBox", components: [
+				{name: "scrollerNote", kind: "Scroller", flex: 1, components: [
+					{name: "noteList", kind: "VirtualRepeater", onSetupRow: "getNoteListItem", components: [
+						{name: "itemNote", kind: "SwipeableItem", onConfirm: "deleteNote", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
+							{name: "notePassage", className: "note-passage"},
+							{name: "noteText", allowHtml: true}
+						],
+						onclick: "goToVerse"
+						}]
+					}
+				]}
+			]},
+			{name: "bmView", kind: "VFlexBox", components: [
+				{name: "scrollerBm", kind: "Scroller", flex: 1,components: [
+					{name: "bmList", kind: "VirtualRepeater", onSetupRow: "getBmListItem", components: [
+						{name: "itemBm", kind: "SwipeableItem", onConfirm: "deleteBookmark", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
+							{name: "bmPassage"}
+						],
+						onclick: "goToVerse"
+						}]
+					}
+				]}
+			]}			
+		]},
+		{kind: "Toolbar", components: [
+			{kind: "RadioToolButtonGroup", style: "width: 250px;", components: [
+				{name: "rgNotes", caption: $L("Notes"), onclick: "changeView"},
+				{name: "rgBM", caption: $L("Bookmarks"), onclick: "changeView"}
+				//{name: "rgVerse", caption: "", onclick: "changeSnapper"}
+			]}
+			//{caption: "TEST"}
+		]}
+	],
+	
+	create: function () {
+		this.inherited(arguments);
+		this.windowRotated()
+	},
+	
+	rendered: function () {
+		this.inherited(arguments);
+		//this.windowRotated()
+		this.getNotes();
+		this.getBookmarks();
+	},
+	
+	getNotes: function () {
+		//this.$.spinner.show();
+		biblezTools.getNotes(0,0,enyo.bind(this, this.handleNotes));
+	},
+	
+	handleNotes: function (notes) {
+		//this.$.spinner.hide();
+		this.notes = notes;
+		this.$.noteList.render();
+	},
+	
+	getNoteListItem: function(inSender, inIndex) {
+        var r = this.notes[inIndex];
+        if (r) {
+			this.$.noteText.setContent(r.note.replace(/"/g,""));
+            if (this.bookNames[parseInt(r.bnumber)]) {
+				this.$.notePassage.setContent(this.bookNames[parseInt(r.bnumber)].abbrev + " " + r.cnumber + ":" + r.vnumber);
+			}
+			/*var isRowSelected = (inIndex == this.lastModItem);
+			this.$.itemMod.applyStyle("background", isRowSelected ? "#3A8BCB" : null); */
+            return true;
+        } else {
+            return false;
+        }
+	},
+	
+	getBookmarks: function () {
+		//this.$.spinner.show();
+		biblezTools.getBookmarks(0,0,enyo.bind(this, this.handleBookmarks));
+	},
+	
+	handleBookmarks: function (bm) {
+		//this.$.spinner.hide();
+		this.bookmarks = bm;
+		this.$.bmList.render();
+	},
+	
+	getBmListItem: function(inSender, inIndex) {
+        var r = this.bookmarks[inIndex];
+        if (r) {
+			if (this.bookNames[parseInt(r.bnumber)]) {
+				this.$.bmPassage.setContent(this.bookNames[parseInt(r.bnumber)].abbrev + " " + r.cnumber + ":" + r.vnumber);
+			}
+			
+            
+			/*var isRowSelected = (inIndex == this.lastModItem);
+			this.$.itemMod.applyStyle("background", isRowSelected ? "#3A8BCB" : null); */
+            return true;
+        } else {
+            return false;
+        }
+	},
+	
+	changeView: function (inSender, inEvent) {
+		//enyo.log(inSender.name);
+		switch (inSender.name) {
+			case "rgNotes":
+				this.$.sidebarPane.selectViewByName("noteView");
+			break;
+			case "rgBM":
+				this.$.sidebarPane.selectViewByName("bmView");
+			break;
+		}
+	},
+	
+	goToVerse: function(inSender, inEvent, rowIndex) {
+		switch (inSender.name) {
+			case "itemNote":
+				this.passage = this.bookNames[parseInt(this.notes[rowIndex].bnumber)].abbrev + " " + this.notes[rowIndex].cnumber;
+				this.verse = this.notes[rowIndex].vnumber;
+			break;
+			case "itemBm":
+				this.passage = this.bookNames[parseInt(this.bookmarks[rowIndex].bnumber)].abbrev + " " + this.bookmarks[rowIndex].cnumber;
+				this.verse = this.bookmarks[rowIndex].vnumber;
+			break;
+		}
+		this.doVerse();
+	},
+	
+	deleteNote: function (inSender, inIndex) {
+		biblezTools.removeNote(this.notes[inIndex].bnumber, this.notes[inIndex].cnumber, this.notes[inIndex].vnumber, enyo.bind(this, this.handleDelete, "notes", $L("Note")));
+	},
+	
+	deleteBookmark: function (inSender, inIndex) {
+		biblezTools.removeBookmark(this.bookmarks[inIndex].bnumber, this.bookmarks[inIndex].cnumber, this.bookmarks[inIndex].vnumber, enyo.bind(this, this.handleDelete, "bookmarks", $L("Bookmark")));
+	},
+	
+	handleDelete: function (list, item) {
+		enyo.windows.addBannerMessage($L("Deleted") + " " + item, enyo.json.stringify({}));
+		if (list == "notes") {
+			this.getNotes();
+		} else {
+			this.getBookmarks();
+		}
+	},
+	
+	bookNamesChanged: function () {
+		this.$.bmList.render();
+		this.$.noteList.render();
+	},
+	
+	windowRotated: function(inSender) {
+		//enyo.log("HEIGHT:", enyo.fetchDeviceInfo().screenHeight, enyo.fetchDeviceInfo().screenWidth, this.$.sidebarPane.height);
+		if (enyo.getWindowOrientation() == "up" || enyo.getWindowOrientation() == "down") {
+			this.setStyle("height: 685px;");
+		} else {
+			this.setStyle("height: 940px;");
+		}		
 	}
 })

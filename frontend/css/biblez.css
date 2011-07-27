@@ -114,6 +114,34 @@
     margin-left: 10px;
 }
 
+/*SIDEBAR */
+.main-sidebar {
+    width: 320px;
+    height: 100%;
+}
+
+.sidebar-inner {
+    position: relative;
+    /*z-index: 120; */
+    background-color: #D8D8D8;
+    width: 320px;
+}
+
+.sidebar-shadow {
+	position: absolute;
+	z-index: 2;
+	height: 100%;
+	width: 20px;
+	right: 320px;
+	background: url(../images/sidebar-shadow.png) repeat-y;
+	pointer-events: none;
+}
+
+.note-passage {
+    font-size: 0.8em;
+    font-style: italic;
+}
+
 /*SELECTOR */
 
 .selector-scroller {
