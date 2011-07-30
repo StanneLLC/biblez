@@ -329,9 +329,10 @@ PDL_bool untarMods(PDL_JSParameters *parms) {
 	const char* cstr = tmp.c_str();
 	
 	int err = system(cstr);
-	/*if (err != 0) {
+	if (err != 0) {
+		PDL_JSException(parms, "untarMods: Couldn't untar Module");
 		return PDL_FALSE;
-	}*/
+	}
 	
 	errString << err;
 	const std::string& tmp2 = errString.str();

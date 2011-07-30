@@ -161,7 +161,15 @@ enyo.kind({
 	},
 	
 	setFontSize: function (size) {
-		this.$.mainView.setStyle("font-size: " + size + "px;");
+		this.$.mainView.addStyles("font-size: " + size + "px;");
+		//this.resized();
+		var height = this.node.clientHeight - 30;
+		this.$.mainView.addStyles("height: " + height + "px;");
+		if (this.vnumber !== 0) {this.setSnappers()};
+	},
+	
+	setFont: function (font) {
+		this.$.mainView.addStyles("font-family: " + font + ";");
 		//this.resized();
 		var height = this.node.clientHeight - 30;
 		this.$.mainView.addStyles("height: " + height + "px;");
@@ -402,17 +410,24 @@ enyo.kind({
 						comp[j].destroy();
 					}
 				}		
-				this.$.bookSelector.createComponent({name: "book1000", kind: "Divider", caption: "Old Testament"}, {owner: this});
+				//this.$.bookSelector.createComponent({name: "book1000", kind: "Divider", caption: "Old Testament"}, {owner: this});
 				for (var i=0;i<data.length;i++) {
 					kindName = "book" + i;
-					this.$.bookSelector.createComponent({kind: "Button",
-						caption: data[i].abbrev.slice(0,5),
-						onclick: "handleBooks",
-						className: "book-selector",
-						name: kindName,
-						key: i}, {owner: this});
-					if (i==38) {
-						this.$.bookSelector.createComponent({name: "book1001", kind: "Divider", caption: "New Testament", style: "clear: both;"}, {owner: this});
+					if (i<39) {
+						//this.$.bookSelector.createComponent({name: "book1001", kind: "Divider", caption: "New Testament", style: "clear: both;"}, {owner: this});
+						this.$.bookSelector.createComponent({kind: "Button",
+							caption: data[i].abbrev.slice(0,5),
+							onclick: "handleBooks",
+							className: "book-selector books-ot",
+							name: kindName,
+							key: i}, {owner: this});
+					} else {
+						this.$.bookSelector.createComponent({kind: "Button",
+							caption: data[i].abbrev.slice(0,5),
+							onclick: "handleBooks",
+							className: "book-selector books-nt",
+							name: kindName,
+							key: i}, {owner: this});
 					}
 				}
 				this.$.bookSelector.render();

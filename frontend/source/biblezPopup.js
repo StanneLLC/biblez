@@ -144,15 +144,30 @@ enyo.kind({
     kind: "Popup",
     lazy: false,
     events: {
-      onFontSize: ""
+      onFontSize: "",
+      onFont: ""
     },
     published: {
-		fontSize: 16
+		fontSize: 20,
+        font: "Prelude"
 	},
     components:[
-        {kind: "HFlexBox", components: [
-            {content: $L("Font Size"), flex: 1, className: "font-menu"},
-            {name: "fontSlider", kind: "Slider", flex: 2, minimum: 12, maximum: 30, snap: 1, onChanging: "sliderChanging", onChange: "sliderChange", className: "font-slider"}
+        {kind: "VFlexBox", components: [
+            {kind: "HFlexBox", components: [
+                //{content: $L("Font Size"), flex: 1, className: "font-menu"},
+                {name: "fontSlider", kind: "Slider", flex: 1, minimum: 12, maximum: 30, snap: 1, onChanging: "sliderChanging", onChange: "sliderChange", className: "font-slider"}
+            ]},
+            {kind: "HFlexBox", components: [
+                //{content: $L("Font"), flex: 1, className: "font-menu"},
+                {name: "fontSelector", kind: "ListSelector", flex: 1, value: "Prelude", onChange: "fontChanged", className: "font-slider", items: [
+                    {caption: "Prelude", value: "Prelude"},
+                    {caption: "Verdana", value: "Verdana"},
+                    {caption: "Arial", value: "Arial"},
+                    {caption: "Georgia", value: "Georgia"},
+                    {caption: "Times", value: "Times"}
+                   
+                ]}
+            ]}
         ]}
         
     ],
@@ -167,8 +182,21 @@ enyo.kind({
         if (size) {
             this.$.fontSlider.setPosition(size);
         } else {
-            this.$.fontSlider.setPosition(16);
+            this.$.fontSlider.setPosition(20);
         }        
+    },
+    
+    setFont: function (font) {
+        if (font) {
+            this.$.fontSelector.setValue(font);
+        } else {
+            this.$.fontSelector.setValue("Prelude");
+        }        
+    },
+    
+    fontChanged: function(inSender, inValue, inOldValue) {
+        this.font = inValue;
+        this.doFont();
     }
 })
 

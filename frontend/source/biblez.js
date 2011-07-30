@@ -30,7 +30,7 @@ enyo.kind({
 		{name: "notePopup", kind: "BibleZ.AddNote", onAddNote: "addNote"},
 		{name: "noteView", kind: "BibleZ.ShowNote", style: "min-width: 100px; max-width: 300px;"},
 		{name: "versePopup", kind: "BibleZ.VersePopup", className: "verse-popup", onNote: "handleNote", onBookmark: "handleBookmark"},
-		{name: "fontMenu", kind: "BibleZ.FontMenu", onFontSize: "changeFontSize"},
+		{name: "fontMenu", kind: "BibleZ.FontMenu", onFontSize: "changeFontSize", onFont: "changeFont"},
 		{name: "biblezAbout", kind: "BibleZ.About"},
 		{name: "mainPane", flex: 1, kind: "Pane", onSelectView: "viewSelected", components: [
 			{name: "verseView", kind: "VFlexBox", flex: 1, components: [
@@ -83,7 +83,8 @@ enyo.kind({
 		biblezTools.createDB();
 		this.start = 0;
 		this.currentModule = undefined;
-		this.currentFontSize = 16;
+		this.currentFontSize = 20;
+		this.currentFont = "Prelude";
 		
 		this.position = 0;
 		this.$.plugin.addCallback("returnModules", enyo.bind(this, "handleGetModules"), true);
@@ -220,11 +221,17 @@ enyo.kind({
 	openFontMenu: function (inSender, inEvent) {
 		this.$.fontMenu.openAtEvent(inEvent);
 		this.$.fontMenu.setFontSize(this.currentFontSize);
+		this.$.fontMenu.setFont(this.currentFont);
 	},
 	
 	changeFontSize: function (inSender, inEvent) {
 		if (inSender) {this.currentFontSize = inSender.getFontSize()};
 		this.$.mainView.setFontSize(this.currentFontSize);
+	},
+	
+	changeFont: function (inSender, inEvent) {
+		if (inSender) {this.currentFont = inSender.getFont()};
+		this.$.mainView.setFont(this.currentFont);
 	},
 	
 	//HYBRID STUFF
@@ -248,6 +255,7 @@ enyo.kind({
 		}
 		
 		if (mods.length > 0) {
+			this.$.firstStart.hide();
 			this.$.mainToolbar.show();
 			
 			//Check if saved Module currently exists
@@ -284,7 +292,9 @@ enyo.kind({
 					this.$.selector.setVerse(lastRead.verse);
 					this.$.selector.setBook(lastRead.book);
 					this.currentFontSize = lastRead.fontSize;
+					this.currentFont = lastRead.font;
 					this.changeFontSize();
+					this.changeFont();
 				}				
 			}
 			this.start = 1;	
@@ -400,8 +410,7 @@ enyo.kind({
 	},
 	
 	handleUntar: function (response) {
-		enyo.log(response);
-		
+		enyo.log(response);		
 		if (response == "0") {
 			this.log("INFO", "Read available confs...");
 			var date = new Date();
@@ -596,7 +605,8 @@ enyo.kind({
 			"chapter": this.$.selector.chapter,
 			"verse": this.$.selector.verse,
 			"book": this.$.selector.book,
-			"fontSize": this.currentFontSize
+			"fontSize": this.currentFontSize,
+			"font": this.currentFont
 		};
 		//enyo.log(enyo.json.stringify(lastRead));
 		if(this.currentModule) {
