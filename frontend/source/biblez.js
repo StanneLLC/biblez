@@ -30,6 +30,7 @@ enyo.kind({
 		{name: "notePopup", kind: "BibleZ.AddNote", onAddNote: "addNote"},
 		{name: "noteView", kind: "BibleZ.ShowNote", style: "min-width: 100px; max-width: 300px;"},
 		{name: "versePopup", kind: "BibleZ.VersePopup", className: "verse-popup", onNote: "handleNote", onBookmark: "handleBookmark"},
+		{name: "fontMenu", kind: "BibleZ.FontMenu", onFontSize: "changeFontSize"},
 		{name: "biblezAbout", kind: "BibleZ.About"},
 		{name: "mainPane", flex: 1, kind: "Pane", onSelectView: "viewSelected", components: [
 			{name: "verseView", kind: "VFlexBox", flex: 1, components: [
@@ -39,6 +40,8 @@ enyo.kind({
 					{icon: "images/history.png", onclick: "openHistoryMenu"},
 					{kind: "Spacer"},
 					{kind: "Spinner", showing: true},
+					{kind: "Spacer"},
+					{icon: "images/font.png", onclick: "openFontMenu"},
 					{name: "btNote", icon: "images/notes.png", toggling: true,  onclick: "openSidebar"}
 					//{icon: "images/bookmarks.png"}
 				]},
@@ -47,7 +50,7 @@ enyo.kind({
 				//{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"},
 				{name: "mainViewContainer", kind: "HFlexBox", flex: 1, components: [
 					{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"},
-					{name: "biblezHint", flex: 1, className: "scroller-background biblez-hint", content: "ERROR"},
+					{name: "biblezHint", flex: 1, className: "scroller-background biblez-hint", content: ""},
 					{name: "firstStart", flex: 1, className: "first-start scroller-background", components: [
 						{allowHtml: true, content: $L("Thank you for installing BibleZ. Currently there are no modules installed. \
 									 Please open the Module Manager and add at least one module!  \
@@ -80,6 +83,7 @@ enyo.kind({
 		biblezTools.createDB();
 		this.start = 0;
 		this.currentModule = undefined;
+		this.currentFontSize = 16;
 		
 		this.position = 0;
 		this.$.plugin.addCallback("returnModules", enyo.bind(this, "handleGetModules"), true);
@@ -162,6 +166,7 @@ enyo.kind({
 	
 	getNotes: function() {
 		biblezTools.getNotes(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setNotes));
+        biblezTools.getNotes(0,0,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleNotes));
 	},
 	
 	openShowNote: function (inSender, inEvent) {
@@ -188,6 +193,7 @@ enyo.kind({
 	
 	getBookmarks: function() {
 		biblezTools.getBookmarks(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setBookmarks));
+        biblezTools.getBookmarks(0,0,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleBookmarks));
 	},
 	
 	openAbout: function ()  {
@@ -209,6 +215,16 @@ enyo.kind({
 	
 	openHistoryMenu: function (inSender, inEvent) {
 		this.$.historyMenu.openAtEvent(inEvent);
+	},
+	
+	openFontMenu: function (inSender, inEvent) {
+		this.$.fontMenu.openAtEvent(inEvent);
+		this.$.fontMenu.setFontSize(this.currentFontSize);
+	},
+	
+	changeFontSize: function (inSender, inEvent) {
+		if (inSender) {this.currentFontSize = inSender.getFontSize()};
+		this.$.mainView.setFontSize(this.currentFontSize);
 	},
 	
 	//HYBRID STUFF
@@ -267,6 +283,8 @@ enyo.kind({
 					this.$.selector.setChapter(lastRead.chapter);
 					this.$.selector.setVerse(lastRead.verse);
 					this.$.selector.setBook(lastRead.book);
+					this.currentFontSize = lastRead.fontSize;
+					this.changeFontSize();
 				}				
 			}
 			this.start = 1;	
@@ -306,10 +324,11 @@ enyo.kind({
 	handleGetVerses: function(verses, passage) {
 		//this.showError(enyo.json.parse(verses));
 		//enyo.log(verses);
+		this.$.selector.setCurrentPassage(passage);
+		
 		if (enyo.json.parse(verses).length != 0) {
 			this.$.mainView.show();
 			this.$.biblezHint.hide();
-			this.$.selector.setCurrentPassage(passage);
 			this.$.mainView.setVerses(enyo.json.parse(verses), this.$.selector.verse);
 			this.$.mainView.setPrevChapter(this.$.selector.getPrevPassage().passage);
 			this.$.mainView.setNextChapter(this.$.selector.getNextPassage().passage);
@@ -576,7 +595,8 @@ enyo.kind({
 			"bnumber": this.$.selector.bnumber,
 			"chapter": this.$.selector.chapter,
 			"verse": this.$.selector.verse,
-			"book": this.$.selector.book
+			"book": this.$.selector.book,
+			"fontSize": this.currentFontSize
 		};
 		//enyo.log(enyo.json.stringify(lastRead));
 		if(this.currentModule) {

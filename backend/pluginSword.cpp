@@ -129,6 +129,8 @@ void refreshManagers() {
 	delete searchLibrary;
 	displayLibrary = new SWMgr(new MarkupFilterMgr(FMT_HTMLHREF));
 	searchLibrary = new SWMgr();
+    displayLibrary->setGlobalOption("Footnotes","Off");
+	displayLibrary->setGlobalOption("Headings", "Off");
 }
 
 PDL_bool getModules(PDL_JSParameters *parms) {

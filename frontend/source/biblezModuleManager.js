@@ -130,6 +130,8 @@ enyo.kind({
     },
 	
 	downloadAddIn: function () {
+		this.$.btInstall.setPosition(0);
+		this.$.btInstallCaption.setContent($L("Installing..."));
 		url = "http://www.crosswire.org/ftpmirror/pub/sword/packages/rawzip/" + this.currentModule + ".zip";
 		console.log(url);
 		this.$.DownloadMgr.call({target: url, targetDir: "/media/internal/.sword/install"});

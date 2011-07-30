@@ -38,8 +38,6 @@
 
 .first-start {
     text-align: center;
-    margin-left: auto;
-    margin-right: auto;
     padding-left: 20%;
     padding-right: 20%;
     padding-top: 20%;
@@ -54,7 +52,7 @@
 
 .view-verses {
     padding: 20px;
-	-webkit-column-width: 220px;
+	-webkit-column-width: 250px;
 	-webkit-column-gap: 40px;
     overflow: visible;
     /* font-family:georgia,garamond,serif;
@@ -81,9 +79,9 @@
 }
 
 .verse-footnote {
-    font-size: 0.8em;
+    /*font-size: 0.8em;
     font-style: italic;
-    line-height: 10px;
+    line-height: 10px;*/
 }
 
 .module-item {
@@ -242,4 +240,14 @@
 
 .popup-note {
     font-size: 0.8em;
+}
+
+.font-menu {
+    font-size: 0.8em;
+    padding-top: 14px;
+}
+
+.font-slider {
+    padding-left: 8px;
+    padding-right: 8px;
 }

@@ -140,6 +140,40 @@ enyo.kind({
 })
 
 enyo.kind({
+    name: "BibleZ.FontMenu",
+    kind: "Popup",
+    lazy: false,
+    events: {
+      onFontSize: ""
+    },
+    published: {
+		fontSize: 16
+	},
+    components:[
+        {kind: "HFlexBox", components: [
+            {content: $L("Font Size"), flex: 1, className: "font-menu"},
+            {name: "fontSlider", kind: "Slider", flex: 2, minimum: 12, maximum: 30, snap: 1, onChanging: "sliderChanging", onChange: "sliderChange", className: "font-slider"}
+        ]}
+        
+    ],
+    
+    sliderChange: function (inSender, inEvent) {
+        //enyo.log(inSender.position);
+        this.fontSize = inSender.position;
+        this.doFontSize();
+    },
+    
+    setFontSize: function (size) {
+        if (size) {
+            this.$.fontSlider.setPosition(size);
+        } else {
+            this.$.fontSlider.setPosition(16);
+        }        
+    }
+})
+
+
+enyo.kind({
    name: "BibleZ.About",
    scrim: true,
    kind: "Popup", components: [
@@ -161,7 +195,13 @@ enyo.kind({
       this.$.palmService.call({
          id: 'com.palm.app.email',
             params: {
-               summary: $L("Support ") + enyo.fetchAppInfo().title + " TouchPad - " + enyo.fetchAppInfo().version
+               summary: $L("Support ") + enyo.fetchAppInfo().title + " TouchPad - " + enyo.fetchAppInfo().version,
+			   "recipients":[{
+					"type":"email",
+					"contactDisplay":"Zefanjas Support",
+					"role":1,
+					"value":"info@zefanjas.de"
+				}]
             }
       });
    }

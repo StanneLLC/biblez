@@ -36,7 +36,8 @@ enyo.kind({
 		tappedVerse: 1,
 		tappedNote: 0,
 		notes: [],
-		bookmarks: []
+		bookmarks: [],
+		vnumber: 0
 	},
     components: [
         {kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
@@ -79,9 +80,8 @@ enyo.kind({
 	},
     
     setVerses: function (verses, vnumber) {
-        //this.log(verses);
+		this.vnumber = vnumber;
 		this.setIndex(1);
-		//this.snapTo(1);
 		var comp = this.getComponents()
 		for (var j=0;j<comp.length;j++) {
 			if (comp[j].name.search(/snapper\d+/) != -1) {
@@ -94,32 +94,23 @@ enyo.kind({
 		var content = "";
 		var tmpVerse = "";
 		for (var i=0; i<verses.length; i++) {
-			tmpVerse = verses[i].content;
+			tmpVerse = verses[i].content.replace("<br />"," ");
 			if (tmpVerse.search(/<note.*<\/note>/i) != -1) {
 				tmpVerse = tmpVerse.replace(/<note.*<\/note>/i, " <span class='verse-footnote'>" + tmpVerse.match(/<note.*<\/note>/i) + "</span>");
 			}
+			//enyo.log(tmpVerse);
 			content = content + "<a href='verse://" + verses[i].vnumber + "'>";
 			content = content + " <span id='" + verses[i].vnumber + "' class='verse-number'>" + verses[i].vnumber + "</span> </a>";
 			content = (parseInt(vnumber) != 1 && parseInt(vnumber) == parseInt(verses[i].vnumber)) ? content + "<span class='verse-highlighted'>" + tmpVerse + "</span>" : content + tmpVerse;
 			content = content + " <span id='noteIcon" + verses[i].vnumber + "'></span> ";
 			content = content + " <span id='bmIcon" + verses[i].vnumber + "'></span> ";			
 		}
-		this.resized();
+		//this.resized();
 		var height = this.node.clientHeight - 30;
 		this.$.mainView.addStyles("height: " + height + "px;");
 		
 		this.$.mainView.setContent(content);
-		this.setSnappers();
-		//this.log(this.node.clientWidth, this.node.scrollWidth, this.node.scrollWidth - this.node.clientWidth, parseInt((this.node.scrollWidth - this.node.clientWidth) / this.node.clientWidth));
-		/*this.numberOfSnappers = (this.node.scrollWidth - this.node.clientWidth !== this.node.clientWidth) ? parseInt((this.node.scrollWidth - this.node.clientWidth) / this.node.clientWidth) : 0;
-		var kindName = "";
-		for (var j=0;j<this.numberOfSnappers; j++) {
-			kindName = "snapper" + j;
-			this.createComponent({name: kindName, style: "width: " + this.node.clientWidth + "px;"}).render();
-		}
-		
-		this.createComponent({name: "lastSnapper", style: "width: " + this.node.clientWidth + "px;", components: [{name: "nextChapter", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}]}).render();
-		//this.$.mainView.render(); */
+		this.setSnappers(vnumber);
 	},
 	
 	handleVerseTap: function(inSender, inUrl) {
@@ -169,7 +160,15 @@ enyo.kind({
 		this.$.nextChapter.setContent(passage + " >");
 	},
 	
-	setSnappers: function () {
+	setFontSize: function (size) {
+		this.$.mainView.setStyle("font-size: " + size + "px;");
+		//this.resized();
+		var height = this.node.clientHeight - 30;
+		this.$.mainView.addStyles("height: " + height + "px;");
+		if (this.vnumber !== 0) {this.setSnappers()};
+	},
+	
+	setSnappers: function (vnumber) {
 		var comp = this.getComponents()
 		for (var j=0;j<comp.length;j++) {
 			if (comp[j].name.search(/snapper\d+/) != -1) {
@@ -189,6 +188,12 @@ enyo.kind({
 		}
 		this.createComponent({name: "lastSnapper", style: "width: " + this.$.mainView.node.clientWidth + "px;", components: [{name: "nextChapter", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}]}).render();
 		this.$.prevChapter.show();
+		
+		if (vnumber) {
+			//enyo.log(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left);
+			this.setIndex(parseInt(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left / this.$.mainView.node.clientWidth) + 1);
+		}
+		
 	},
 	
 	windowRotated: function(inSender) {
@@ -467,6 +472,7 @@ enyo.kind({
 		this.$.rgChapter.setCaption(this.chapter);
 		this.$.rgVerse.setCaption(this.verse);
 		this.$.selectorSnapper.next();
+		this.$.chapterScroller.scrollTo(0,0);
 		this.createSection("chapters", parseInt(this.bookNames[inSender.key].cmax, 10));
 	},
 	
@@ -474,6 +480,7 @@ enyo.kind({
 		this.chapter = (inSender.chapter) ? inSender.chapter : this.chapter;
 		this.$.rgChapter.setCaption(this.chapter);
 		this.doChapter();
+		this.$.verseScroller.scrollTo(0,0);
 		this.$.selectorSnapper.next();
 	},
 	
