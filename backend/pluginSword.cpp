@@ -27,6 +27,7 @@
 #include <iterator>
 
 #include "unzip.h"
+#include <regex.h>
 
 /*PALM/HP HEADER */
 #include "SDL.h"
@@ -46,7 +47,6 @@ using namespace sword;
 
 SWMgr *displayLibrary = 0;
 SWMgr *searchLibrary = 0;
-
 
 std::string convertString(std::string s) {
     std::stringstream ss;
@@ -300,6 +300,63 @@ PDL_bool getBooknames(PDL_JSParameters *parms) {
 	const char *params[1];
 	params[0] = cstr;
 	PDL_Err mjErr = PDL_CallJS("returnBooknames", params, 1);
+    return PDL_TRUE;
+}
+
+void percentUpdate(char percent, void *userData) {
+	//std::cout << (int)percent << "% " << std::endl;
+	//std::cout.flush();
+    /*const char *params[1];
+	params[0] = percent;
+	PDL_Err mjErr = PDL_CallJS("returnSearchProcess", params, 1); */
+}
+
+PDL_bool search(PDL_JSParameters *parms) {
+	//Search through a module
+	std::stringstream results;
+	const char* moduleName = PDL_GetJSParamString(parms, 0);
+    const char* searchStr = PDL_GetJSParamString(parms, 1);
+    const char* scopeVerses = PDL_GetJSParamString(parms, 2);
+	char c = 100;
+	ListKey listkey;
+	ListKey scope;
+	SWModule *module = searchLibrary->getModule(moduleName);
+	
+	SWKey *k = module->getKey();
+	VerseKey *parser = SWDYNAMIC_CAST(VerseKey, k);
+	VerseKey kjvParser;
+	if (!parser) parser = &kjvParser;
+    scope = parser->ParseVerseList(scopeVerses, *parser, true);
+	scope.Persist(1);
+	module->setKey(scope);
+	
+	ListKey verses = module->search(searchStr, 1, REG_ICASE, 0, 0, &percentUpdate, &c);
+	
+    results << "[";
+    
+	for (verses = TOP; !verses.Error(); verses++) {
+		module->setKey(verses);
+		results << "{\"passage\": \"" << VerseKey(module->getKeyText()).getShortText() << "\", ";
+        results << "\"abbrev\": \"" << VerseKey(module->getKeyText()).getBookAbbrev() << "\", ";
+        results << "\"cnumber\": \"" << VerseKey(module->getKeyText()).getChapter() << "\", ";
+        results << "\"vnumber\": \"" << VerseKey(module->getKeyText()).getVerse() << "\"}";
+        ListKey helper = verses;
+        helper++;
+        if (!helper.Error()) {
+            results << ", ";
+        }
+	}
+    
+    results << "]";
+	
+    //results << verses.getRangeText();
+	
+	const std::string& tmp = results.str();
+	const char* cstr = tmp.c_str();
+	
+	const char *params[1];
+	params[0] = cstr;
+	PDL_Err mjErr = PDL_CallJS("returnSearch", params, 1);
     return PDL_TRUE;
 }
 
@@ -593,6 +650,7 @@ int main () {
 	PDL_RegisterJSHandler("removeModule", removeModule);
 	PDL_RegisterJSHandler("readConfs", readConfs);
 	PDL_RegisterJSHandler("getModuleDetails", getModuleDetails);
+    PDL_RegisterJSHandler("search", search);
 	PDL_JSRegistrationComplete();
 	
 	PDL_CallJS("ready", NULL, 0);

@@ -40,7 +40,7 @@ enyo.kind({
 		{kind: "Header", components: [
 			{kind: "Button", caption: $L("Back"), onclick: "doBack"},
 			{kind: "Spacer"},
-			{content: "Module Manger"},
+			{content: $L("Module Manger")},
 			{kind: "Spacer"},
 			{kind: "Spinner", showing: true}
 			
@@ -121,7 +121,7 @@ enyo.kind({
 		//console.log(enyo.json.stringify(this.dbSets["lastModUpdate"]));
         if (!this.dbSets["lastModUpdate"]) {
             console.log("mods.d.tar.gz missing. Downloading now...");
-			enyo.windows.addBannerMessage("Downloading List of available Modules...", enyo.json.stringify({}));
+			enyo.windows.addBannerMessage($L("Downloading List of available Modules..."), enyo.json.stringify({}));
             this.$.DownloadMgr.call({target: "http://www.crosswire.org/ftpmirror/pub/sword/raw/mods.d.tar.gz", targetDir: "/media/internal/.sword/install"});
 			//this.doUntar();
         } else {

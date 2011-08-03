@@ -20,8 +20,8 @@ enyo.kind({
 		{kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
 		{kind: "ApplicationEvents", onUnload: "savePassage"},
 		{kind: "AppMenu", components: [
-			{caption: "Module Manager", onclick: "openModuleMgr"},
-			{caption: "About", onclick: "openAbout"}
+			{caption: $L("Module Manager"), onclick: "openModuleMgr"},
+			{caption: $L("About"), onclick: "openAbout"}
 		]},
 		{kind: "ModalDialog", name: "errorDialog", caption: "Error", lazy: false, components:[
 			{name: "errorMsg", content: "Error", className: "enyo-text-error warning-icon"},
@@ -39,11 +39,11 @@ enyo.kind({
 					{name: "tbPassage", caption: "Go To", onclick: "showToaster"},
 					{icon: "images/history.png", onclick: "openHistoryMenu"},
 					{kind: "Spacer"},
-					{kind: "Spinner", showing: true},
-					{kind: "Spacer"},
+                    {kind: "Spinner", showing: true},
+                    {kind: "Spacer"},
 					{icon: "images/font.png", onclick: "openFontMenu"},
-					{name: "btNote", icon: "images/notes.png", toggling: true,  onclick: "openSidebar"}
-					//{icon: "images/bookmarks.png"}
+					{name: "btNote", icon: "images/sidebar.png", toggling: true,  onclick: "openSidebar"}
+                    //{icon: "images/bookmarks.png"}
 				]},
 				{name: "modMenu", kind: "Menu", lazy: false},
 				{name: "historyMenu", kind: "Menu", lazy: false},
@@ -52,13 +52,11 @@ enyo.kind({
 					{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"},
 					{name: "biblezHint", flex: 1, className: "scroller-background biblez-hint", content: ""},
 					{name: "firstStart", flex: 1, className: "first-start scroller-background", components: [
-						{allowHtml: true, content: $L("Thank you for installing BibleZ. Currently there are no modules installed. \
-									 Please open the Module Manager and add at least one module!  \
-									 <br><br>This is a BETA version! Report any bugs to <a href='mailto:info@zefanjas.de?subject=Bug BibleZ HD - Version " + enyo.fetchAppInfo().version + "'>info@zefanjas.de</a>")},
-						{kind: "Button", caption: "Open Module Manager", className: "first-start-button", onclick: "openModuleMgr"}
+						{allowHtml: true, content: $L("Thank you for installing BibleZ HD. Currently there are no modules installed. Please open the Module Manager and add at least one module! <br><br>This is a BETA version! Report any bugs to") + " <a href='mailto:info@zefanjas.de?subject=Bug BibleZ HD - Version " + enyo.fetchAppInfo().version + "'>info@zefanjas.de</a>"},
+						{kind: "Button", caption: $L("Open Module Manager"), className: "first-start-button", onclick: "openModuleMgr"}
 					]},
 					{name: "sidebarContainer", className: "main-sidebar",components: [
-						{name: "noteBmSidebar", kind: "BibleZ.Sidebar", onVerse: "handleSidebarVerse"}			
+						{name: "noteBmSidebar", kind: "BibleZ.Sidebar", onVerse: "handleSidebarVerse", onSearch: "handleSearch"}			
 					]}
 				]}
 			]},
@@ -96,25 +94,29 @@ enyo.kind({
 		this.$.plugin.addCallback("returnRemove", enyo.bind(this, "handleRemove"), true);
 		this.$.plugin.addCallback("returnReadConfs", enyo.bind(this, "handleReadConfs"), true);
 		this.$.plugin.addCallback("returnGetDetails", enyo.bind(this, "handleGetDetails"), true);
+        this.$.plugin.addCallback("returnSearch", enyo.bind(this, "handleSearchResults"), true);
+        this.$.plugin.addCallback("returnSearchProcess", enyo.bind(this, "handleSearchProcess"), true);
 		
+        enyo.keyboard.setResizesWindow(false);
 		//enyo.log(enyo.fetchDeviceInfo().platformVersion);
+		//enyo.log(enyo.json.stringify(new enyo.g11n.currentLocale().getLocale()));
 	},
 	
 	//SIDEBAR STUFF
 	openSidebar: function () {
-		enyo.log("TOGGLE:", this.$.btNote.depressed);
-		//this.$.sidebarContainer.addStyles("heigth: " + this.$.mainView.node.clientHeight + "px;")
 		if (this.$.btNote.depressed == true) {
 			this.$.sidebarContainer.show();
+			//this.$.btNote.setState("down", true);
 			this.$.mainView.setSidebarWidth(320);
 		} else {
+			//this.$.btNote.setState("down", false);
 			this.$.sidebarContainer.hide();
 			this.$.mainView.setSidebarWidth(0);
 		}
 		this.$.mainView.setSnappers();
 		this.$.mainView.setPrevChapter(this.$.selector.getPrevPassage().passage);
 		this.$.mainView.setNextChapter(this.$.selector.getNextPassage().passage);
-		this.$.mainView.snapto(this.$.mainView.index);
+		this.$.mainView.snapTo(this.$.mainView.index);
 	},
 	
 	handleSidebarVerse: function (inSender, inEvent) {
@@ -150,11 +152,13 @@ enyo.kind({
 	},
 	
 	openAddNote: function () {
-		enyo.keyboard.setResizesWindow(false);
+        //enyo.keyboard.setResizesWindow(false);
 		this.$.versePopup.close();
-		this.$.notePopup.openAtCenter();
-		//this.$.notePopup.setFocus();
 		this.$.notePopup.clearInput();
+        this.$.notePopup.openAtCenter();
+		
+        //this.$.notePopup.setFocus();
+		
 	},
 	
 	addNote: function (inSender, inEvent) {
@@ -369,13 +373,13 @@ enyo.kind({
 				history.splice(11,history.length-10);
 			}
 			for (var i=0;i<history.length;i++) {
-				if(history[i].passage == this.$.selector.getBook().name + " " + this.$.selector.getChapter()) {
+				if(history[i].passage == this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter()) {
 					history.splice(i,1);
 				}
 			}
 		}
 		
-		history.unshift({"passage": this.$.selector.getBook().name + " " + this.$.selector.getChapter()});
+		history.unshift({"passage": this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter()});
 		this.dbSets["history"] = enyo.json.stringify(history);
 		
 		var comp = this.getComponents()
@@ -484,6 +488,25 @@ enyo.kind({
 		//enyo.log("DETAILS", details);
 		this.$.modManView.showDetails(enyo.json.parse(details));
 	},
+    
+    handleSearch: function (inSender, inValue) {
+        if (this.pluginReady) {
+			try { var status = this.$.plugin.callPluginMethod("search", this.currentModule.name, inSender.getSearchTerm(), inSender.getScope()); }
+			catch (e) { this.showError("Plugin exception: " + e);}
+		}
+		else {
+			this.showError("plugin not ready");
+		}
+    },
+    
+    handleSearchResults: function (results) {
+        enyo.log("RESULTS:", results);
+        this.$.noteBmSidebar.setSearchResults(enyo.json.parse(results));
+    },
+    
+    handleSearchProcess: function (process) {
+        enyo.log("PROCESS: ", process);
+    },
 	
 	getModules:function(inSender, inEvent) {
 		//this.log(inSender, inEvent);

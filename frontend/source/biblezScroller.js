@@ -217,7 +217,7 @@ enyo.kind({
 		this.$.firstSnapper.addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
 		this.$.lastSnapper.addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
 		
-		this.snapTo(this.index);
+		this.setIndex(this.index);
 	},
 	
 	//WORKAROUND
@@ -264,10 +264,10 @@ enyo.kind({
 					{name: "bookSelector"}
 				]},
 				{name: "chapterScroller", kind: "Scroller", className: "selector-scroller", components: [
-					{name: "chapterSelector", content: "Select a book!", className: "hint"}
+					{name: "chapterSelector", content: $L("Select a book!"), className: "hint"}
 				]},
 				{name: "verseScroller", kind: "Scroller", className: "selector-scroller", components: [
-					{name: "verseSelector", content: "Select a chapter!", className: "hint"}
+					{name: "verseSelector", content: $L("Select a chapter!"), className: "hint"}
 				]},
 			]
 			},
@@ -389,13 +389,13 @@ enyo.kind({
 	changeSnapper: function (inSender, inEvent) {
 		switch (inSender.name) {
 			case "rgBook":
-				this.snapto(0);
+				this.snapTo(0);
 			break;
 			case "rgChapter":
-				this.snapto(1);
+				this.snapTo(1);
 			break;
 			case "rgVerse":
-				this.snapto(2);
+				this.snapTo(2);
 			break;
 		}
 	},
@@ -523,14 +523,18 @@ enyo.kind({
 	className: "sidebar-inner",
 	width: "320px",
 	events: {
-		onVerse: ""
+		onVerse: "",
+		onSearch: ""
 	},
 	published: {
         bookNames: [],
 		notes: [],
 		bookmarks: [],
+		results: [],
 		passage: "",
-		verse: 0
+		verse: 0,
+		scope: "Mat-Rev",
+		searchTerm: ""
     },
 	components: [
 		/*enyo.fetchDeviceInfo().screenHeight-138 +"px"*/
@@ -539,6 +543,7 @@ enyo.kind({
 		{name: "sidebarPane", kind: "Pane", flex: 1, onSelectView: "viewSelected", components: [
 			{name: "noteView", kind: "VFlexBox", components: [
 				{name: "scrollerNote", kind: "Scroller", flex: 1, components: [
+					{name: "noteHint", content: $L("No Notes available"), className: "hint"},
 					{name: "noteList", kind: "VirtualRepeater", onSetupRow: "getNoteListItem", components: [
 						{name: "itemNote", kind: "SwipeableItem", onConfirm: "deleteNote", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
 							{name: "notePassage", className: "note-passage"},
@@ -551,6 +556,7 @@ enyo.kind({
 			]},
 			{name: "bmView", kind: "VFlexBox", components: [
 				{name: "scrollerBm", kind: "Scroller", flex: 1,components: [
+					{name: "bmHint", content: $L("No Bookmarks available"), className: "hint"},
 					{name: "bmList", kind: "VirtualRepeater", onSetupRow: "getBmListItem", components: [
 						{name: "itemBm", kind: "SwipeableItem", onConfirm: "deleteBookmark", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
 							{name: "bmPassage"}
@@ -559,12 +565,31 @@ enyo.kind({
 						}]
 					}
 				]}
-			]}			
+			]},
+			{name: "searchView", kind: "VFlexBox", components: [
+				{name: "searchInput", kind: "SearchInput", onkeydown: "inputKeydown"},
+				{kind: "RadioGroup", onChange: "scopeSelected", value: "nt", components: [
+					{caption: $L("OT"), value: "ot"},
+					{caption: $L("NT"), value: "nt"},
+					{caption: $L("All"), value: "all"}
+				]},
+				{kind: "Divider", caption: $L("Results")},
+				{name: "scrollerSearch", kind: "Scroller", flex: 1,components: [
+					{name: "searchList", kind: "VirtualRepeater", onSetupRow: "getSearchListItem", components: [
+						{name: "itemSearch", kind: "Item", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
+							{name: "searchPassage"}
+						],
+						onclick: "goToVerse"
+						}]
+					}
+				]}
+			]}
 		]},
 		{kind: "Toolbar", components: [
-			{kind: "RadioToolButtonGroup", style: "width: 250px;", components: [
-				{name: "rgNotes", caption: $L("Notes"), onclick: "changeView"},
-				{name: "rgBM", caption: $L("Bookmarks"), onclick: "changeView"}
+			{kind: "RadioToolButtonGroup", components: [
+				{name: "rgNotes", icon: "images/notes.png", /*caption: $L("Notes"), */ onclick: "changeView"},
+				{name: "rgBM", icon: "images/bookmarks.png", /*caption: $L("Bookmarks"), */ onclick: "changeView"}
+				//{name: "rgSearch", icon: "images/search.png", /*caption: $L("Bookmarks"), */ onclick: "changeView"}
 				//{name: "rgVerse", caption: "", onclick: "changeSnapper"}
 			]}
 			//{caption: "TEST"}
@@ -574,6 +599,8 @@ enyo.kind({
 	create: function () {
 		this.inherited(arguments);
 		this.windowRotated()
+		this.$.noteHint.hide();
+		this.$.bmHint.hide();
 	},
 	
 	rendered: function () {
@@ -591,7 +618,12 @@ enyo.kind({
 	handleNotes: function (notes) {
 		//this.$.spinner.hide();
 		this.notes = notes;
-		this.$.noteList.render();
+		if (this.notes.length != 0) {
+			this.$.noteHint.hide();
+		} else {
+			this.$.noteHint.show();
+		}
+		this.$.noteList.render();		
 	},
 	
 	getNoteListItem: function(inSender, inIndex) {
@@ -617,6 +649,11 @@ enyo.kind({
 	handleBookmarks: function (bm) {
 		//this.$.spinner.hide();
 		this.bookmarks = bm;
+		if (this.bookmarks.length != 0) {
+			this.$.bmHint.hide();
+		} else {
+			this.$.bmHint.show();
+		}
 		this.$.bmList.render();
 	},
 	
@@ -636,6 +673,48 @@ enyo.kind({
         }
 	},
 	
+	scopeSelected: function(inSender) {
+		this.log("Selected button" + inSender.getValue());
+		//var scope = "";
+		switch (inSender.getValue()) {
+			case "ot":
+				this.scope = "Gen-Mal";
+			break;
+			case "nt":
+				this.scope = "Mat-Rev";
+			break;
+			case "all":
+				this.scope = "Gen-Rev";
+			break;
+		}
+	},
+	
+	inputKeydown: function(inSender, inEvent) {
+		if (inEvent.keyCode == 13) {
+			enyo.log("Search:", inSender.getValue());
+			this.searchTerm = inSender.getValue();
+			inSender.forceBlur();
+			this.doSearch();
+		}
+	},
+	
+	setSearchResults: function (results) {
+		this.results = results;
+		this.$.searchList.render();
+	},
+	
+	getSearchListItem: function(inSender, inIndex) {
+        var r = this.results[inIndex];
+        if (r) {
+			this.$.searchPassage.setContent(r.passage);
+			/*var isRowSelected = (inIndex == this.lastModItem);
+			this.$.itemMod.applyStyle("background", isRowSelected ? "#3A8BCB" : null); */
+            return true;
+        } else {
+            return false;
+        }
+	},
+	
 	changeView: function (inSender, inEvent) {
 		//enyo.log(inSender.name);
 		switch (inSender.name) {
@@ -644,6 +723,10 @@ enyo.kind({
 			break;
 			case "rgBM":
 				this.$.sidebarPane.selectViewByName("bmView");
+			break;
+			case "rgSearch":
+				this.$.sidebarPane.selectViewByName("searchView");
+				this.$.searchInput.forceFocusEnableKeyboard();
 			break;
 		}
 	},
@@ -658,15 +741,22 @@ enyo.kind({
 				this.passage = this.bookNames[parseInt(this.bookmarks[rowIndex].bnumber)].abbrev + " " + this.bookmarks[rowIndex].cnumber;
 				this.verse = this.bookmarks[rowIndex].vnumber;
 			break;
+			case "itemSearch":
+				this.passage = this.results[rowIndex].abbrev + " " + this.results[rowIndex].cnumber;
+				this.verse = parseInt(this.results[rowIndex].vnumber);
+			break;		
 		}
+		enyo.log(this.passage, this.verse);
 		this.doVerse();
 	},
 	
 	deleteNote: function (inSender, inIndex) {
+		this.verse = this.notes[inIndex].vnumber;
 		biblezTools.removeNote(this.notes[inIndex].bnumber, this.notes[inIndex].cnumber, this.notes[inIndex].vnumber, enyo.bind(this, this.handleDelete, "notes", $L("Note")));
 	},
 	
 	deleteBookmark: function (inSender, inIndex) {
+		this.verse = this.bookmarks[inIndex].vnumber;
 		biblezTools.removeBookmark(this.bookmarks[inIndex].bnumber, this.bookmarks[inIndex].cnumber, this.bookmarks[inIndex].vnumber, enyo.bind(this, this.handleDelete, "bookmarks", $L("Bookmark")));
 	},
 	
@@ -674,8 +764,12 @@ enyo.kind({
 		enyo.windows.addBannerMessage($L("Deleted") + " " + item, enyo.json.stringify({}));
 		if (list == "notes") {
 			this.getNotes();
+			enyo.byId("noteIcon"+this.verse).innerHTML = "";
+			//this.doNoteDelete();
 		} else {
 			this.getBookmarks();
+			enyo.byId("bmIcon"+this.verse).innerHTML = "";
+			//this.doBmDelete();
 		}
 	},
 	

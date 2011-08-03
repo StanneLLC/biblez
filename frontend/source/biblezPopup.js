@@ -57,7 +57,7 @@ enyo.kind({
 		edit: false
 	},
     caption: $L("Add A Note"), components:[        
-        {name: "noteInput", kind: "RichText", className: "note-input", hint: $L("Add your note here."), onfocus: "openCenter"},
+        {name: "noteInput", kind: "RichText", className: "note-input", hint: $L("Add your note here."), changeOnInput: true, onfocus: "openCenter", onchange: "toggleButton"},
         {layoutKind: "HFlexLayout", style: "margin-top: 10px;", components: [  
             {name: "btCancel", kind: "Button", caption: $L("Cancel"), flex: 1, onclick: "closePopup"},
             {name: "btAdd", kind: "Button", caption: $L("Add"), flex: 1, onclick: "addNote", className: "enyo-button-affirmative"},
@@ -71,12 +71,22 @@ enyo.kind({
     setFocus: function () {
         this.$.noteInput.forceFocusEnableKeyboard();
     },
+	
+	toggleButton: function (inSender, inEvent) {
+		//enyo.log("INPUT:", inSender.getValue());
+		if (inSender.getValue() == "") {
+			this.$.btAdd.setDisabled(true);
+		} else {
+			this.$.btAdd.setDisabled(false);
+		}
+	},
     
     clearInput: function () {
         this.dismissWithClick = false;
         this.$.noteInput.setValue("");
 		this.$.btAdd.show();
         this.$.btAdd.setCaption($L("Add"));
+		this.$.btAdd.setDisabled(true);
         this.edit = false;
         this.setFocus();
     },
@@ -110,8 +120,8 @@ enyo.kind({
     openCenter: function() {
         this.dismissWithClick = false;
 		this.$.btCancel.show();
-        this.close()
-        this.openAtCenter();
+        //this.close()
+        //this.openAtCenter();
         this.showEditBt();
     },
     
@@ -168,8 +178,7 @@ enyo.kind({
                    
                 ]}
             ]}
-        ]}
-        
+        ]}        
     ],
     
     sliderChange: function (inSender, inEvent) {
@@ -206,13 +215,11 @@ enyo.kind({
    scrim: true,
    kind: "Popup", components: [
       {kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open"},
-      {content: "About " + enyo.fetchAppInfo().title, className: "popup-title"},
+      {content: $L("About ") + enyo.fetchAppInfo().title, className: "popup-title"},
       {content: "Version " + enyo.fetchAppInfo().version, className: "popup-version"},
-      {content: "BibleZ HD is based on the <a href='http://www.crosswire.org/sword'>SWORD Project</a>. \
-                <br>BibleZ HD is licensed  under <a href='http://www.gnu.org/licenses/gpl.txt'>GPLv3</a>. \
-                <br><br>&copy; 2010-2011 by <a href='http://zefanjas.de'>zefanjas.de</a>", className: "popup-info"},      
+      {content: $L("BibleZ HD is based on the") + " <a href='http://www.crosswire.org/sword'>" + $L("SWORD Project") + "</a>.<br>" + $L("BibleZ HD is licensed  under") + " <a href='http://www.gnu.org/licenses/gpl.txt'>GPLv3</a>.<br><br>&copy; 2010-2011 by <a href='http://zefanjas.de'>zefanjas.de</a>", className: "popup-info"},      
       {kind: "Button", flex: 1, caption: $L("Send eMail"), onclick: "sendMail"},
-      {kind: "Button", flex: 1, caption: "Close", onclick: "doCancel"}
+      {kind: "Button", flex: 1, caption: $L("Close"), onclick: "doCancel"}
    ],
    
    doCancel: function () {
