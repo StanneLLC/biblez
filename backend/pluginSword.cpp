@@ -28,6 +28,7 @@
 
 #include "unzip.h"
 #include <regex.h>
+#include <pthread.h>
 
 /*PALM/HP HEADER */
 #include "SDL.h"
@@ -47,6 +48,11 @@ using namespace sword;
 
 SWMgr *displayLibrary = 0;
 SWMgr *searchLibrary = 0;
+
+std::string searchModule = "";
+std::string searchTerm = "";
+std::string searchScope = "";
+int searchType = -2;
 
 std::string convertString(std::string s) {
     std::stringstream ss;
@@ -306,31 +312,30 @@ PDL_bool getBooknames(PDL_JSParameters *parms) {
 void percentUpdate(char percent, void *userData) {
 	//std::cout << (int)percent << "% " << std::endl;
 	//std::cout.flush();
-    /*const char *params[1];
-	params[0] = percent;
+    /*std::string tmp;
+    tmp = (int)percent;
+    const char *params[1];
+	params[0] = tmp.c_str();
 	PDL_Err mjErr = PDL_CallJS("returnSearchProcess", params, 1); */
 }
 
-PDL_bool search(PDL_JSParameters *parms) {
+void *handleSearch(void *foo) {
 	//Search through a module
 	std::stringstream results;
-	const char* moduleName = PDL_GetJSParamString(parms, 0);
-    const char* searchStr = PDL_GetJSParamString(parms, 1);
-    const char* scopeVerses = PDL_GetJSParamString(parms, 2);
 	char c = 100;
 	ListKey listkey;
 	ListKey scope;
-	SWModule *module = searchLibrary->getModule(moduleName);
+	SWModule *module = searchLibrary->getModule(searchModule.c_str());
 	
 	SWKey *k = module->getKey();
 	VerseKey *parser = SWDYNAMIC_CAST(VerseKey, k);
 	VerseKey kjvParser;
 	if (!parser) parser = &kjvParser;
-    scope = parser->ParseVerseList(scopeVerses, *parser, true);
+    scope = parser->ParseVerseList(searchScope.c_str(), *parser, true);
 	scope.Persist(1);
 	module->setKey(scope);
 	
-	ListKey verses = module->search(searchStr, 1, REG_ICASE, 0, 0, &percentUpdate, &c);
+	ListKey verses = module->search(searchTerm.c_str(), searchType, REG_ICASE, 0, 0, &percentUpdate, &c);
 	
     results << "[";
     
@@ -357,6 +362,23 @@ PDL_bool search(PDL_JSParameters *parms) {
 	const char *params[1];
 	params[0] = cstr;
 	PDL_Err mjErr = PDL_CallJS("returnSearch", params, 1);
+}
+
+PDL_bool search(PDL_JSParameters *parms) {
+    const char* moduleName = PDL_GetJSParamString(parms, 0);
+    const char* searchStr = PDL_GetJSParamString(parms, 1);
+    const char* scopeVerses = PDL_GetJSParamString(parms, 2);
+    int type = PDL_GetJSParamInt(parms, 3);
+	pthread_t thread1;
+	int  iret1;
+    
+	char *foobar;
+	searchModule = moduleName;
+	searchTerm = searchStr;
+	searchScope = scopeVerses;
+    searchType = type;
+	
+	iret1 = pthread_create( &thread1, NULL, handleSearch, (void *) foobar);
     return PDL_TRUE;
 }
 

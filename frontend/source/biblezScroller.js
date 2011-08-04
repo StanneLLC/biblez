@@ -534,7 +534,8 @@ enyo.kind({
 		passage: "",
 		verse: 0,
 		scope: "Mat-Rev",
-		searchTerm: ""
+		searchTerm: "",
+		searchType: -2
     },
 	components: [
 		/*enyo.fetchDeviceInfo().screenHeight-138 +"px"*/
@@ -567,13 +568,22 @@ enyo.kind({
 				]}
 			]},
 			{name: "searchView", kind: "VFlexBox", components: [
-				{name: "searchInput", kind: "SearchInput", onkeydown: "inputKeydown"},
-				{kind: "RadioGroup", onChange: "scopeSelected", value: "nt", components: [
-					{caption: $L("OT"), value: "ot"},
-					{caption: $L("NT"), value: "nt"},
-					{caption: $L("All"), value: "all"}
-				]},
-				{kind: "Divider", caption: $L("Results")},
+				{className: "search-container", components: [
+					{name: "searchInput", kind: "SearchInput", onkeydown: "inputKeydown"},
+					{kind: "RadioGroup", onChange: "scopeSelected", value: "nt", components: [
+						{caption: $L("OT"), value: "ot"},
+						{caption: $L("NT"), value: "nt"},
+						{caption: $L("All"), value: "all"}
+					]},
+					{name: "searchType", kind: "ListSelector", value: -2, onChange: "typeChanged", items: [
+						{caption: $L("Regular Expression"), value: 1},
+						{caption: $L("Multiword"), value: -2},
+						{caption: $L("Exact Phrase"), value: -1},
+					]}
+				]},				
+				//{name: "searchProgress", kind: "ProgressBar"},
+				{name: "searchDivider", kind: "Divider", caption: $L("Results")},
+				{name: "searchSpinner", kind: "Spinner", style: "margin-left: auto; margin-right: auto;"},
 				{name: "scrollerSearch", kind: "Scroller", flex: 1,components: [
 					{name: "searchList", kind: "VirtualRepeater", onSetupRow: "getSearchListItem", components: [
 						{name: "itemSearch", kind: "Item", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
@@ -588,8 +598,8 @@ enyo.kind({
 		{kind: "Toolbar", components: [
 			{kind: "RadioToolButtonGroup", components: [
 				{name: "rgNotes", icon: "images/notes.png", /*caption: $L("Notes"), */ onclick: "changeView"},
-				{name: "rgBM", icon: "images/bookmarks.png", /*caption: $L("Bookmarks"), */ onclick: "changeView"}
-				//{name: "rgSearch", icon: "images/search.png", /*caption: $L("Bookmarks"), */ onclick: "changeView"}
+				{name: "rgBM", icon: "images/bookmarks.png", /*caption: $L("Bookmarks"), */ onclick: "changeView"},
+				{name: "rgSearch", icon: "images/search.png", /*caption: $L("Bookmarks"), */ onclick: "changeView"}
 				//{name: "rgVerse", caption: "", onclick: "changeSnapper"}
 			]}
 			//{caption: "TEST"}
@@ -601,6 +611,7 @@ enyo.kind({
 		this.windowRotated()
 		this.$.noteHint.hide();
 		this.$.bmHint.hide();
+		this.$.searchSpinner.hide();
 	},
 	
 	rendered: function () {
@@ -608,6 +619,10 @@ enyo.kind({
 		//this.windowRotated()
 		this.getNotes();
 		this.getBookmarks();
+	},
+	
+	setProgress: function (pos) {
+		this.$.searchProgress.setPosition(pos);
 	},
 	
 	getNotes: function () {
@@ -689,18 +704,31 @@ enyo.kind({
 		}
 	},
 	
+	typeChanged: function(inSender, inValue, inOldValue) {
+		this.searchType = inValue;
+	},
+	
 	inputKeydown: function(inSender, inEvent) {
 		if (inEvent.keyCode == 13) {
 			enyo.log("Search:", inSender.getValue());
 			this.searchTerm = inSender.getValue();
 			inSender.forceBlur();
+			this.$.searchSpinner.show();
 			this.doSearch();
 		}
 	},
 	
 	setSearchResults: function (results) {
 		this.results = results;
+		if (this.results.length > 1) {
+			this.$.searchDivider.setCaption(this.results.length + " " + $L("Results"));
+		} else if (this.results.length == 1) {
+			this.$.searchDivider.setCaption(this.results.length + " " + $L("Result"));
+		} else {
+			this.$.searchDivider.setCaption(this.results.length + " " + $L("Results"));
+		}
 		this.$.searchList.render();
+		this.$.searchSpinner.hide();
 	},
 	
 	getSearchListItem: function(inSender, inIndex) {

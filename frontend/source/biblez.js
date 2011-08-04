@@ -491,7 +491,8 @@ enyo.kind({
     
     handleSearch: function (inSender, inValue) {
         if (this.pluginReady) {
-			try { var status = this.$.plugin.callPluginMethod("search", this.currentModule.name, inSender.getSearchTerm(), inSender.getScope()); }
+            enyo.log(inSender.getSearchType());
+			try { var status = this.$.plugin.callPluginMethod("search", this.currentModule.name, inSender.getSearchTerm(), inSender.getScope(), inSender.getSearchType()); }
 			catch (e) { this.showError("Plugin exception: " + e);}
 		}
 		else {
@@ -500,7 +501,7 @@ enyo.kind({
     },
     
     handleSearchResults: function (results) {
-        enyo.log("RESULTS:", results);
+        //enyo.log("RESULTS:", results);
         this.$.noteBmSidebar.setSearchResults(enyo.json.parse(results));
     },
     
