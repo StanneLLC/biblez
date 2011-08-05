@@ -227,10 +227,10 @@ var biblezTools = {
 	},
 	
 	getNotes: function(bnumber, cnumber, inCallback) {
-		//enyo.log(bnumber, cnumber);
+		//enyo.log("NOTES: ", bnumber, cnumber);
 		var notes = [];
 		try {
-			var sql = (bnumber !== 0 && cnumber !== 0) ? "SELECT * FROM notes WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM notes ORDER BY bnumber, cnumber, vnumber ASC;"
+			var sql = (parseInt(bnumber) !== -1 && parseInt(cnumber) !== -1) ? "SELECT * FROM notes WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM notes ORDER BY bnumber, cnumber, vnumber ASC;"
 		    //enyo.log(sql);
 			//var sql = "SELECT * FROM notes;";
 			this.db.transaction( 
@@ -270,7 +270,7 @@ var biblezTools = {
 	},
 	
 	removeBookmark: function (bnumber, cnumber, vnumber, inCallback) {
-		enyo.log(bnumber, cnumber, vnumber);
+		//enyo.log(bnumber, cnumber, vnumber);
 		try {
 			var sql = "DELETE FROM bookmarks WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' AND vnumber = '" + vnumber + "'";
 		    this.db.transaction( 
@@ -289,10 +289,10 @@ var biblezTools = {
 	},
 	
 	getBookmarks: function(bnumber, cnumber, inCallback) {
-		//enyo.log(bnumber, cnumber);
+		//enyo.log("BM: ", bnumber, cnumber);
 		var bm = [];
 		try {
-			var sql = (bnumber !== 0 && cnumber !== 0) ? "SELECT * FROM bookmarks WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM bookmarks ORDER BY bnumber, cnumber, vnumber ASC;"
+			var sql = (parseInt(bnumber) !== -1 && parseInt(cnumber) !== -1) ? "SELECT * FROM bookmarks WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM bookmarks ORDER BY bnumber, cnumber, vnumber ASC;"
 		    //enyo.log(sql);
 			//var sql = "SELECT * FROM notes;";
 			this.db.transaction( 

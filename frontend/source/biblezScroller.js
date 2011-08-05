@@ -141,9 +141,11 @@ enyo.kind({
 	
 	setBookmarks: function(bookmarks) {
 		this.bookmarks = bookmarks;
+		//enyo.log(enyo.json.stringify(bookmarks));
 		//console.log(enyo.json.stringify(notes));
 		for (var i=0;i<bookmarks.length; i++) {
 			enyo.byId("bmIcon"+bookmarks[i].vnumber).innerHTML = "<a href='bookmark://" + i + ":" + bookmarks[i].vnumber + "'><img id='bookmark" + i + "' src='images/bookmark.png' /></a>";
+			
 		}
 	},
 	
@@ -627,7 +629,7 @@ enyo.kind({
 	
 	getNotes: function () {
 		//this.$.spinner.show();
-		biblezTools.getNotes(0,0,enyo.bind(this, this.handleNotes));
+		biblezTools.getNotes(-1,-1,enyo.bind(this, this.handleNotes));
 	},
 	
 	handleNotes: function (notes) {
@@ -658,10 +660,11 @@ enyo.kind({
 	
 	getBookmarks: function () {
 		//this.$.spinner.show();
-		biblezTools.getBookmarks(0,0,enyo.bind(this, this.handleBookmarks));
+		biblezTools.getBookmarks(-1,-1,enyo.bind(this, this.handleBookmarks));
 	},
 	
 	handleBookmarks: function (bm) {
+		//enyo.log(enyo.json.stringify(bm));
 		//this.$.spinner.hide();
 		this.bookmarks = bm;
 		if (this.bookmarks.length != 0) {
@@ -714,6 +717,9 @@ enyo.kind({
 			this.searchTerm = inSender.getValue();
 			inSender.forceBlur();
 			this.$.searchSpinner.show();
+			this.results = [];
+			this.$.searchList.render();
+			this.$.searchDivider.setCaption($L("Results"));
 			this.doSearch();
 		}
 	},
@@ -754,7 +760,7 @@ enyo.kind({
 			break;
 			case "rgSearch":
 				this.$.sidebarPane.selectViewByName("searchView");
-				this.$.searchInput.forceFocusEnableKeyboard();
+				//this.$.searchInput.forceFocusEnableKeyboard();
 			break;
 		}
 	},

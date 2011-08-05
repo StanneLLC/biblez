@@ -19,8 +19,10 @@ enyo.kind({
 	components: [
 		{kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
 		{kind: "ApplicationEvents", onUnload: "savePassage"},
+		{kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open"},
 		{kind: "AppMenu", components: [
 			{caption: $L("Module Manager"), onclick: "openModuleMgr"},
+			{caption: $L("Help"), onclick: "openHelp"},
 			{caption: $L("About"), onclick: "openAbout"}
 		]},
 		{kind: "ModalDialog", name: "errorDialog", caption: "Error", lazy: false, components:[
@@ -56,7 +58,7 @@ enyo.kind({
 						{kind: "Button", caption: $L("Open Module Manager"), className: "first-start-button", onclick: "openModuleMgr"}
 					]},
 					{name: "sidebarContainer", className: "main-sidebar",components: [
-						{name: "noteBmSidebar", kind: "BibleZ.Sidebar", onVerse: "handleSidebarVerse", onSearch: "handleSearch"}			
+						{name: "noteBmSidebar", kind: "BibleZ.Sidebar", onVerse: "handleSidebarVerse", onSearch: "handleSearch"}		
 					]}
 				]}
 			]},
@@ -143,7 +145,7 @@ enyo.kind({
 	
 	handleNote: function () {
 		if (enyo.byId("noteIcon"+this.$.mainView.tappedVerse).innerHTML !== "") {
-			biblezTools.removeNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, enyo.bind(this, this.getBookmarks));
+			biblezTools.removeNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, enyo.bind(this, this.getNotes));
 			enyo.byId("noteIcon"+this.$.mainView.tappedVerse).innerHTML = "";
 			this.$.versePopup.close();
 		} else {
@@ -171,7 +173,7 @@ enyo.kind({
 	
 	getNotes: function() {
 		biblezTools.getNotes(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setNotes));
-        biblezTools.getNotes(0,0,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleNotes));
+        biblezTools.getNotes(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleNotes));
 	},
 	
 	openShowNote: function (inSender, inEvent) {
@@ -198,7 +200,7 @@ enyo.kind({
 	
 	getBookmarks: function() {
 		biblezTools.getBookmarks(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setBookmarks));
-        biblezTools.getBookmarks(0,0,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleBookmarks));
+        biblezTools.getBookmarks(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleBookmarks));
 	},
 	
 	openAbout: function ()  {
@@ -321,7 +323,7 @@ enyo.kind({
 		}
 		inSender.setChecked(true);
         //this.getBooknames(this.currentModule.name);
-		this.getVerses(this.$.selector.getBook().name + " " + this.$.selector.getChapter(), inSender.module.name);
+		this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), inSender.module.name);
 	},
 	
 	handleBooknames: function(response) {
@@ -347,8 +349,6 @@ enyo.kind({
 			this.$.mainView.setPrevChapter(this.$.selector.getPrevPassage().passage);
 			this.$.mainView.setNextChapter(this.$.selector.getNextPassage().passage);
 			
-			this.setHistory();
-			
 			//Need to wait for setCurrentPassage???
 			this.getNotes();
 			this.getBookmarks();
@@ -361,6 +361,7 @@ enyo.kind({
 		}
 		
 		//enyo.log(enyo.json.stringify(this.dbSets["history"]));
+		this.setHistory();
 		this.$.tbPassage.setCaption(this.currentModule.name + " - " + this.$.selector.getBook().name + " " + this.$.selector.getChapter());
 		this.$.spinner.hide();
 	},
@@ -560,6 +561,7 @@ enyo.kind({
 	//OTHER STUFF
 	
 	handleSelectHistory: function (inSender, inEvent) {
+		this.$.selector.setVerse(1);
 		this.getVerses(inSender.passage.passage);
 	},
 	
@@ -567,23 +569,43 @@ enyo.kind({
 		//enyo.log("CHANGE CHAPTER... " + inSender.index, inSender.numberOfSnappers);
 		if (inSender.index == 0) {
 			var prev = this.$.selector.getPrevPassage();
-			this.getVerses(prev.passage);
-			this.$.selector.setBook(prev.prevBook);
-			this.$.selector.setChapter(prev.prevChapter);
-			this.$.selector.setBnumber(prev.prevBnumber);
-			this.$.selector.setVerse(1);
+			if (prev.prevBnumber != 0 && prev.prevChapter != 0) {
+				this.getVerses(prev.passage);
+				this.$.selector.setBook(prev.prevBook);
+				this.$.selector.setChapter(prev.prevChapter);
+				this.$.selector.setBnumber(prev.prevBnumber);
+				this.$.selector.setVerse(1);
+			} else {
+				this.$.mainView.setIndex(1);
+			}
+			
+			
 		} else if (inSender.index == inSender.numberOfSnappers + 2) {
 			var next = this.$.selector.getNextPassage();
-			this.getVerses(next.passage);
-			this.$.selector.setBook(next.nextBook);
-			this.$.selector.setChapter(next.nextChapter);
-			this.$.selector.setBnumber(next.nextBnumber);
-			this.$.selector.setVerse(1);
+			if (next.nextBook !== "" && next.nextChapter !== 0) {
+				this.getVerses(next.passage);
+				this.$.selector.setBook(next.nextBook);
+				this.$.selector.setChapter(next.nextChapter);
+				this.$.selector.setBnumber(next.nextBnumber);
+				this.$.selector.setVerse(1);
+			} else {
+				this.$.mainView.setIndex(this.$.mainView.getIndex()-1);
+			}
+			
 		}
 	},
 	
 	openModuleMgr: function (inSender, inEvent) {
 		this.$.mainPane.selectViewByName("modManView");
+	},
+	
+	openHelp: function () {
+		this.$.palmService.call({
+			id: 'com.palm.app.browser',
+            params: {
+				"target": "http://zefanjas.de/biblez"
+            }
+        });
 	},
 	
 	showToaster: function() {

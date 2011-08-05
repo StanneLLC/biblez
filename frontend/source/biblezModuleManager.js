@@ -40,7 +40,7 @@ enyo.kind({
 		{kind: "Header", components: [
 			{kind: "Button", caption: $L("Back"), onclick: "doBack"},
 			{kind: "Spacer"},
-			{content: $L("Module Manger")},
+			{content: $L("Module Manager")},
 			{kind: "Spacer"},
 			{kind: "Spinner", showing: true}
 			
