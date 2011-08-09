@@ -20,15 +20,28 @@ enyo.kind({
     lazy: false,
     events: {
       onNote: "",
-      onBookmark: ""
+      onBookmark: "",
+      onHighlight: ""
     },
+    published: {
+		color: ""
+	},
     components:[
         {kind: "VFlexBox", flex: 1, components: [
             {kind: "ToolButtonGroup", components: [
                 //{content: "Copy"},
                 {name: "bmCaption", caption: $L("Bookmark") + " + ", onclick: "doBookmark"},
-                {name: "noteCaption", caption: $L("Note") + " + ", onclick: "doNote"}
+                {name: "noteCaption", caption: $L("Note") + " + ", onclick: "doNote"},
+                {name: "hlCaption", caption: $L("Highlight"), onclick: "openColors"}
                 //{content: "Highlight"},
+            ]},
+            {name: "colorSelector", kind: "HFlexBox", components: [
+                {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(255,99,71,0.5)", style: "background-color: red;"},
+                {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(135,206,250,0.5)", style: "background-color: blue;"},
+                {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(255,255,0,0.5)", style: "background-color: yellow;"},
+                {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(152,251,152,0.5)", style: "background-color: green;"},
+                {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(238,130,238,0.5)", style: "background-color: violet;"},
+                {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(255,165,0,0.5)", style: "background-color: orange;"}
             ]}
         ]}       
     ],
@@ -39,6 +52,25 @@ enyo.kind({
     
     setNoteCaption: function (caption) {
         this.$.noteCaption.setCaption(caption);
+    },
+    
+    setHlCaption: function (caption) {
+        this.$.hlCaption.setCaption(caption);
+    },
+    
+    hideColors: function () {
+        this.$.colorSelector.hide();
+    },
+    
+    openColors: function (inSender, inEvent) {
+        this.$.colorSelector.show();
+    },
+    
+    highlightVerse: function (inSender, inEvent) {
+        //enyo.log(inSender.color);
+        this.color = inSender.color;
+        this.doHighlight();
+        this.close();
     },
     
     closePopup: function() {

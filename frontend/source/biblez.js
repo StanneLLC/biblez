@@ -31,7 +31,7 @@ enyo.kind({
 		]},
 		{name: "notePopup", kind: "BibleZ.AddNote", onAddNote: "addNote"},
 		{name: "noteView", kind: "BibleZ.ShowNote", style: "min-width: 100px; max-width: 300px;"},
-		{name: "versePopup", kind: "BibleZ.VersePopup", className: "verse-popup", onNote: "handleNote", onBookmark: "handleBookmark"},
+		{name: "versePopup", kind: "BibleZ.VersePopup", className: "verse-popup", onBeforeOpen: "hideColors", onNote: "handleNote", onBookmark: "handleBookmark", onHighlight: "handleHighlight"},
 		{name: "fontMenu", kind: "BibleZ.FontMenu", onFontSize: "changeFontSize", onFont: "changeFont"},
 		{name: "biblezAbout", kind: "BibleZ.About"},
 		{name: "mainPane", flex: 1, kind: "Pane", onSelectView: "viewSelected", components: [
@@ -203,6 +203,26 @@ enyo.kind({
         biblezTools.getBookmarks(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleBookmarks));
 	},
 	
+	handleHighlight: function (inSender, inEvent) {
+		//enyo.log("BG:",enyo.byId("verse"+this.$.mainView.tappedVerse).style.backgroundColor);
+		if (enyo.byId("verse"+this.$.mainView.tappedVerse).style.backgroundColor.search("rgba") == -1) {
+			biblezTools.addHighlight(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse,inSender.getColor(), "",enyo.bind(this, this.getHighlights));
+		} else {
+			biblezTools.updateHighlight(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse,inSender.getColor(), "",enyo.bind(this, this.getHighlights));
+		}
+		enyo.byId("verse"+this.$.mainView.tappedVerse).style.backgroundColor = inSender.getColor();
+		
+	},
+	
+	getHighlights: function() {
+		biblezTools.getHighlights(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setHighlights));
+        biblezTools.getHighlights(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleHighlights));
+	},
+	
+	hideColors: function (inSender, inEvent) {
+		this.$.versePopup.hideColors();
+	},
+	
 	openAbout: function ()  {
 		this.$.biblezAbout.openAtCenter();
 	},
@@ -249,7 +269,7 @@ enyo.kind({
 	},
 	
 	handleGetModules: function(modules) {
-		enyo.log("INFO: " + modules);
+		//enyo.log("INFO: " + modules);
 		var mods = enyo.json.parse(modules);
 		this.$.modManView.setInstalledModules(enyo.json.parse(modules));
 
@@ -352,6 +372,7 @@ enyo.kind({
 			//Need to wait for setCurrentPassage???
 			this.getNotes();
 			this.getBookmarks();
+			this.getHighlights();
 		} else {
 			enyo.log("Chapter not available!");
 			this.$.firstStart.hide();

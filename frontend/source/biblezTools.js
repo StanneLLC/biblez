@@ -25,20 +25,25 @@ var biblezTools = {
 		switch (this.db.version) {
 			case '':
 				enyo.log("Create Tables...");
-                this.dbCreateTables("1");
+                this.dbCreateTables('', "1");
 			break;
 			case "1":
 				enyo.log("Update Tables to 2");
-                //this.dbCreateTables("2");
+                this.dbCreateTables("1", "2");
+			break;
+			case "2":
+				enyo.log("Update Tables to 3");
+                //this.dbCreateTables("2", "3");
 			break;
 		}
 	},
 	
-	dbCreateTables: function(version) {
+	dbCreateTables: function(oldVersion, newVersion) {
 		try {
 			var sqlNote = "CREATE TABLE IF NOT EXISTS notes (bnumber INTEGER, cnumber INTEGER, vnumber INTEGER, note TEXT, title TEXT, folder TEXT, tags TEXT);";
 			var sqlBook = "CREATE TABLE IF NOT EXISTS bookmarks (bnumber INTEGER, cnumber INTEGER, vnumber INTEGER, title TEXT, folder TEXT, tags TEXT);";
-		    this.db.changeVersion('', version,
+			var sqlHighlight = "CREATE TABLE IF NOT EXISTS highlights (bnumber INTEGER, cnumber INTEGER, vnumber INTEGER, color TEXT, description TEXT);";
+		    this.db.changeVersion(oldVersion, newVersion,
 		        enyo.bind(this,(function (transaction) { 
 		            transaction.executeSql(sqlNote, [], 
 						enyo.bind(this, function () {enyo.log("SUCCESS: Created notes table");}),
@@ -47,6 +52,11 @@ var biblezTools = {
 					
 					transaction.executeSql(sqlBook, [], 
 						enyo.bind(this, function () {enyo.log("SUCCESS: Created bookmarks table");}),
+						enyo.bind(this,this.errorHandler)
+					);
+					
+					transaction.executeSql(sqlHighlight, [], 
+						enyo.bind(this, function () {enyo.log("SUCCESS: Created highlights table");}),
 						enyo.bind(this,this.errorHandler)
 					); 
 		        }))
@@ -303,6 +313,87 @@ var biblezTools = {
 							bm.push({"bnumber": results.rows.item(j).bnumber, "cnumber": results.rows.item(j).cnumber, "vnumber": results.rows.item(j).vnumber, "title": results.rows.item(j).title, "folder": results.rows.item(j).folder, "tags": results.rows.item(j).tags});
 						}
 						inCallback(bm);
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.log("ERROR", e);
+		}
+	},
+	
+	addHighlight: function (bnumber, cnumber, vnumber, color, descr, inCallback) {
+		enyo.log(bnumber, cnumber, vnumber, color, descr);
+		try {
+			var sql = "INSERT INTO highlights (bnumber, cnumber, vnumber, color, description) VALUES (?,?,?,?,?)";
+		    this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [bnumber, cnumber, vnumber, color, descr], 
+					enyo.bind(this, function () {
+                        enyo.log("Successfully inserted highlight!");
+						inCallback();
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.log("ERROR", e);
+		}
+	},
+	
+	removeHighlight: function (bnumber, cnumber, vnumber, inCallback) {
+		enyo.log(bnumber, cnumber, vnumber);
+		try {
+			var sql = "DELETE FROM highlights WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' AND vnumber = '" + vnumber + "'";
+		    this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [], 
+					enyo.bind(this, function () {
+                        enyo.log("Successfully deleted highlight!");
+						inCallback();
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.log("ERROR", e);
+		}
+	},
+	
+	updateHighlight: function (bnumber, cnumber, vnumber, color, descr, inCallback) {
+		try {
+			var sql = 'UPDATE highlights SET color = "' + color + '" WHERE bnumber = "' + bnumber + '" AND cnumber = "' + cnumber + '" AND vnumber = "' + vnumber + '"';
+		    //enyo.log(sql);
+			this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [], 
+					enyo.bind(this, function () {
+                        enyo.log("Successfully updated highlight!");
+						inCallback();
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.log("ERROR", e);
+		}
+	},
+	
+	getHighlights: function(bnumber, cnumber, inCallback) {
+		//enyo.log("NOTES: ", bnumber, cnumber);
+		var hl = [];
+		try {
+			var sql = (parseInt(bnumber) !== -1 && parseInt(cnumber) !== -1) ? "SELECT * FROM highlights WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM highlights ORDER BY bnumber, cnumber, vnumber ASC;"
+		    //enyo.log(sql);
+			//var sql = "SELECT * FROM notes;";
+			this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [], 
+					enyo.bind(this, function (transaction, results) {
+                        for (var j=0; j<results.rows.length; j++) {
+							hl.push({"bnumber": results.rows.item(j).bnumber, "cnumber": results.rows.item(j).cnumber, "vnumber": results.rows.item(j).vnumber, "color": results.rows.item(j).color, "descr": results.rows.item(j).description});
+						}
+						inCallback(hl);
 					}),
                     enyo.bind(this,this.errorHandler)); 
 		        }))

@@ -37,6 +37,7 @@ enyo.kind({
 		tappedNote: 0,
 		notes: [],
 		bookmarks: [],
+		highlights: [],
 		vnumber: 0
 	},
     components: [
@@ -141,7 +142,7 @@ enyo.kind({
 			//enyo.log(tmpVerse);
 			content = content + "<a href='verse://" + verses[i].vnumber + "'>";
 			content = content + " <span id='" + verses[i].vnumber + "' class='verse-number'>" + verses[i].vnumber + "</span> </a>";
-			content = (parseInt(vnumber) != 1 && parseInt(vnumber) == parseInt(verses[i].vnumber)) ? content + "<span class='verse-highlighted'>" + tmpVerse + "</span>" : content + tmpVerse;
+			content = (parseInt(vnumber) != 1 && parseInt(vnumber) == parseInt(verses[i].vnumber)) ? content + "<span id='verse" + verses[i].vnumber +  "' class='verse-highlighted'>" + tmpVerse + "</span>" : content + "<span id='verse" + verses[i].vnumber +  "'>" + tmpVerse + "</span>";
 			content = content + " <span id='noteIcon" + verses[i].vnumber + "'></span> ";
 			content = content + " <span id='bmIcon" + verses[i].vnumber + "'></span> ";
 			content = content + findBreak;
@@ -188,6 +189,14 @@ enyo.kind({
 		for (var i=0;i<bookmarks.length; i++) {
 			enyo.byId("bmIcon"+bookmarks[i].vnumber).innerHTML = "<a href='bookmark://" + i + ":" + bookmarks[i].vnumber + "'><img id='bookmark" + i + "' src='images/bookmark.png' /></a>";
 			
+		}
+	},
+	
+	setHighlights: function(highlights) {
+		this.highlights = highlights;
+		//enyo.log(enyo.json.stringify(highlights));
+		for (var i=0;i<highlights.length; i++) {
+			enyo.byId("verse"+highlights[i].vnumber).style.backgroundColor = highlights[i].color;
 		}
 	},
 	
@@ -592,6 +601,7 @@ enyo.kind({
         bookNames: [],
 		notes: [],
 		bookmarks: [],
+		highlights: [],
 		results: [],
 		passage: "",
 		verse: 0,
@@ -623,6 +633,18 @@ enyo.kind({
 					{name: "bmList", kind: "VirtualRepeater", onSetupRow: "getBmListItem", components: [
 						{name: "itemBm", kind: "SwipeableItem", onConfirm: "deleteBookmark", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
 							{name: "bmPassage"}
+						],
+						onclick: "goToVerse"
+						}]
+					}
+				]}
+			]},
+			{name: "hlView", kind: "VFlexBox", components: [
+				{name: "scrollerHl", kind: "Scroller", flex: 1,components: [
+					{name: "hlHint", content: $L("No Highlights available"), className: "hint"},
+					{name: "hlList", kind: "VirtualRepeater", onSetupRow: "getHlListItem", components: [
+						{name: "itemHl", kind: "SwipeableItem", onConfirm: "deleteHighlight", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
+							{name: "hlPassage"}
 						],
 						onclick: "goToVerse"
 						}]
@@ -661,8 +683,8 @@ enyo.kind({
 			{kind: "RadioToolButtonGroup", components: [
 				{name: "rgNotes", icon: "images/notes.png", /*caption: $L("Notes"), */ onclick: "changeView"},
 				{name: "rgBM", icon: "images/bookmarks.png", /*caption: $L("Bookmarks"), */ onclick: "changeView"},
-				{name: "rgSearch", icon: "images/search.png", /*caption: $L("Bookmarks"), */ onclick: "changeView"}
-				//{name: "rgVerse", caption: "", onclick: "changeSnapper"}
+				{name: "rgHighlight", icon: "images/highlights.png", onclick: "changeView"},
+				{name: "rgSearch", icon: "images/search.png", /*caption: $L("Bookmarks"), */ onclick: "changeView"}				
 			]}
 			//{caption: "TEST"}
 		]}
@@ -673,6 +695,7 @@ enyo.kind({
 		this.windowRotated()
 		this.$.noteHint.hide();
 		this.$.bmHint.hide();
+		this.$.hlHint.hide();
 		this.$.searchSpinner.hide();
 	},
 	
@@ -681,6 +704,7 @@ enyo.kind({
 		//this.windowRotated()
 		this.getNotes();
 		this.getBookmarks();
+		this.getHighlights();
 	},
 	
 	setProgress: function (pos) {
@@ -741,7 +765,41 @@ enyo.kind({
 			if (this.bookNames[parseInt(r.bnumber)]) {
 				this.$.bmPassage.setContent(this.bookNames[parseInt(r.bnumber)].abbrev + " " + r.cnumber + ":" + r.vnumber);
 			}
-			
+            
+			/*var isRowSelected = (inIndex == this.lastModItem);
+			this.$.itemMod.applyStyle("background", isRowSelected ? "#3A8BCB" : null); */
+            return true;
+        } else {
+            return false;
+        }
+	},
+	
+	getHighlights: function () {
+		//enyo.log("GET HIGHLIGHTS...");
+		//this.$.spinner.show();
+		biblezTools.getHighlights(-1,-1,enyo.bind(this, this.handleHighlights));
+	},
+	
+	handleHighlights: function (hl) {
+		//enyo.log("GOT HIGHLIGHTS...");
+		//enyo.log(enyo.json.stringify(hl));
+		//this.$.spinner.hide();
+		this.highlights = hl;
+		if (this.highlights.length != 0) {
+			this.$.hlHint.hide();
+		} else {
+			this.$.hlHint.show();
+		}
+		this.$.hlList.render();
+	},
+	
+	getHlListItem: function(inSender, inIndex) {
+        var r = this.highlights[inIndex];
+        if (r) {
+			if (this.bookNames[parseInt(r.bnumber)]) {
+				this.$.hlPassage.setContent(this.bookNames[parseInt(r.bnumber)].abbrev + " " + r.cnumber + ":" + r.vnumber);
+				this.$.itemHl.addStyles("background-color: " + r.color +";");
+			}		
             
 			/*var isRowSelected = (inIndex == this.lastModItem);
 			this.$.itemMod.applyStyle("background", isRowSelected ? "#3A8BCB" : null); */
@@ -820,7 +878,10 @@ enyo.kind({
 			break;
 			case "rgSearch":
 				this.$.sidebarPane.selectViewByName("searchView");
-				//this.$.searchInput.forceFocusEnableKeyboard();
+			break;
+			case "rgHighlight":
+				enyo.log("HLView");
+				this.$.sidebarPane.selectViewByName("hlView");
 			break;
 		}
 	},
@@ -834,6 +895,10 @@ enyo.kind({
 			case "itemBm":
 				this.passage = this.bookNames[parseInt(this.bookmarks[rowIndex].bnumber)].abbrev + " " + this.bookmarks[rowIndex].cnumber;
 				this.verse = this.bookmarks[rowIndex].vnumber;
+			break;
+			case "itemHl":
+				this.passage = this.bookNames[parseInt(this.highlights[rowIndex].bnumber)].abbrev + " " + this.highlights[rowIndex].cnumber;
+				this.verse = this.highlights[rowIndex].vnumber;
 			break;
 			case "itemSearch":
 				this.passage = this.results[rowIndex].abbrev + " " + this.results[rowIndex].cnumber;
@@ -854,22 +919,31 @@ enyo.kind({
 		biblezTools.removeBookmark(this.bookmarks[inIndex].bnumber, this.bookmarks[inIndex].cnumber, this.bookmarks[inIndex].vnumber, enyo.bind(this, this.handleDelete, "bookmarks", $L("Bookmark")));
 	},
 	
+	deleteHighlight: function (inSender, inIndex) {
+		this.verse = this.highlights[inIndex].vnumber;
+		biblezTools.removeHighlight(this.highlights[inIndex].bnumber, this.highlights[inIndex].cnumber, this.highlights[inIndex].vnumber, enyo.bind(this, this.handleDelete, "highlights", $L("Highlight")));
+	},
+	
 	handleDelete: function (list, item) {
 		enyo.windows.addBannerMessage($L("Deleted") + " " + item, enyo.json.stringify({}));
 		if (list == "notes") {
 			this.getNotes();
 			enyo.byId("noteIcon"+this.verse).innerHTML = "";
 			//this.doNoteDelete();
-		} else {
+		} else if (list == "bookmarks") {
 			this.getBookmarks();
 			enyo.byId("bmIcon"+this.verse).innerHTML = "";
 			//this.doBmDelete();
+		} else {
+			this.getHighlights();
+			enyo.byId("verse"+this.verse).style.backgroundColor = "transparent";
 		}
 	},
 	
 	bookNamesChanged: function () {
 		this.$.bmList.render();
 		this.$.noteList.render();
+		this.$.hlList.render();
 	},
 	
 	windowRotated: function(inSender) {
