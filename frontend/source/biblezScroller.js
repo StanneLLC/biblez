@@ -44,7 +44,8 @@ enyo.kind({
 		{name: "firstSnapper", components: [
 			{name: "prevChapter", content: "Previous Chapter", className: "chapter-nav-left chapter-nav"}			
 		]},
-        {name: "mainView", kind: "HtmlContent", allowHtml: true, content: "", className: "view-verses", onLinkClick: "handleVerseTap"}
+		{name: "mainView", kind: "HtmlContent", allowHtml: true, content: "", className: "view-verses", onLinkClick: "handleVerseTap"}
+        
     ],
 	
 	create: function () {
@@ -52,19 +53,50 @@ enyo.kind({
 		this.setIndex(1);
 		this.$.prevChapter.hide();
 		this.starter = 0;
+		//enyo.keyboard.forceHide();
 	},
 	
 	rendered: function () {
 		this.inherited(arguments);
 		if (this.starter == 0) {
 			this.setIndex(1);
-			//this.$.mainView.addStyles("width: " + this.node.clientWidth + "px;");
+			//this.$.mvContainer.addStyles("width: " + this.node.clientWidth + "px;");
 			this.$.firstSnapper.addStyles("width: " + this.node.clientWidth + "px;");
 		}
 		this.starter = 1;
 		
 		//enyo.log(this.$.mainView.hasNode());
 	},
+	
+	/* findLink: function(inNode, inAncestor) {
+		var n = inNode;
+		while (n && n != inAncestor) {
+			if (n.href) {
+			   return n.href;
+			}
+			n = n.parentNode;
+		}
+	},
+	
+	catchClick: function(inSender, inEvent) {
+		//enyo.keyboard.forceHide();
+		var url = this.findLink(inEvent.target, this.hasNode());
+		if (url) {
+			//enyo.log(url);
+			this.handleVerseTap(url);
+			//inEvent.preventDefault();
+			return false;
+		} else {
+			//this.doClick();
+			//inEvent.preventDefault();
+			return false;
+		}
+	},
+	
+	disableKeys: function (inSender, inEvent){
+		//inEvent.preventDefault();
+		return false;
+	}, */
 	
 	changeChapter: function (inSender, inEvent) {
 		console.log("CHANGE CHAPTER... " + this.index);
@@ -82,32 +114,42 @@ enyo.kind({
     setVerses: function (verses, vnumber) {
 		this.vnumber = vnumber;
 		this.setIndex(1);
-		var comp = this.getComponents()
-		for (var j=0;j<comp.length;j++) {
-			if (comp[j].name.search(/snapper\d+/) != -1) {
-				comp[j].destroy();
-			}
-		}
-		if(this.$.lastSnapper) {
-			this.$.lastSnapper.destroy();
-		}
+		
+		//enyo.log("NODE1: ", this.node.clientWidth, this.node.clientHeight);
+		var height = this.node.clientHeight - 40;
+		var width = this.node.clientWidth - 40;
+		//enyo.log("VARS:", width, height, widthMV,  heightMV);
+		//this.$.mvContainer.addStyles("height: " + height + "px;");
+		//this.$.mvContainer.addStyles("width: " + width + "px;");
+		this.$.mainView.addStyles("height: " + height + "px;");
+		this.$.mainView.addStyles("width: " + width + "px;");
+		
+		var findBreak = "";
 		var content = "";
 		var tmpVerse = "";
 		for (var i=0; i<verses.length; i++) {
-			tmpVerse = verses[i].content.replace("<br />"," ");
+			tmpVerse = verses[i].content.replace(/\*x/g,"").replace(/color=\u0022red\u0022/g,"color=\u0022#E60000\u0022");//.replace(/color=\"red\"/g, "color=\u0022#BA0000\u0022");
 			if (tmpVerse.search(/<note.*<\/note>/i) != -1) {
 				tmpVerse = tmpVerse.replace(/<note.*<\/note>/i, " <span class='verse-footnote'>" + tmpVerse.match(/<note.*<\/note>/i) + "</span>");
+			}
+			if (tmpVerse.search("<br /><br />") != -1) {
+				findBreak = "<br /><br />";
+				tmpVerse = tmpVerse.replace(/<br \/><br \/>/g, "");
+			} else {
+				findBreak = "";
 			}
 			//enyo.log(tmpVerse);
 			content = content + "<a href='verse://" + verses[i].vnumber + "'>";
 			content = content + " <span id='" + verses[i].vnumber + "' class='verse-number'>" + verses[i].vnumber + "</span> </a>";
 			content = (parseInt(vnumber) != 1 && parseInt(vnumber) == parseInt(verses[i].vnumber)) ? content + "<span class='verse-highlighted'>" + tmpVerse + "</span>" : content + tmpVerse;
 			content = content + " <span id='noteIcon" + verses[i].vnumber + "'></span> ";
-			content = content + " <span id='bmIcon" + verses[i].vnumber + "'></span> ";			
+			content = content + " <span id='bmIcon" + verses[i].vnumber + "'></span> ";
+			content = content + findBreak;
 		}
 		//this.resized();
-		var height = this.node.clientHeight - 30;
-		this.$.mainView.addStyles("height: " + height + "px;");
+		//var height = this.node.clientHeight - 50;
+		//this.$.mvContainer.addStyles("height: " + height + "px;");
+		//this.$.mainView.addStyles("height: " + height-20 + "px;");
 		
 		this.$.mainView.setContent(content);
 		this.setSnappers(vnumber);
@@ -165,7 +207,7 @@ enyo.kind({
 	setFontSize: function (size) {
 		this.$.mainView.addStyles("font-size: " + size + "px;");
 		//this.resized();
-		var height = this.node.clientHeight - 30;
+		var height = this.node.clientHeight - 40;
 		this.$.mainView.addStyles("height: " + height + "px;");
 		if (this.vnumber !== 0) {this.setSnappers()};
 	},
@@ -173,12 +215,12 @@ enyo.kind({
 	setFont: function (font) {
 		this.$.mainView.addStyles("font-family: " + font + ";");
 		//this.resized();
-		var height = this.node.clientHeight - 30;
+		var height = this.node.clientHeight - 40;
 		this.$.mainView.addStyles("height: " + height + "px;");
 		if (this.vnumber !== 0) {this.setSnappers()};
 	},
 	
-	setSnappers: function (vnumber) {
+	setSnappers: function (vnumber) {		
 		var comp = this.getComponents()
 		for (var j=0;j<comp.length;j++) {
 			if (comp[j].name.search(/snapper\d+/) != -1) {
@@ -189,37 +231,55 @@ enyo.kind({
 			this.$.lastSnapper.destroy();
 		}
 		
-		//enyo.log(this.$.mainView.node.clientWidth, this.sidebarWidth, this.node.scrollWidth, this.node.scrollWidth - this.$.mainView.node.clientWidth, parseInt((this.node.scrollWidth - this.$.mainView.node.clientWidth) / this.$.mainView.node.clientWidth));
-		this.numberOfSnappers = (this.node.scrollWidth - this.$.mainView.node.clientWidth - this.sidebarWidth > this.$.mainView.node.clientWidth) ? parseInt((this.node.scrollWidth - this.$.mainView.node.clientWidth - this.sidebarWidth) / this.$.mainView.node.clientWidth) : 0;
+		var height = this.node.clientHeight - 40;
+		var width = this.node.clientWidth - 40;
+		
+		//enyo.log(this.node.clientWidth, this.node.scrollWidth, this.node.scrollWidth - this.node.clientWidth - this.sidebarWidth, parseInt((this.node.scrollWidth - this.node.clientWidth - this.sidebarWidth) / this.node.clientWidth));
+		//enyo.log(this.$.mvContainer.node.clientWidth);
+		this.numberOfSnappers = (this.node.scrollWidth - this.node.clientWidth - this.sidebarWidth > this.node.clientWidth) ? parseInt((this.node.scrollWidth - this.node.clientWidth - this.sidebarWidth) / this.node.clientWidth) : 0;
 		var kindName = "";
 		for (var j=0;j<this.numberOfSnappers; j++) {
 			kindName = "snapper" + j;
-			this.createComponent({name: kindName, style: "width: " + this.$.mainView.node.clientWidth + "px;"}).render();
+			this.createComponent({name: kindName, style: "width: " + this.node.clientWidth + "px;"}).render();
 		}
-		this.createComponent({name: "lastSnapper", style: "width: " + this.$.mainView.node.clientWidth + "px;", components: [{name: "nextChapter", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}]}).render();
+		//enyo.log(this.node.clientWidth);
+		this.createComponent({name: "lastSnapper", style: "width: " + this.node.clientWidth + "px;", components: [{name: "nextChapter", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}]}).render();
+		this.$.mainView.addStyles("width: " + width + "px;");
+		this.$.mainView.addStyles("height: " + height + "px;");
 		this.$.prevChapter.show();
 		
 		if (vnumber) {
 			//enyo.log(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left);
 			this.setIndex(parseInt(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left / this.$.mainView.node.clientWidth) + 1);
 		}
+		//enyo.log("CONTAINER: ", this.$.mvContainer.node.clientWidth, this.$.mvContainer.node.clientHeight);
+		//enyo.log("MAINVIEW: ", this.$.mainView.node.clientWidth, this.$.mainView.node.clientHeight);
 		
 	},
 	
 	windowRotated: function(inSender) {
+		//enyo.log("NODE1: ", this.node.clientWidth, this.node.clientHeight);
 		var height = this.node.clientHeight - 30;
+		var width = this.node.clientWidth - 40;
+		//enyo.log("VARS:", width, height);
+		//this.$.mvContainer.addStyles("height: " + this.node.clientHeight + "px;");
+		//this.$.mvContainer.addStyles("width: " + this.node.clientWidth + "px;");
 		this.$.mainView.addStyles("height: " + height + "px;");
+		this.$.mainView.addStyles("width: " + width + "px;");
+		
 		var comp = this.getComponents()
 		for (var j=0;j<comp.length;j++) {
 			if (comp[j].name.search(/snapper\d+/) != -1) {
 				comp[j].addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
 			}
 		}
-		//this.$.mainView.addStyles("width: " + this.node.clientWidth + "px;");
 		this.$.firstSnapper.addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
 		this.$.lastSnapper.addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
 		
 		this.setIndex(this.index);
+		//enyo.log("NODE2: ", this.node.clientWidth, this.node.clientHeight);
+		//enyo.log("CONTAINER: ", this.$.mvContainer.node.clientWidth, this.$.mvContainer.node.clientHeight);
+		//enyo.log("MAINVIEW: ", this.$.mainView.node.clientWidth, this.$.mainView.node.clientHeight);
 	},
 	
 	//WORKAROUND
@@ -391,13 +451,13 @@ enyo.kind({
 	changeSnapper: function (inSender, inEvent) {
 		switch (inSender.name) {
 			case "rgBook":
-				this.snapTo(0);
+				this.$.selectorSnapper.snapTo(0);
 			break;
 			case "rgChapter":
-				this.snapTo(1);
+				this.$.selectorSnapper.snapTo(1);
 			break;
 			case "rgVerse":
-				this.snapTo(2);
+				this.$.selectorSnapper.snapTo(2);
 			break;
 		}
 	},

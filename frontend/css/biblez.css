@@ -26,6 +26,22 @@
 
 /* MAIN VIEW */
 
+.mainview-container {
+    background-color: yellow;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.view-verses {
+    padding: 20px;
+	-webkit-column-width: 250px;
+	-webkit-column-gap: 40px;
+    overflow: visible;
+    /*background-color: rgba(255,0,0,0.5);
+    /* font-family:georgia,garamond,serif;
+    font-size: 22px; */
+}
+
 .scroller-background {
     background: url("../images/background.png");
 }
@@ -48,15 +64,6 @@
     margin-left: auto;
     margin-right: auto;
     margin-top: 20px;
-}
-
-.view-verses {
-    padding: 20px;
-	-webkit-column-width: 250px;
-	-webkit-column-gap: 40px;
-    overflow: visible;
-    /* font-family:georgia,garamond,serif;
-    font-size: 22px; */
 }
 
 .view-verses a {
