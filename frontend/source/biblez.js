@@ -22,6 +22,7 @@ enyo.kind({
 		{kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open"},
 		{kind: "AppMenu", components: [
 			{caption: $L("Module Manager"), onclick: "openModuleMgr"},
+			{caption: $L("Preferences"), onclick: "openPrefs"},
 			{caption: $L("Help"), onclick: "openHelp"},
 			{caption: $L("About"), onclick: "openAbout"}
 		]},
@@ -34,7 +35,7 @@ enyo.kind({
 		{name: "versePopup", kind: "BibleZ.VersePopup", className: "verse-popup", onBeforeOpen: "hideColors", onNote: "handleNote", onBookmark: "handleBookmark", onHighlight: "handleHighlight"},
 		{name: "fontMenu", kind: "BibleZ.FontMenu", onFontSize: "changeFontSize", onFont: "changeFont"},
 		{name: "biblezAbout", kind: "BibleZ.About"},
-		{name: "mainPane", flex: 1, kind: "Pane", onSelectView: "viewSelected", components: [
+		{name: "mainPane", flex: 1, kind: "Pane", transitionKind: "enyo.transitions.Simple", onSelectView: "viewSelected", components: [
 			{name: "verseView", kind: "VFlexBox", flex: 1, components: [
 				{name: "mainToolbar", kind: "Toolbar", components: [
 					{icon: "images/modules.png", onclick: "selectModule"},
@@ -54,7 +55,7 @@ enyo.kind({
 					{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"},
 					{name: "biblezHint", flex: 1, className: "scroller-background biblez-hint", content: ""},
 					{name: "firstStart", flex: 1, className: "first-start scroller-background", components: [
-						{allowHtml: true, content: $L("Thank you for installing BibleZ HD. Currently there are no modules installed. Please open the Module Manager and add at least one module! <br><br>This is a BETA version! Report any bugs to") + " <a href='mailto:info@zefanjas.de?subject=Bug BibleZ HD - Version " + enyo.fetchAppInfo().version + "'>info@zefanjas.de</a>"},
+						{allowHtml: true, content: $L("Thank you for installing BibleZ HD. Currently there are no modules installed. Please open the Module Manager and add at least one module!")},
 						{kind: "Button", caption: $L("Open Module Manager"), className: "first-start-button", onclick: "openModuleMgr"}
 					]},
 					{name: "sidebarContainer", className: "main-sidebar",components: [
@@ -63,7 +64,8 @@ enyo.kind({
 				]}
 			]},
 			{name: "selector", kind: "BibleZ.Selector", onChapter: "getVMax", onVerse: "getPassage"},
-			{name: "modManView", kind: "BibleZ.ModMan", onUntar: "untarModules", onUnzip: "unzipModule", onGetDetails: "getDetails", onRemove: "removeModule", onBack: "goToMainView"}
+			{name: "modManView", kind: "BibleZ.ModMan", onUntar: "untarModules", onUnzip: "unzipModule", onGetDetails: "getDetails", onRemove: "removeModule", onBack: "goToMainView"},
+			{name: "prefs", kind: "BibleZ.Prefs", onBack: "goToMainView", onBgChange: "changeBackground"}
 		]},
 		{kind: "Hybrid", name: "plugin", executable: "pluginSword", width:"0", height:"0", onPluginReady: "handlePluginReady", style: "float: left;"}
 	],
@@ -260,6 +262,26 @@ enyo.kind({
 		this.$.mainView.setFont(this.currentFont);
 	},
 	
+	//PREFERENCES
+	
+	changeBackground: function () {
+		switch (this.$.prefs.getBackground()) {
+			case "palm":
+				this.$.mainView.setClassName("");
+			break;
+			case "biblez":
+				this.$.mainView.setClassName("scroller-background");
+			break;
+			case "grayscale":
+				this.$.mainView.setClassName("scroller-grayscale");
+			break;
+			case "night":
+				this.$.mainView.setClassName("scroller-night");
+			break;
+		
+		}
+	},
+	
 	//HYBRID STUFF
 	
 	handlePluginReady: function(inSender) {
@@ -321,6 +343,8 @@ enyo.kind({
 					this.currentFont = lastRead.font;
 					this.changeFontSize();
 					this.changeFont();
+					this.$.prefs.setBgItem(lastRead.background);
+					this.changeBackground();
 				}				
 			}
 			this.start = 1;	
@@ -439,8 +463,6 @@ enyo.kind({
 		enyo.log(response);		
 		if (response == "0") {
 			this.log("INFO", "Read available confs...");
-			var date = new Date();
-			this.dbSets["lastModUpdate"] = enyo.json.stringify({"lastUpdate": date.getTime()});
 			if (this.pluginReady) {
 				try { var status = this.$.plugin.callPluginMethod("readConfs"); }
 				catch (e) { this.log("ERROR", "Plugin exception: " + e);}
@@ -620,6 +642,10 @@ enyo.kind({
 		this.$.mainPane.selectViewByName("modManView");
 	},
 	
+	openPrefs: function (inSender, inEvent) {
+		this.$.mainPane.selectViewByName("prefs");
+	},
+	
 	openHelp: function () {
 		this.$.palmService.call({
 			id: 'com.palm.app.browser',
@@ -673,7 +699,8 @@ enyo.kind({
 			"verse": this.$.selector.verse,
 			"book": this.$.selector.book,
 			"fontSize": this.currentFontSize,
-			"font": this.currentFont
+			"font": this.currentFont,
+			"background" : this.$.prefs.getBackground()
 		};
 		//enyo.log(enyo.json.stringify(lastRead));
 		if(this.currentModule) {

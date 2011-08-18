@@ -14,6 +14,8 @@
 ### END LICENSE*/
 
 var biblezTools = {
+	dbSets: window['localStorage'],
+	
     createDB: function() {
 		try {
 			this.db = openDatabase('ext:settings', '', 'BibleZ Settings Data', 200000);
@@ -115,6 +117,8 @@ var biblezTools = {
 								//enyo.log("SUCCESS: Insert Module " + z);
 								z++;
 								if (z == modules.length) {
+									var date = new Date();
+									this.dbSets["lastModUpdate"] = enyo.json.stringify({"lastUpdate": date.getTime()});
 									inCallback();
 								}
 							}),

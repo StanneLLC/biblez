@@ -58,7 +58,10 @@ enyo.kind({
 					}
                 ]},
                 {kind: "Toolbar", components: [
-                    {kind: "GrabButton"}
+                    {kind: "GrabButton"},
+					{kind: "Spacer"},
+					{icon: "images/refresh.png", onclick: "refreshModules"},
+					{kind: "Spacer"}
                 ]}
 			]},
 			{name: "middle", width: "320px", kind:"SlidingView", peekWidth: 50, components: [
@@ -116,6 +119,12 @@ enyo.kind({
 		this.modules = [];
 		this.$.detailsContainer.hide();
     },
+	
+	refreshModules: function (inSender, inEvent) {
+		this.$.spinner.show();
+		enyo.windows.addBannerMessage($L("Downloading List of available Modules..."), enyo.json.stringify({}));
+        this.$.DownloadMgr.call({target: "http://www.crosswire.org/ftpmirror/pub/sword/raw/mods.d.tar.gz", targetDir: "/media/internal/.sword/install"});
+	},
     
     downloadMods: function(update) {
 		//console.log(enyo.json.stringify(this.dbSets["lastModUpdate"]));

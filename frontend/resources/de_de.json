@@ -3,7 +3,7 @@
     "About "                : "Über ",
     "Help"                  : "Hilfe",
     "Module Manager"        : "Modulmanager",
-    "Thank you for installing BibleZ HD. Currently there are no modules installed. Please open the Module Manager and add at least one module! <br><br>This is a BETA version! Report any bugs to" : "Danke, dass du BibleZ HD installiert hast! Derzeit sind keine Module installiert. Öffne den Modulmanager und installiere wenigstens ein Modul! <br><br>Dies ist eine BETA Version. Melde alle Bugs an",
+    "Thank you for installing BibleZ HD. Currently there are no modules installed. Please open the Module Manager and add at least one module!": "Danke, dass du BibleZ HD installiert hast! Derzeit sind keine Module installiert. Öffne den Modulmanager und installiere wenigstens ein Modul!",
     "Open Module Manager"   : "Modulmanager öffnen",
     "Bookmark"              : "Lesezeichen",
     "Note"                  : "Notiz",
@@ -41,5 +41,15 @@
     "All"                   : "Alle",
     "Regular Expression"    : "Regulärer Ausdruck",
     "Multiword"             : "Mehrere Wörter",
-    "Exact Phrase"          : "Genaue Phrase"   
+    "Exact Phrase"          : "Genaue Phrase",
+    "No Bookmarks available. Tap on a verse number to add one!" : "Keine Lesezeichen vorhanden. Tippe auf einen Versnummer um ein Lesezeichen hinzuzufügen!",
+    "No Notes available. Tap on a verse number to add one!" : "Keine Notizen vorhanden. Tippe auf einen Versnummer um eine Notiz hinzuzufügen!",
+    "No Highlights available. Tap on a verse number to add one!" : "Keine Markierungen vorhanden. Tippe auf einen Versnummer um eine Markierung hinzuzufügen!",
+    "Default"               : "Standard",
+    "Gray"                  : "Grau",
+    "Paper Grayscale"       : "Papier Graustufen",
+    "Night View"            : "Nachtansicht",
+    "Preferences"           : "Einstellungen",
+    "General"               : "Allgemein",
+    "Background"            : "Hintergrund"
 }

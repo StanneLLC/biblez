@@ -26,6 +26,11 @@
 
 /* MAIN VIEW */
 
+a {
+    text-decoration: none;
+    color: #141414;
+}
+
 .mainview-container {
     background-color: yellow;
     margin-left: auto;
@@ -46,6 +51,19 @@
     background: url("../images/background.png");
 }
 
+.scroller-grayscale {
+    background: url("../images/background-light.png");
+}
+
+.scroller-night {
+    background-color: #222222;
+    color: #F5F5F5;
+}
+
+.scroller-night a {
+    color: #F5F5F5;
+}
+
 .biblez-hint {
     text-align: center;
     font-weight: bold;
@@ -64,16 +82,6 @@
     margin-left: auto;
     margin-right: auto;
     margin-top: 20px;
-}
-
-.view-verses a {
-    text-decoration: none;
-    color: black;
-}
-
-.view-verses a:hover {
-    text-decoration: none;
-    color: black;
 }
 
 .verse-number {
@@ -252,7 +260,7 @@
 .verse-popup {
     font-size: .8em;
     -webkit-border-image: none;
-    background-color: #D8D8D8; /*#3A8BCB; */
+    background-color: #AFAFAF; /*#3A8BCB; */
     position: absolute;
     min-width: 30px;
 }
@@ -273,4 +281,9 @@
 
 .color-button {
     height: 20px;
+}
+
+/*PREFERENCES */
+.prefs-container {
+    width: 400px;
 }

@@ -1,10 +1,10 @@
 {
   "id": "de.zefanjas.biblez.enyo",
-  "version": "0.3.9",
+  "version": "0.4.0",
   "vendor": "zefanjas",
   "type": "web",
   "main": "index.html",
-  "title": "BibleZ HD Beta",
+  "title": "BibleZ HD",
   "plug-ins": true,
   "icon": "biblez.png",
   "uiRevision": 2

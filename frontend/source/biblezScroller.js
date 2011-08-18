@@ -613,10 +613,10 @@ enyo.kind({
 		/*enyo.fetchDeviceInfo().screenHeight-138 +"px"*/
 		{kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
 		{className: "sidebar-shadow"},
-		{name: "sidebarPane", kind: "Pane", flex: 1, onSelectView: "viewSelected", components: [
+		{name: "sidebarPane", kind: "Pane", flex: 1, transitionKind: "enyo.transitions.Simple", onSelectView: "viewSelected", components: [
 			{name: "noteView", kind: "VFlexBox", components: [
 				{name: "scrollerNote", kind: "Scroller", flex: 1, components: [
-					{name: "noteHint", content: $L("No Notes available"), className: "hint"},
+					{name: "noteHint", content: $L("No Notes available. Tap on a verse number to add one!"), className: "hint"},
 					{name: "noteList", kind: "VirtualRepeater", onSetupRow: "getNoteListItem", components: [
 						{name: "itemNote", kind: "SwipeableItem", onConfirm: "deleteNote", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
 							{name: "notePassage", className: "note-passage"},
@@ -629,7 +629,7 @@ enyo.kind({
 			]},
 			{name: "bmView", kind: "VFlexBox", components: [
 				{name: "scrollerBm", kind: "Scroller", flex: 1,components: [
-					{name: "bmHint", content: $L("No Bookmarks available"), className: "hint"},
+					{name: "bmHint", content: $L("No Bookmarks available. Tap on a verse number to add one!"), className: "hint"},
 					{name: "bmList", kind: "VirtualRepeater", onSetupRow: "getBmListItem", components: [
 						{name: "itemBm", kind: "SwipeableItem", onConfirm: "deleteBookmark", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
 							{name: "bmPassage"}
@@ -641,7 +641,7 @@ enyo.kind({
 			]},
 			{name: "hlView", kind: "VFlexBox", components: [
 				{name: "scrollerHl", kind: "Scroller", flex: 1,components: [
-					{name: "hlHint", content: $L("No Highlights available"), className: "hint"},
+					{name: "hlHint", content: $L("No Highlights available. Tap on a verse number to add one!"), className: "hint"},
 					{name: "hlList", kind: "VirtualRepeater", onSetupRow: "getHlListItem", components: [
 						{name: "itemHl", kind: "SwipeableItem", onConfirm: "deleteHighlight", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
 							{name: "hlPassage"}
@@ -697,6 +697,8 @@ enyo.kind({
 		this.$.bmHint.hide();
 		this.$.hlHint.hide();
 		this.$.searchSpinner.hide();
+		
+		this.tappedItem = null;
 	},
 	
 	rendered: function () {
@@ -856,11 +858,12 @@ enyo.kind({
 	},
 	
 	getSearchListItem: function(inSender, inIndex) {
+		//enyo.log(this.tappedItem);
         var r = this.results[inIndex];
         if (r) {
 			this.$.searchPassage.setContent(r.passage);
-			/*var isRowSelected = (inIndex == this.lastModItem);
-			this.$.itemMod.applyStyle("background", isRowSelected ? "#3A8BCB" : null); */
+			var isRowSelected = (inIndex == this.tappedItem);
+			this.$.itemSearch.applyStyle("background", isRowSelected ? "#3A8BCB" : null);
             return true;
         } else {
             return false;
@@ -901,6 +904,8 @@ enyo.kind({
 				this.verse = this.highlights[rowIndex].vnumber;
 			break;
 			case "itemSearch":
+				this.tappedItem = rowIndex;
+				this.$.searchList.render();
 				this.passage = this.results[rowIndex].abbrev + " " + this.results[rowIndex].cnumber;
 				this.verse = parseInt(this.results[rowIndex].vnumber);
 			break;		
