@@ -612,14 +612,15 @@ enyo.kind({
 		//enyo.log("CHANGE CHAPTER... " + inSender.index, inSender.numberOfSnappers);
 		if (inSender.index == 0) {
 			var prev = this.$.selector.getPrevPassage();
-			if (prev.prevBnumber != 0 && prev.prevChapter != 0) {
+			enyo.log(prev);
+			if (prev.prevBnumber == 0 && prev.prevChapter == 0) {
+				this.$.mainView.setIndex(1);
+			} else {
 				this.getVerses(prev.passage);
 				this.$.selector.setBook(prev.prevBook);
 				this.$.selector.setChapter(prev.prevChapter);
 				this.$.selector.setBnumber(prev.prevBnumber);
 				this.$.selector.setVerse(1);
-			} else {
-				this.$.mainView.setIndex(1);
 			}
 			
 			

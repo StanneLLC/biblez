@@ -614,6 +614,18 @@ enyo.kind({
 		{kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
 		{className: "sidebar-shadow"},
 		{name: "sidebarPane", kind: "Pane", flex: 1, transitionKind: "enyo.transitions.Simple", onSelectView: "viewSelected", components: [
+			{name: "bmView", kind: "VFlexBox", components: [
+				{name: "scrollerBm", kind: "Scroller", flex: 1,components: [
+					{name: "bmHint", content: $L("No Bookmarks available. Tap on a verse number to add one!"), className: "hint"},
+					{name: "bmList", kind: "VirtualRepeater", onSetupRow: "getBmListItem", components: [
+						{name: "itemBm", kind: "SwipeableItem", onConfirm: "deleteBookmark", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
+							{name: "bmPassage"}
+						],
+						onclick: "goToVerse"
+						}]
+					}
+				]}
+			]},
 			{name: "noteView", kind: "VFlexBox", components: [
 				{name: "scrollerNote", kind: "Scroller", flex: 1, components: [
 					{name: "noteHint", content: $L("No Notes available. Tap on a verse number to add one!"), className: "hint"},
@@ -621,18 +633,6 @@ enyo.kind({
 						{name: "itemNote", kind: "SwipeableItem", onConfirm: "deleteNote", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
 							{name: "notePassage", className: "note-passage"},
 							{name: "noteText", allowHtml: true}
-						],
-						onclick: "goToVerse"
-						}]
-					}
-				]}
-			]},
-			{name: "bmView", kind: "VFlexBox", components: [
-				{name: "scrollerBm", kind: "Scroller", flex: 1,components: [
-					{name: "bmHint", content: $L("No Bookmarks available. Tap on a verse number to add one!"), className: "hint"},
-					{name: "bmList", kind: "VirtualRepeater", onSetupRow: "getBmListItem", components: [
-						{name: "itemBm", kind: "SwipeableItem", onConfirm: "deleteBookmark", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
-							{name: "bmPassage"}
 						],
 						onclick: "goToVerse"
 						}]
@@ -681,8 +681,8 @@ enyo.kind({
 		]},
 		{kind: "Toolbar", components: [
 			{kind: "RadioToolButtonGroup", components: [
-				{name: "rgNotes", icon: "images/notes.png", /*caption: $L("Notes"), */ onclick: "changeView"},
 				{name: "rgBM", icon: "images/bookmarks.png", /*caption: $L("Bookmarks"), */ onclick: "changeView"},
+				{name: "rgNotes", icon: "images/notes.png", /*caption: $L("Notes"), */ onclick: "changeView"},
 				{name: "rgHighlight", icon: "images/highlights.png", onclick: "changeView"},
 				{name: "rgSearch", icon: "images/search.png", /*caption: $L("Bookmarks"), */ onclick: "changeView"}				
 			]}
@@ -736,8 +736,8 @@ enyo.kind({
             if (this.bookNames[parseInt(r.bnumber)]) {
 				this.$.notePassage.setContent(this.bookNames[parseInt(r.bnumber)].abbrev + " " + r.cnumber + ":" + r.vnumber);
 			}
-			/*var isRowSelected = (inIndex == this.lastModItem);
-			this.$.itemMod.applyStyle("background", isRowSelected ? "#3A8BCB" : null); */
+			var isRowSelected = (inIndex == this.tappedItem);
+			this.$.itemNote.applyStyle("background", isRowSelected ? "#3A8BCB" : null);
             return true;
         } else {
             return false;
@@ -768,8 +768,8 @@ enyo.kind({
 				this.$.bmPassage.setContent(this.bookNames[parseInt(r.bnumber)].abbrev + " " + r.cnumber + ":" + r.vnumber);
 			}
             
-			/*var isRowSelected = (inIndex == this.lastModItem);
-			this.$.itemMod.applyStyle("background", isRowSelected ? "#3A8BCB" : null); */
+			var isRowSelected = (inIndex == this.tappedItem);
+			this.$.itemBm.applyStyle("background", isRowSelected ? "#3A8BCB" : null);
             return true;
         } else {
             return false;
@@ -803,8 +803,8 @@ enyo.kind({
 				this.$.itemHl.addStyles("background-color: " + r.color +";");
 			}		
             
-			/*var isRowSelected = (inIndex == this.lastModItem);
-			this.$.itemMod.applyStyle("background", isRowSelected ? "#3A8BCB" : null); */
+			var isRowSelected = (inIndex == this.tappedItem);
+			this.$.itemHl.applyStyle("background", isRowSelected ? "#3A8BCB" : null);
             return true;
         } else {
             return false;
@@ -871,7 +871,13 @@ enyo.kind({
 	},
 	
 	changeView: function (inSender, inEvent) {
-		//enyo.log(inSender.name);
+		var oldTappedItem = this.tappedItem;
+		this.tappedItem = undefined;
+		this.$.noteList.renderRow(oldTappedItem);
+		this.$.bmList.renderRow(oldTappedItem);
+		this.$.searchList.renderRow(oldTappedItem);
+		this.$.hlList.renderRow(oldTappedItem);
+		//enyo.log(this.tappedItem);
 		switch (inSender.name) {
 			case "rgNotes":
 				this.$.sidebarPane.selectViewByName("noteView");
@@ -883,7 +889,6 @@ enyo.kind({
 				this.$.sidebarPane.selectViewByName("searchView");
 			break;
 			case "rgHighlight":
-				enyo.log("HLView");
 				this.$.sidebarPane.selectViewByName("hlView");
 			break;
 		}
@@ -892,14 +897,20 @@ enyo.kind({
 	goToVerse: function(inSender, inEvent, rowIndex) {
 		switch (inSender.name) {
 			case "itemNote":
+				this.tappedItem = rowIndex;
+				this.$.noteList.render();
 				this.passage = this.bookNames[parseInt(this.notes[rowIndex].bnumber)].abbrev + " " + this.notes[rowIndex].cnumber;
 				this.verse = this.notes[rowIndex].vnumber;
 			break;
 			case "itemBm":
+				this.tappedItem = rowIndex;
+				this.$.bmList.render();
 				this.passage = this.bookNames[parseInt(this.bookmarks[rowIndex].bnumber)].abbrev + " " + this.bookmarks[rowIndex].cnumber;
 				this.verse = this.bookmarks[rowIndex].vnumber;
 			break;
 			case "itemHl":
+				this.tappedItem = rowIndex;
+				this.$.hlList.render();
 				this.passage = this.bookNames[parseInt(this.highlights[rowIndex].bnumber)].abbrev + " " + this.highlights[rowIndex].cnumber;
 				this.verse = this.highlights[rowIndex].vnumber;
 			break;
