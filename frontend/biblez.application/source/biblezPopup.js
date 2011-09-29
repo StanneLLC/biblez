@@ -81,6 +81,7 @@ enyo.kind({
 enyo.kind({
     name: "BibleZ.AddNote",
     kind: "ModalDialog",
+    layoutKind:"VFlexLayout",
     lazy: false,
     events: {
       onAddNote: ""
@@ -88,12 +89,16 @@ enyo.kind({
     published: {
 		edit: false
 	},
-    caption: $L("Add A Note"), components:[        
-        {name: "noteInput", kind: "RichText", className: "note-input", hint: $L("Add your note here."), changeOnInput: true, onfocus: "openCenter", onchange: "toggleButton"},
+    caption: $L("Add A Note"), 
+    components:[        
+        //{kind: "Scroller", style: "max-height: 300px; min-height: 50px;", components: [
+            {name: "noteInput", kind: "RichText", className: "note-input", hint: $L("Add your note here."), changeOnInput: true, onfocus: "openCenter", onchange: "toggleButton"},
+        //]},
         {layoutKind: "HFlexLayout", style: "margin-top: 10px;", components: [  
             {name: "btCancel", kind: "Button", caption: $L("Cancel"), flex: 1, onclick: "closePopup"},
-            {name: "btAdd", kind: "Button", caption: $L("Add"), flex: 1, onclick: "addNote", className: "enyo-button-affirmative"},
+            {name: "btAdd", kind: "Button", caption: $L("Add"), flex: 1, onclick: "addNote", className: "enyo-button-affirmative"}
         ]}
+        
     ],
     
     getNote: function () {
@@ -106,7 +111,7 @@ enyo.kind({
 	
 	toggleButton: function (inSender, inEvent) {
 		//enyo.log("INPUT:", inSender.getValue());
-		if (inSender.getValue() == "") {
+		if (inSender.getValue() === "") {
 			this.$.btAdd.setDisabled(true);
 		} else {
 			this.$.btAdd.setDisabled(false);

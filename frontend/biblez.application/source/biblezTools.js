@@ -144,7 +144,7 @@ var biblezTools = {
 					enyo.bind(this, function (transaction, results) {
                         for (var j=0; j<results.rows.length; j++) {
 							if (results.rows.item(j).lang !== "undefined") {
-								if (j == 0) {
+								if (j === 0) {
 									lang.push(results.rows.item(j).lang);
 								} else if (results.rows.item(j).lang !== results.rows.item(j-1).lang) {
 									lang.push(results.rows.item(j).lang);
@@ -164,7 +164,7 @@ var biblezTools = {
 	getModules: function (lang, inCallback) {
 		var modules = [];
 		try {
-			var sql = "SELECT * FROM modules WHERE lang = '" + lang + "' AND modType = 'texts' ORDER BY modType, modName ASC;"
+			var sql = "SELECT * FROM modules WHERE lang = '" + lang + "' AND modType = 'texts' ORDER BY modType, modName ASC;";
 		    this.db.transaction( 
 		        enyo.bind(this,(function (transaction) { 
 		            transaction.executeSql(sql, [], 
@@ -244,7 +244,7 @@ var biblezTools = {
 		//enyo.log("NOTES: ", bnumber, cnumber);
 		var notes = [];
 		try {
-			var sql = (parseInt(bnumber) !== -1 && parseInt(cnumber) !== -1) ? "SELECT * FROM notes WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM notes ORDER BY bnumber, cnumber, vnumber ASC;"
+			var sql = (parseInt(bnumber) !== -1 && parseInt(cnumber) !== -1) ? "SELECT * FROM notes WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM notes ORDER BY bnumber, cnumber, vnumber ASC;";
 		    //enyo.log(sql);
 			//var sql = "SELECT * FROM notes;";
 			this.db.transaction( 
@@ -429,3 +429,31 @@ var biblezTools = {
 		}
 	},
 };
+
+enyo.kind({
+	name: "FileService",
+	kind: enyo.Component,
+	components: [{
+		kind: enyo.PalmService,
+		name: "service", 
+		service: "palm://de.zefanjas.biblez.enyo.fileio/",
+		method: "writefile",
+		onSuccess: "handleSuccess",
+		onFailure: "handleError"
+	}],
+	
+	writeFile: function(path, content, callback) {
+		// store the callback on the request object created by call
+		this.$.service.call({"path": path, "content": content}, {"callback": callback});
+	},
+	
+	handleSuccess: function(inSender, inResponse, inRequest) {
+		inRequest.callback(inResponse);
+		//enyo.log("PROVIDE DIR RESPONSE", inResponse);
+	},
+	
+	handleError: function (inSender, inResponse, inRequest) {
+		enyo.error("GOT AN ERROR!", inResponse);
+		//inRequest.callback(inResponse);
+	}
+});

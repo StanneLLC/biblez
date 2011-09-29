@@ -38,7 +38,8 @@ enyo.kind({
 		notes: [],
 		bookmarks: [],
 		highlights: [],
-		vnumber: 0
+		vnumber: 0,
+		linebreak: false
 	},
     components: [
         {kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
@@ -146,6 +147,10 @@ enyo.kind({
 			content = content + " <span id='noteIcon" + verses[i].vnumber + "'></span> ";
 			content = content + " <span id='bmIcon" + verses[i].vnumber + "'></span> ";
 			content = content + findBreak;
+			
+			if (this.linebreak) {
+				content = content + "<br>";
+			}
 		}
 		//this.resized();
 		//var height = this.node.clientHeight - 50;

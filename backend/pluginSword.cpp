@@ -646,7 +646,8 @@ PDL_bool unzipModule(PDL_JSParameters *parms) {
 int main () {
 	//Basic settings
 	system("mkdir -p /media/internal/.sword/install/mods.d/");
-	system("chmod -R 777 /media/internal/.sword/");
+	//system("mkdir -p /media/internal/biblez/");
+	//system("chmod -R 777 /media/internal/.sword/");
 	putenv("SWORD_PATH=/media/internal/.sword");
 	
 	//Initialize Mgr

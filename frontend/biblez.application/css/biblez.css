@@ -15,6 +15,9 @@
 
 /* Biblez CSS */
 
+/* WORKAROUNDS */
+.enyo-modaldialog > * { height:100%; }
+
 #main {
     /*background: url("../images/background.png"); */
 }
@@ -285,5 +288,5 @@ a {
 
 /*PREFERENCES */
 .prefs-container {
-    width: 400px;
+    max-width: 500px;
 }

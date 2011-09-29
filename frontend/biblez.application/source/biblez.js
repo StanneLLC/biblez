@@ -20,10 +20,12 @@ enyo.kind({
 		{kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
 		{kind: "ApplicationEvents", onUnload: "savePassage"},
 		{kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open"},
+		
 		{kind: "AppMenu", components: [
 			{caption: $L("Module Manager"), onclick: "openModuleMgr"},
 			{caption: $L("Preferences"), onclick: "openPrefs"},
 			{caption: $L("Help"), onclick: "openHelp"},
+			{caption: $L("Leave A Review"), onclick: "openReview"},
 			{caption: $L("About"), onclick: "openAbout"}
 		]},
 		{kind: "ModalDialog", name: "errorDialog", caption: "Error", lazy: false, components:[
@@ -45,8 +47,8 @@ enyo.kind({
                     {kind: "Spinner", showing: true},
                     {kind: "Spacer"},
 					{icon: "images/font.png", onclick: "openFontMenu"},
-					{name: "btNote", icon: "images/sidebar.png", toggling: true,  onclick: "openSidebar"}
-                    //{icon: "images/bookmarks.png"}
+					{name: "btSidebar", icon: "images/sidebar.png", toggling: true,  onclick: "openSidebar"},
+                    //{icon: "images/bookmarks.png", onclick: "callFileService"}
 				]},
 				{name: "modMenu", kind: "Menu", lazy: false},
 				{name: "historyMenu", kind: "Menu", lazy: false},
@@ -65,7 +67,7 @@ enyo.kind({
 			]},
 			{name: "selector", kind: "BibleZ.Selector", onChapter: "getVMax", onVerse: "getPassage"},
 			{name: "modManView", kind: "BibleZ.ModMan", onUntar: "untarModules", onUnzip: "unzipModule", onGetDetails: "getDetails", onRemove: "removeModule", onBack: "goToMainView"},
-			{name: "prefs", kind: "BibleZ.Prefs", onBack: "goToMainView", onBgChange: "changeBackground"}
+			{name: "prefs", kind: "BibleZ.Prefs", onBack: "goToMainView", onBgChange: "changeBackground", onLbChange: "changeLinebreak"}
 		]},
 		{kind: "Hybrid", name: "plugin", executable: "pluginSword", width:"0", height:"0", onPluginReady: "handlePluginReady", style: "float: left;"}
 	],
@@ -106,14 +108,20 @@ enyo.kind({
 		//enyo.log(enyo.json.stringify(new enyo.g11n.currentLocale().getLocale()));
 	},
 	
+	//SERVICE STUFF
+	callFileService: function () {
+		enyo.log("Calling service...");
+		this.$.fileHelper.readDir();
+	},
+	
 	//SIDEBAR STUFF
 	openSidebar: function () {
-		if (this.$.btNote.depressed == true) {
+		if (this.$.btSidebar.depressed == true) {
 			this.$.sidebarContainer.show();
-			//this.$.btNote.setState("down", true);
+			//this.$.btSidebar.setState("down", true);
 			this.$.mainView.setSidebarWidth(320);
 		} else {
-			//this.$.btNote.setState("down", false);
+			//this.$.btSidebar.setState("down", false);
 			this.$.sidebarContainer.hide();
 			this.$.mainView.setSidebarWidth(0);
 		}
@@ -282,6 +290,10 @@ enyo.kind({
 		}
 	},
 	
+	changeLinebreak: function (inSender, inEvent) {
+		this.$.mainView.setLinebreak(inSender.getLinebreak())
+	},
+	
 	//HYBRID STUFF
 	
 	handlePluginReady: function(inSender) {
@@ -345,6 +357,8 @@ enyo.kind({
 					this.changeFont();
 					this.$.prefs.setBgItem(lastRead.background);
 					this.changeBackground();
+					this.$.mainView.setLinebreak(lastRead.linebreak);
+					this.$.prefs.setLinebreak(lastRead.linebreak);
 				}				
 			}
 			this.start = 1;	
@@ -655,6 +669,10 @@ enyo.kind({
             }
         });
 	},
+
+	openReview: function () {
+		window.location = "http://developer.palm.com/appredirect/?packageid=de.zefanjas.biblez.enyo";
+	},
 	
 	showToaster: function() {
 		this.$.selector.openSelector();
@@ -701,7 +719,8 @@ enyo.kind({
 			"book": this.$.selector.book,
 			"fontSize": this.currentFontSize,
 			"font": this.currentFont,
-			"background" : this.$.prefs.getBackground()
+			"background" : this.$.prefs.getBackground(),
+			"linebreak": this.$.prefs.getLinebreak()
 		};
 		//enyo.log(enyo.json.stringify(lastRead));
 		if(this.currentModule) {
