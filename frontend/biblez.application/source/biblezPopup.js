@@ -18,52 +18,82 @@ enyo.kind({
     scrim: false,
     kind: "Popup",
     lazy: false,
+    /*showHideMode: "transition", 
+    openClassName: "fadeIn", 
+    className: "fadedOut", */
     events: {
       onNote: "",
       onBookmark: "",
       onHighlight: ""
     },
     published: {
-		color: ""
+		color: "",
+        tappedVerse: 0,
+        verse: ""
 	},
     components:[
+        {kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open"},
         {kind: "VFlexBox", flex: 1, components: [
-            {kind: "ToolButtonGroup", components: [
+            {kind: "HFlexBox", components: [
+                {name: "bmCaption", flex: 1, className: "verse-popup-top-left", content: $L("Bookmark") + " + ", onclick: "doBookmark"},
+                {name: "noteCaption", flex: 1, className: "verse-popup-top-right", content: $L("Note") + " + ", onclick: "doNote"}
+            ]},
+            {kind: "HFlexBox", components: [
+                {name: "hlCaption", flex: 1, className: "verse-popup-bottom-left", content: $L("Highlight"), onclick: "openColors"},
+                {name: "csCaption", flex: 1, className: "verse-popup-bottom-right", content: $L("Copy & Share"), onclick: "openCopy"}
+            ]},
+            /* {kind: "ToolButtonGroup", components: [
                 //{content: "Copy"},
                 {name: "bmCaption", caption: $L("Bookmark") + " + ", onclick: "doBookmark"},
                 {name: "noteCaption", caption: $L("Note") + " + ", onclick: "doNote"},
-                {name: "hlCaption", caption: $L("Highlight"), onclick: "openColors"}
+                {name: "hlCaption", caption: $L("Highlight"), onclick: "openColors"},
+                {name: "csCaption", caption: $L("Copy & Share"), onclick: "openCopy"}
                 //{content: "Highlight"},
-            ]},
-            {name: "colorSelector", kind: "HFlexBox", components: [
+            ]}, */
+            {name: "colorSelector", kind: "HFlexBox", className: "color-selector", components: [
                 {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(255,99,71,0.5)", style: "background-color: red;"},
                 {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(135,206,250,0.5)", style: "background-color: blue;"},
                 {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(255,255,0,0.5)", style: "background-color: yellow;"},
                 {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(152,251,152,0.5)", style: "background-color: green;"},
                 {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(238,130,238,0.5)", style: "background-color: violet;"},
                 {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(255,165,0,0.5)", style: "background-color: orange;"}
+            ]},
+            {name: "csSelector", kind: "HFlexBox", className: "color-selector", components: [
+                {kind: "Button", caption: $L("Copy"), flex: 1, onclick: "copyVerse"},
+                {kind: "Button", caption: $L("eMail"), flex: 1, onclick: "sendEmail"},
+                {kind: "Button", caption: $L("SMS"), flex: 1, onclick: "sendSMS"}
             ]}
         ]}       
     ],
     
     setBmCaption: function (caption) {
-        this.$.bmCaption.setCaption(caption);
+        this.$.bmCaption.setContent(caption);
     },
     
     setNoteCaption: function (caption) {
-        this.$.noteCaption.setCaption(caption);
+        this.$.noteCaption.setContent(caption);
     },
     
     setHlCaption: function (caption) {
-        this.$.hlCaption.setCaption(caption);
+        this.$.hlCaption.setContent(caption);
     },
     
-    hideColors: function () {
+    open: function () {
+        this.inherited(arguments);
         this.$.colorSelector.hide();
+        this.$.csSelector.hide();
+        //this.hasNode().style.top = this.hasNode().getBoundingClientRect().top -100 + "px";
+    },
+
+    close: function () {
+        this.inherited(arguments);
+        this.$.colorSelector.show();
+        this.$.csSelector.hide();
     },
     
     openColors: function (inSender, inEvent) {
         this.$.colorSelector.show();
+        this.$.csSelector.hide();
     },
     
     highlightVerse: function (inSender, inEvent) {
@@ -71,6 +101,35 @@ enyo.kind({
         this.color = inSender.color;
         this.doHighlight();
         this.close();
+    },
+
+    openCopy: function (inSender, inEvent) {
+        this.$.colorSelector.hide();
+        this.$.csSelector.show();
+    },
+
+    copyVerse: function (inSender, inEvent) {
+        //enyo.log(this.tappedVerse, this.verse);
+        enyo.dom.setClipboard(this.verse);
+        enyo.windows.addBannerMessage($L("Copied Verse to Clipboard"), enyo.json.stringify({}));
+    },
+
+    sendEmail: function (inSender, inEvent) {
+        this.$.palmService.call({
+            id: 'com.palm.app.email',
+            params: {
+                text: this.verse
+            }
+        });
+    },
+
+    sendSMS: function (inSender, inEvent) {
+       this.$.palmService.call({
+            id: 'com.palm.app.messaging',
+            params: {    
+                messageText: this.verse
+            }
+        }); 
     },
     
     closePopup: function() {
@@ -144,7 +203,7 @@ enyo.kind({
     },
     
     showEditBt: function () {
-        if (this.edit == true) {
+        if (this.edit === true) {
             this.$.btAdd.setCaption($L("Edit"));
             this.$.btAdd.show();    
         }        
@@ -184,7 +243,7 @@ enyo.kind({
     closePopup: function() {
        this.close();
     }
-})
+});
 
 enyo.kind({
     name: "BibleZ.FontMenu",
@@ -244,7 +303,7 @@ enyo.kind({
         this.font = inValue;
         this.doFont();
     }
-})
+});
 
 
 enyo.kind({

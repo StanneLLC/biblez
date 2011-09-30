@@ -239,6 +239,12 @@ a {
     margin-top: 10px;
 }
 
+.hint-small {
+    font-size: 0.8em;
+    text-align: center;
+    margin-top: 10px;
+}
+
 /* POPUP */
 .popup-title {
     font-size: 1.5em;
@@ -261,12 +267,59 @@ a {
 }
 
 .verse-popup {
-    font-size: .8em;
-    -webkit-border-image: none;
-    background-color: #AFAFAF; /*#3A8BCB; */
+    -webkit-border-image: url(../images/popup.png) 24 24 24 24 stretch stretch;
+    -webkit-box-sizing: border-box;
+    border-width: 24px;
+    box-sizing: border-box;
     position: absolute;
-    min-width: 30px;
+    min-width: 348px;
+    -webkit-border-radius: 10px;
+    /* -webkit-transition: opacity 0.2s ease-in-out; */
 }
+
+.fadedOut {
+    opacity: 0;
+    /*-webkit-transition-property: opacity;
+    -webkit-transition-duration: .3s; */
+}
+
+.fadeIn {
+    opacity: 1;
+}
+
+.verse-popup-top-left {
+    text-align: center;
+    padding: 10px;
+    -webkit-border-top-left-radius: 10px;
+    border-bottom: 1px solid;
+    border-right: 1px solid;
+}
+
+.verse-popup-top-right {
+    text-align: center;
+    padding: 10px;
+    -webkit-border-top-right-radius: 10px;
+    border-bottom: 1px solid;
+}
+
+.verse-popup-bottom-left {
+    text-align: center;
+    padding: 10px;
+    -webkit-border-bottom-left-radius: 10px;
+    border-right: 1px solid;
+}
+
+.verse-popup-bottom-right {
+    text-align: center;
+    padding: 10px;
+    -webkit-border-bottom-right-radius: 10px;
+}
+
+.color-selector {
+    border-top: 1px solid;
+    padding-top: 5px;
+}
+
 
 .popup-note {
     font-size: 0.8em;

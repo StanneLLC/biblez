@@ -34,7 +34,7 @@ enyo.kind({
 		]},
 		{name: "notePopup", kind: "BibleZ.AddNote", onAddNote: "addNote"},
 		{name: "noteView", kind: "BibleZ.ShowNote", style: "min-width: 100px; max-width: 300px;"},
-		{name: "versePopup", kind: "BibleZ.VersePopup", className: "verse-popup", onBeforeOpen: "hideColors", onNote: "handleNote", onBookmark: "handleBookmark", onHighlight: "handleHighlight"},
+		{name: "versePopup", kind: "BibleZ.VersePopup", className: "verse-popup", onOpen: "hideColors", onNote: "handleNote", onBookmark: "handleBookmark", onHighlight: "handleHighlight"},
 		{name: "fontMenu", kind: "BibleZ.FontMenu", onFontSize: "changeFontSize", onFont: "changeFont"},
 		{name: "biblezAbout", kind: "BibleZ.About"},
 		{name: "mainPane", flex: 1, kind: "Pane", transitionKind: "enyo.transitions.Simple", onSelectView: "viewSelected", components: [
@@ -47,7 +47,7 @@ enyo.kind({
                     {kind: "Spinner", showing: true},
                     {kind: "Spacer"},
 					{icon: "images/font.png", onclick: "openFontMenu"},
-					{name: "btSidebar", icon: "images/sidebar.png", toggling: true,  onclick: "openSidebar"},
+					{name: "btSidebar", icon: "images/sidebar.png", toggling: true,  onclick: "openSidebar"}
                     //{icon: "images/bookmarks.png", onclick: "callFileService"}
 				]},
 				{name: "modMenu", kind: "Menu", lazy: false},
@@ -106,6 +106,8 @@ enyo.kind({
         enyo.keyboard.setResizesWindow(false);
 		//enyo.log(enyo.fetchDeviceInfo().platformVersion);
 		//enyo.log(enyo.json.stringify(new enyo.g11n.currentLocale().getLocale()));
+
+		//enyo.log(this.$.sidebarContainer);
 	},
 	
 	//SERVICE STUFF
@@ -140,6 +142,8 @@ enyo.kind({
 	//POPUP STUFF
 	
 	handleVerseTap: function(inSender, inEvent) {
+		this.$.versePopup.setTappedVerse(this.$.mainView.tappedVerse);
+		this.$.versePopup.setVerse(enyo.byId("verse"+this.$.mainView.tappedVerse).innerHTML.replace(/<[^>]*>/g, ""));
 		this.$.versePopup.openAt({top: inSender.popupTop, left: inSender.popupLeft}, true);
 		if (enyo.byId("bmIcon"+this.$.mainView.tappedVerse).innerHTML !== "") {
 			this.$.versePopup.setBmCaption($L("Bookmark") + " - ");
@@ -230,7 +234,7 @@ enyo.kind({
 	},
 	
 	hideColors: function (inSender, inEvent) {
-		this.$.versePopup.hideColors();
+		//this.$.versePopup.hideColors();
 	},
 	
 	openAbout: function ()  {

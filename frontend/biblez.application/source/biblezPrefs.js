@@ -23,7 +23,8 @@ enyo.kind({
     },
 	published: {
 		background: "biblez",
-		linebreak: false
+		linebreak: false,
+		backupTime: ""
 	},
 	components: [
 		{kind: "FileService", name: "backupService" },
@@ -49,7 +50,10 @@ enyo.kind({
 				
             ]},
             {kind: "RowGroup", caption: $L("Backup"), defaultKind: "HFlexBox", style: "margin-left: auto; margin-right: auto;", className: "prefs-container", components: [
-				{kind: "Button", caption: $L("Backup Data"), onclick: "handleBackup"}				
+				{kind: "VFlexBox", components: [
+					{kind: "ActivityButton", name: "btBackup", caption: $L("Backup Data"), onclick: "handleBackup"},
+					{content: "Backups are stored in '/media/internal/biblez'", className: "hint-small"}
+				]}				
             ]},
             {kind: "Spacer"}
         ]}
@@ -76,24 +80,29 @@ enyo.kind({
 	},
 
 	handleBackup: function (inSender, inEvent) {
+		this.$.btBackup.setActive(true);
+		var time = new Date();
+		this.backupTime = time.getFullYear().toString() + (time.getMonth() + 1).toString() + time.getDate().toString();
+		//enyo.log(this.backupTime, time.getFullYear(), time.getMonth() + 1, time.getDate());
 		biblezTools.getNotes(-1,-1,enyo.bind(this, this.callBackupNotes));
 		biblezTools.getBookmarks(-1,-1,enyo.bind(this, this.callBackupBookmarks));
 		biblezTools.getHighlights(-1,-1,enyo.bind(this, this.callBackupHighlights));
 	},
 
 	callBackupNotes: function (content) {
-		this.$.backupService.writeFile("/media/internal/biblezNotes.json", enyo.json.stringify(content), enyo.bind(this, this.callbackBackup, $L("Notes")));
+		this.$.backupService.writeFile("/media/internal/biblez/biblezNotes-" + this.backupTime + ".json", enyo.json.stringify(content), enyo.bind(this, this.callbackBackup, $L("Notes")));
 	},
 
 	callBackupBookmarks: function (content) {
-		this.$.backupService.writeFile("/media/internal/biblezBookmarks.json", enyo.json.stringify(content), enyo.bind(this, this.callbackBackup, $L("Bookmarks")));
+		this.$.backupService.writeFile("/media/internal/biblez/biblezBookmarks-" + this.backupTime + ".json", enyo.json.stringify(content), enyo.bind(this, this.callbackBackup, $L("Bookmarks")));
 	},
 
 	callBackupHighlights: function (content) {
-		this.$.backupService.writeFile("/media/internal/biblezHighlights.json", enyo.json.stringify(content), enyo.bind(this, this.callbackBackup, $L("Highlights")));
+		this.$.backupService.writeFile("/media/internal/biblez/biblezHighlights-" + this.backupTime + ".json", enyo.json.stringify(content), enyo.bind(this, this.callbackBackup, $L("Highlights")));
 	},
 
 	callbackBackup: function (inType, inResponse) {
+		this.$.btBackup.setActive(false);
 		enyo.log("RESPONSE:", inResponse);
 		if (inResponse.returnValue) {
 			enyo.windows.addBannerMessage($L("Backuped") + " " + inType, enyo.json.stringify({}));
