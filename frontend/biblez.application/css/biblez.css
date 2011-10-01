@@ -50,6 +50,14 @@ a {
     font-size: 22px; */
 }
 
+.splitview-verse {
+    padding: 20px;
+}
+
+.splitview-left {
+    border-right: 1px solid;
+}
+
 .scroller-background {
     background: url("../images/background.png");
 }

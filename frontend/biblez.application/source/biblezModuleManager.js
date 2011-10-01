@@ -68,7 +68,8 @@ enyo.kind({
                 {name: "scrollerMiddle", kind: "Scroller", flex: 1, components: [
                     {name: "modList", kind: "VirtualRepeater", onSetupRow: "getModListItem", components: [
 						{name: "itemMod", kind: "Item", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
-							{name: "modName"}
+							{name: "modDivider", kind: "Divider"},
+                            {name: "modName"}
 						],
 						onclick: "getDetails"
 						}]
@@ -230,7 +231,11 @@ enyo.kind({
         var r = this.modules[inIndex];
         if (r) {
 			this.$.modName.setContent(r.modName);
-            
+            if(inIndex === 0 || r.modType != this.modules[inIndex-1].modType) {
+                this.$.modDivider.setCaption(mappings[r.modType]);
+            } else {
+                this.$.modDivider.hide();
+            }
 			var isRowSelected = (inIndex == this.lastModItem);
 			this.$.itemMod.applyStyle("background", isRowSelected ? "#3A8BCB" : null);
             return true;

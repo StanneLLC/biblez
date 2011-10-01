@@ -223,6 +223,7 @@ PDL_bool getVerses(PDL_JSParameters *parms) {
 	/*Get verses from a specific module (e.g. "ESV"). Set your biblepassage in key e.g. "James 1:19" */
 	const char* moduleName = PDL_GetJSParamString(parms, 0);
 	const char* key = PDL_GetJSParamString(parms, 1);
+	const char* side = PDL_GetJSParamString(parms, 2);
 	std::string verseText;
 	std::stringstream out;
 
@@ -258,10 +259,11 @@ PDL_bool getVerses(PDL_JSParameters *parms) {
 	const std::string& tmp = out.str();
 	const char* cstr = tmp.c_str();
 	
-	const char *params[2];
+	const char *params[3];
 	params[0] = cstr;
-	params[1] = key;
-	PDL_Err mjErr = PDL_CallJS("returnVerses", params, 2);
+	params[1] = side;
+	params[2] = key;
+	PDL_Err mjErr = PDL_CallJS("returnVerses", params, 3);
     return PDL_TRUE;
 }
 

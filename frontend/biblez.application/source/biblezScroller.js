@@ -70,39 +70,9 @@ enyo.kind({
 		//enyo.log(this.$.mainView.hasNode());
 	},
 	
-	/* findLink: function(inNode, inAncestor) {
-		var n = inNode;
-		while (n && n != inAncestor) {
-			if (n.href) {
-			   return n.href;
-			}
-			n = n.parentNode;
-		}
-	},
-	
-	catchClick: function(inSender, inEvent) {
-		//enyo.keyboard.forceHide();
-		var url = this.findLink(inEvent.target, this.hasNode());
-		if (url) {
-			//enyo.log(url);
-			this.handleVerseTap(url);
-			//inEvent.preventDefault();
-			return false;
-		} else {
-			//this.doClick();
-			//inEvent.preventDefault();
-			return false;
-		}
-	},
-	
-	disableKeys: function (inSender, inEvent){
-		//inEvent.preventDefault();
-		return false;
-	}, */
-	
 	changeChapter: function (inSender, inEvent) {
 		console.log("CHANGE CHAPTER... " + this.index);
-		if (this.index == 0) {
+		if (this.index === 0) {
 			this.doPrevChapter();
 		} else if (this.index == this.numberOfSnappers + 2) {
 			this.doNextChapter();
@@ -126,38 +96,13 @@ enyo.kind({
 		this.$.mainView.addStyles("height: " + height + "px;");
 		this.$.mainView.addStyles("width: " + width + "px;");
 		
-		var findBreak = "";
-		var content = "";
-		var tmpVerse = "";
-		for (var i=0; i<verses.length; i++) {
-			tmpVerse = verses[i].content.replace(/\*x/g,"").replace(/color=\u0022red\u0022/g,"color=\u0022#E60000\u0022");//.replace(/color=\"red\"/g, "color=\u0022#BA0000\u0022");
-			if (tmpVerse.search(/<note.*<\/note>/i) != -1) {
-				tmpVerse = tmpVerse.replace(/<note.*<\/note>/i, " <span class='verse-footnote'>" + tmpVerse.match(/<note.*<\/note>/i) + "</span>");
-			}
-			if (tmpVerse.search("<br /><br />") != -1) {
-				findBreak = "<br /><br />";
-				tmpVerse = tmpVerse.replace(/<br \/><br \/>/g, "");
-			} else {
-				findBreak = "";
-			}
-			//enyo.log(tmpVerse);
-			content = content + "<a href='verse://" + verses[i].vnumber + "'>";
-			content = content + " <span id='" + verses[i].vnumber + "' class='verse-number'>" + verses[i].vnumber + "</span> </a>";
-			content = (parseInt(vnumber) != 1 && parseInt(vnumber) == parseInt(verses[i].vnumber)) ? content + "<span id='verse" + verses[i].vnumber +  "' class='verse-highlighted'>" + tmpVerse + "</span>" : content + "<span id='verse" + verses[i].vnumber +  "'>" + tmpVerse + "</span>";
-			content = content + " <span id='noteIcon" + verses[i].vnumber + "'></span> ";
-			content = content + " <span id='bmIcon" + verses[i].vnumber + "'></span> ";
-			content = content + findBreak;
-			
-			if (this.linebreak) {
-				content = content + "<br>";
-			}
-		}
+		
 		//this.resized();
 		//var height = this.node.clientHeight - 50;
 		//this.$.mvContainer.addStyles("height: " + height + "px;");
 		//this.$.mainView.addStyles("height: " + height-20 + "px;");
 		
-		this.$.mainView.setContent(content);
+		this.$.mainView.setContent(biblezTools.renderVerses(verses, vnumber, this.linebreak));
 		this.setSnappers(vnumber);
 	},
 	
@@ -170,7 +115,7 @@ enyo.kind({
 			this.doVerseTap();
 		} else if (inUrl.match(/.*\:\/\//i) == "note://") {
 			this.tappedNote = parseInt(inUrl.replace("note://","").split(":")[0]);
-			this.tappedVerse = parseInt(inUrl.replace("note://","").split(":")[1]);			
+			this.tappedVerse = parseInt(inUrl.replace("note://","").split(":")[1]);		
 			this.popupTop = enyo.byId("note" + this.tappedNote).getBoundingClientRect().top;
 			this.popupLeft = enyo.byId("note" + this.tappedNote).getBoundingClientRect().left;
 			this.doShowNote();

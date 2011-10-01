@@ -164,7 +164,8 @@ var biblezTools = {
 	getModules: function (lang, inCallback) {
 		var modules = [];
 		try {
-			var sql = "SELECT * FROM modules WHERE lang = '" + lang + "' AND modType = 'texts' ORDER BY modType, modName ASC;";
+			//var sql = "SELECT * FROM modules WHERE lang = '" + lang + "' AND modType = 'texts' ORDER BY modType, modName ASC;";
+			var sql = "SELECT * FROM modules WHERE lang = '" + lang + "' AND (modType = 'texts' OR modType = 'comments') ORDER BY modType DESC, modName ASC;";
 		    this.db.transaction( 
 		        enyo.bind(this,(function (transaction) { 
 		            transaction.executeSql(sql, [], 
@@ -406,6 +407,37 @@ var biblezTools = {
 			enyo.log("ERROR", e);
 		}
 	},
+
+	renderVerses: function (verses, vnumber, linebreak) {
+		var findBreak = "";
+		var content = "";
+		var tmpVerse = "";
+		for (var i=0; i<verses.length; i++) {
+			tmpVerse = verses[i].content.replace(/\*x/g,"").replace(/color=\u0022red\u0022/g,"color=\u0022#E60000\u0022");//.replace(/color=\"red\"/g, "color=\u0022#BA0000\u0022");
+			if (tmpVerse.search(/<note.*<\/note>/i) != -1) {
+				tmpVerse = tmpVerse.replace(/<note.*<\/note>/i, " <span class='verse-footnote'>" + tmpVerse.match(/<note.*<\/note>/i) + "</span>");
+			}
+			if (tmpVerse.search("<br /><br />") != -1) {
+				findBreak = "<br /><br />";
+				tmpVerse = tmpVerse.replace(/<br \/><br \/>/g, "");
+			} else {
+				findBreak = "";
+			}
+			//enyo.log(tmpVerse);
+			content = content + "<a href='verse://" + verses[i].vnumber + "'>";
+			content = content + " <span id='" + verses[i].vnumber + "' class='verse-number'>" + verses[i].vnumber + "</span> </a>";
+			content = (parseInt(vnumber) != 1 && parseInt(vnumber) == parseInt(verses[i].vnumber)) ? content + "<span id='verse" + verses[i].vnumber +  "' class='verse-highlighted'>" + tmpVerse + "</span>" : content + "<span id='verse" + verses[i].vnumber +  "'>" + tmpVerse + "</span>";
+			content = content + " <span id='noteIcon" + verses[i].vnumber + "'></span> ";
+			content = content + " <span id='bmIcon" + verses[i].vnumber + "'></span> ";
+			content = content + findBreak;
+			
+			if (linebreak) {
+				content = content + "<br>";
+			}
+		}
+
+		return content;
+	},
 	
 	errorHandler: function (transaction, error) {
 		enyo.log("ERROR", error.message);
@@ -414,7 +446,7 @@ var biblezTools = {
 	logDB: function() {
 		//enyo.log(this.db);
 		try {
-			var sql = 'SELECT * FROM modules;'
+			var sql = 'SELECT * FROM modules;';
 		    this.db.transaction( 
 		        enyo.bind(this,(function (transaction) { 
 		            transaction.executeSql(sql, [], 
@@ -427,7 +459,14 @@ var biblezTools = {
 		} catch (e) {
 			enyo.log("ERROR", e);
 		}
-	},
+	}
+};
+
+var mappings = {
+	"texts" : $L("Biblical Texts"),
+	"lexdict" : $L("Lexicons / Dictionaries"),
+	"genbook" : $L("Generic Books"),
+	"comments" : $L("Commentaries")
 };
 
 enyo.kind({

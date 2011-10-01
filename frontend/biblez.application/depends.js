@@ -5,6 +5,7 @@ enyo.depends(
   "source/biblezModuleManager.js",
   "source/biblezPrefs.js",
   "source/biblezTools.js",
+  "source/biblezSplit.js",
   "source/mapping.js",
   "css/biblez.css"
 );
