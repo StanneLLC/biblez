@@ -40,13 +40,13 @@ enyo.kind({
 		{name: "mainPane", flex: 1, kind: "Pane", transitionKind: "enyo.transitions.Simple", onSelectView: "viewSelected", components: [
 			{name: "verseView", kind: "VFlexBox", flex: 1, components: [
 				{name: "mainToolbar", kind: "Toolbar", components: [
-					{icon: "images/modules.png", onclick: "selectModule"},
-					{name: "tbPassage", caption: "Go To", onclick: "showToaster"},
-					{icon: "images/splitView.png", onclick: "openSplitMenu"},
 					{icon: "images/history.png", onclick: "openHistoryMenu"},
 					{kind: "Spacer"},
-                    {kind: "Spinner", showing: true},
+                    {icon: "images/modules.png", onclick: "selectModule"},
+					{name: "tbPassage", caption: "Go To", onclick: "showToaster"},
+					{icon: "images/splitView.png", onclick: "openSplitMenu"},
                     {kind: "Spacer"},
+					{kind: "Spinner", showing: true},
 					{icon: "images/font.png", onclick: "openFontMenu"},
 					{name: "btSidebar", icon: "images/sidebar.png", toggling: true,  onclick: "openSidebar"},
 					{name: "btStop", icon: "images/stop.png", onclick: "hideSplitView"}
@@ -55,7 +55,7 @@ enyo.kind({
 				{name: "splitMenu", kind: "Menu", lazy: false},
 				{name: "historyMenu", kind: "Menu", lazy: false},
 				//{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"},
-				{name: "mainViewPane", kind: "Pane", flex: 1, transitionKind: "enyo.transitions.Simple", onSelectView: "mainSelected", components: [
+				{name: "mainViewPane", kind: "Pane", flex: 1, className: "scroller-background", transitionKind: "enyo.transitions.Simple", onSelectView: "mainSelected", components: [
 					{name: "singleContainer", kind: "HFlexBox", flex: 1, components: [
 						{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"},
 						{name: "sidebarContainer", className: "main-sidebar",components: [
@@ -125,7 +125,13 @@ enyo.kind({
 
 		//this.$.mainViewPane.selectViewByName("splitContainer");
 	},
-	
+
+	rendered: function () {
+		this.inherited(arguments);
+		//enyo.byId("main").className = enyo.byId("main").className + " scroller-grayscale";
+		enyo.log(this.$.mainViewPane.node);
+	},
+
 	//SERVICE STUFF
 	callFileService: function () {
 		enyo.log("Calling service...");
@@ -151,6 +157,7 @@ enyo.kind({
 
 	hideSplitView: function (inSender, inEvent) {
 		this.$.mainViewPane.selectViewByName("singleContainer");
+		this.uncheckSplitModules();
 	},
 	
 	handleSidebarVerse: function (inSender, inEvent) {
@@ -198,7 +205,7 @@ enyo.kind({
 	},
 	
 	addNote: function (inSender, inEvent) {
-		if (inSender.edit == false) {
+		if (inSender.edit === false) {
 			biblezTools.addNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, enyo.json.stringify(this.$.notePopup.getNote()), "", "", "", enyo.bind(this, this.getNotes));
 		} else {
 			biblezTools.updateNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, enyo.json.stringify(this.$.notePopup.getNote()), "", "", "", enyo.bind(this, this.getNotes));
@@ -289,38 +296,47 @@ enyo.kind({
 	},
 	
 	changeFontSize: function (inSender, inEvent) {
-		if (inSender) {this.currentFontSize = inSender.getFontSize()};
+		if (inSender) {this.currentFontSize = inSender.getFontSize();}
 		this.$.mainView.setFontSize(this.currentFontSize);
+		this.$.splitContainer.setFontSize(this.currentFontSize);
 	},
 	
 	changeFont: function (inSender, inEvent) {
-		if (inSender) {this.currentFont = inSender.getFont()};
+		if (inSender) {this.currentFont = inSender.getFont();}
 		this.$.mainView.setFont(this.currentFont);
+		this.$.splitContainer.setFont(this.currentFont);
 	},
 	
 	//PREFERENCES
 	
 	changeBackground: function () {
+		this.$.mainViewPane.addRemoveClass("scroller-background", false);
+		this.$.mainViewPane.addRemoveClass("scroller-grayscale", false);
+		this.$.mainViewPane.addRemoveClass("scroller-night", false);
 		switch (this.$.prefs.getBackground()) {
 			case "palm":
-				this.$.mainView.setClassName("");
+				this.$.mainViewPane.addClass("");
+				//this.$.splitContainer.setBackground("");
 			break;
 			case "biblez":
-				this.$.mainView.setClassName("scroller-background");
+				this.$.mainViewPane.addClass("scroller-background");
+				//this.$.splitContainer.setBackground("scroller-background");
 			break;
 			case "grayscale":
-				this.$.mainView.setClassName("scroller-grayscale");
+				this.$.mainViewPane.addClass("scroller-grayscale");
+				//this.$.splitContainer.setBackground("scroller-grayscale");
 			break;
 			case "night":
-				this.$.mainView.setClassName("scroller-night");
+				this.$.mainViewPane.addClass("scroller-night");
+				//this.$.splitContainer.setBackground("scroller-night");
 			break;
-		
 		}
+		enyo.log(this.$.mainViewPane.getClassName());
 	},
 	
 	changeLinebreak: function (inSender, inEvent) {
-		this.$.mainView.setLinebreak(inSender.getLinebreak())
-		this.$.splitContainer.setLinebreak(inSender.getLinebreak())
+		this.$.mainView.setLinebreak(inSender.getLinebreak());
+		this.$.splitContainer.setLinebreak(inSender.getLinebreak());
 	},
 	
 	//HYBRID STUFF
@@ -421,14 +437,18 @@ enyo.kind({
 		this.$.mainViewPane.selectViewByName("splitContainer");
 		enyo.log("MODULE: " + inSender.module.name);
 		this.currentSplitModule = inSender.module;
+		this.uncheckSplitModules();
+		inSender.setChecked(true);
+		this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), inSender.module.name, "right");
+	},
+
+	uncheckSplitModules: function () {
 		var comp = this.getComponents();
 		for (var j=0;j<comp.length;j++) {
 			if (comp[j].name.search(/splitItem\d+/) != -1) {
 				comp[j].setChecked(false);
 			}
 		}
-		inSender.setChecked(true);
-		this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), inSender.module.name, "right");
 	},
 	
 	handleBooknames: function(response) {
@@ -472,22 +492,22 @@ enyo.kind({
 	
 	setHistory: function () {
 		var history = [];
-		if(this.dbSets["history"]) {
-			history = enyo.json.parse(this.dbSets["history"]);
+		if(this.dbSets.history) {
+			history = enyo.json.parse(this.dbSets.history);
 			if (history.length > 10) {
 				history.splice(11,history.length-10);
 			}
-			for (var i=0;i<history.length;i++) {
-				if(history[i].passage == this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter()) {
-					history.splice(i,1);
+			for (var l=0;l<history.length;l++) {
+				if(history[l].passage == this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter()) {
+					history.splice(l,1);
 				}
 			}
 		}
 		
 		history.unshift({"passage": this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter()});
-		this.dbSets["history"] = enyo.json.stringify(history);
+		this.dbSets.history = enyo.json.stringify(history);
 		
-		var comp = this.getComponents()
+		var comp = this.getComponents();
 		for (var j=0;j<comp.length;j++) {
 			if (comp[j].name.search(/historyItem\d+/) != -1) {
 				comp[j].destroy();
@@ -503,7 +523,7 @@ enyo.kind({
 	},
 	
 	handleVMax: function(response) {
-		enyo.log(response)
+		enyo.log(response);
 		this.$.selector.createSection("verses", parseInt(response, 10));
 	},
 	
@@ -751,7 +771,7 @@ enyo.kind({
 		if (inView.name == "singleContainer") {
 			this.$.btSidebar.show();
 			this.$.btStop.hide();
-			
+
 			this.$.tbPassage.setCaption(this.currentModule.name + " - " + this.$.selector.getBook().name + " " + this.$.selector.getChapter());
 			this.$.mainView.setVerses(this.verses, this.$.selector.verse);
 			this.$.mainView.setPrevChapter(this.$.selector.getPrevPassage().passage);
@@ -766,6 +786,8 @@ enyo.kind({
 			this.$.btSidebar.hide();
 			this.$.btStop.show();
 			this.$.tbPassage.setCaption(this.currentModule.name + " - " + this.$.selector.getBook().name + " " + this.$.selector.getChapter() + " - " + this.currentSplitModule.name);
+			//this.$.splitContainer.windowRotated();
+
 			//Right
 			if (this.versesRight.length === 0) {
 				this.$.splitContainer.setMessageRight($L("The chapter is not available in this module! :-("));

@@ -18,10 +18,6 @@
 /* WORKAROUNDS */
 .enyo-modaldialog > * { height:100%; }
 
-#main {
-    /*background: url("../images/background.png"); */
-}
-
 .example-submenu .enyo-menuitem-icon {
 	padding: 0 5px 0 0; 
 	margin: -4px;

@@ -1,7 +1,8 @@
 enyo.kind({
 	name: "BibleZ.SplitView",
 	kind: "HFlexBox",
-    className: "scroller-background",
+    //style: "background: url('../images/background.png')",
+    //className: "scroller-background",
     published: {
         linebreak: false
     },
@@ -15,7 +16,7 @@ enyo.kind({
                 {name: "prevChapterLeft", content: "Previous Chapter", className: "chapter-nav-left chapter-nav"}	
 	        ]},
 	        {name: "leftScroller", kind: "Scroller", className: "selector-scroller", components: [
-                {name: "leftView", kind: "HtmlContent", allowHtml: true, content: "", className: "splitview-verse"}
+                {name: "leftView", kind: "HtmlContent", allowHtml: true, content: "middle", className: "splitview-verse"}
 	        ]},
 	        {className: "selector-scroller", components: [
                 {name: "nextChapterLeft", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}	
@@ -26,7 +27,7 @@ enyo.kind({
                 {name: "prevChapterRight", content: "Previous Chapter", className: "chapter-nav-left chapter-nav"}   
             ]},
             {name: "rightScroller", kind: "Scroller", className: "selector-scroller", components: [
-                {name: "rightView", kind: "HtmlContent", allowHtml: true, content: "", className: "splitview-verse"}
+                {name: "rightView", kind: "HtmlContent", allowHtml: true, content: "middle", className: "splitview-verse"}
             ]},
             {name: "leftright", className: "selector-scroller", components: [
                 {name: "nextChapterRight", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}  
@@ -38,6 +39,23 @@ enyo.kind({
         this.inherited(arguments);
         this.$.leftright.hide();
         this.$.leftleft.hide();
+    },
+
+    setBackground: function (className) {
+        //this.$.leftSnapper.setClassName("splitview-left " + className);
+        //this.$.rightSnapper.setClassName(className);
+        //enyo.log(this.hasNode());
+        this.setClassName(className);
+    },
+
+    setFontSize: function (size) {
+        this.$.leftView.addStyles("font-size: " + size + "px;");
+        this.$.rightView.addStyles("font-size: " + size + "px;");
+    },
+
+    setFont: function (font) {
+        this.$.leftView.addStyles("font-family: " + font + ";");
+        this.$.rightView.addStyles("font-family: " + font + ";");
     },
     
     setVersesLeft: function (verses, vnumber) {
@@ -87,8 +105,10 @@ enyo.kind({
     },
 
     windowRotated: function(inSender) {
-        var height = this.node.clientHeight;
-        var width = this.node.clientWidth/2;
+        var height = enyo.byId("main").clientHeight;
+        var width = enyo.byId("main").clientWidth/2;
+        var widthFull = enyo.byId("main").clientWidth;
+        enyo.log(height, width);
         this.$.leftScroller.addStyles("height: " + height + "px;");
         this.$.leftScroller.addStyles("width: " + width + "px;");
         this.$.rightScroller.addStyles("height: " + height + "px;");

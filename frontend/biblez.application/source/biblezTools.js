@@ -462,13 +462,6 @@ var biblezTools = {
 	}
 };
 
-var mappings = {
-	"texts" : $L("Biblical Texts"),
-	"lexdict" : $L("Lexicons / Dictionaries"),
-	"genbook" : $L("Generic Books"),
-	"comments" : $L("Commentaries")
-};
-
 enyo.kind({
 	name: "FileService",
 	kind: enyo.Component,

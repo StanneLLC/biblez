@@ -191,4 +191,11 @@ var languages = {
     "en_AU": "English (Australia)", 
     "fr_CA": "French (Canada)", 
     "ia": "Interlingua"
-}
+};
+
+var mappings = {
+    "texts" : $L("Biblical Texts"),
+    "lexdict" : $L("Lexicons / Dictionaries"),
+    "genbook" : $L("Generic Books"),
+    "comments" : $L("Commentaries")
+};

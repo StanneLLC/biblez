@@ -21,7 +21,7 @@ enyo.kind({
     flex: 1,
     autoVertical: false,
     vertical: false,
-	className: "scroller-background",
+	//className: "scroller-background",
 	events: {
       onVerseTap: "",
 	  onShowNote: "",
@@ -46,7 +46,7 @@ enyo.kind({
 		{name: "firstSnapper", components: [
 			{name: "prevChapter", content: "Previous Chapter", className: "chapter-nav-left chapter-nav"}			
 		]},
-		{name: "mainView", kind: "HtmlContent", allowHtml: true, content: "", className: "view-verses", onLinkClick: "handleVerseTap"}
+		{name: "mainView", kind: "HtmlContent", allowHtml: true, content: "Das ist ein Test", className: "view-verses", onLinkClick: "handleVerseTap"}
         
     ],
 	
@@ -81,6 +81,10 @@ enyo.kind({
 	
 	getVerseContent: function(vnumber) {
 		
+	},
+
+	getIndexLeft: function () {
+		return -1;
 	},
     
     setVerses: function (verses, vnumber) {
