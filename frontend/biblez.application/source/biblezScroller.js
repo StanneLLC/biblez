@@ -130,24 +130,29 @@ enyo.kind({
 	
 	setNotes: function(notes) {
 		this.notes = notes;
+		enyo.application.notes = notes;
 		//console.log(enyo.json.stringify(notes));
 		for (var i=0;i<notes.length; i++) {
 			enyo.byId("noteIcon"+notes[i].vnumber).innerHTML = "<a href='note://" + i + ":" + notes[i].vnumber + "'><img id='note" + i + "' src='images/note.png' /></a>";
+			//enyo.byId("noteIconLeft"+notes[i].vnumber).innerHTML = "<a href='note://" + i + ":" + notes[i].vnumber + "'><img id='note" + i + "' src='images/note.png' /></a>";
 		}
 	},
 	
 	setBookmarks: function(bookmarks) {
 		this.bookmarks = bookmarks;
+		enyo.application.bookmarks = bookmarks;
 		//enyo.log(enyo.json.stringify(bookmarks));
 		//console.log(enyo.json.stringify(notes));
 		for (var i=0;i<bookmarks.length; i++) {
 			enyo.byId("bmIcon"+bookmarks[i].vnumber).innerHTML = "<a href='bookmark://" + i + ":" + bookmarks[i].vnumber + "'><img id='bookmark" + i + "' src='images/bookmark.png' /></a>";
+			//enyo.byId("bmIconLeft"+bookmarks[i].vnumber).innerHTML = "<a href='bookmark://" + i + ":" + bookmarks[i].vnumber + "'><img id='bookmark" + i + "' src='images/bookmark.png' /></a>";
 			
 		}
 	},
 	
 	setHighlights: function(highlights) {
 		this.highlights = highlights;
+		enyo.application.highlights = highlights;
 		//enyo.log(enyo.json.stringify(highlights));
 		for (var i=0;i<highlights.length; i++) {
 			enyo.byId("verse"+highlights[i].vnumber).style.backgroundColor = highlights[i].color;

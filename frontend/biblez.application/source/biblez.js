@@ -67,7 +67,7 @@ enyo.kind({
 						{allowHtml: true, content: $L("Thank you for installing BibleZ HD. Currently there are no modules installed. Please open the Module Manager and add at least one module!")},
 						{kind: "Button", caption: $L("Open Module Manager"), className: "first-start-button", onclick: "openModuleMgr"}
 					]},
-					{name: "splitContainer", flex: 1, kind: "BibleZ.SplitView", onLeftSnap: "changeChapter"}
+					{name: "splitContainer", flex: 1, kind: "BibleZ.SplitView", onLeftSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"}
 				]}
 			]},
 			{name: "selector", kind: "BibleZ.Selector", onChapter: "getVMax", onVerse: "getPassage"},
@@ -169,15 +169,19 @@ enyo.kind({
 	//POPUP STUFF
 	
 	handleVerseTap: function(inSender, inEvent) {
-		this.$.versePopup.setTappedVerse(this.$.mainView.tappedVerse);
-		this.$.versePopup.setVerse(enyo.byId("verse"+this.$.mainView.tappedVerse).innerHTML.replace(/<[^>]*>/g, ""));
+		this.$.versePopup.setTappedVerse(inSender.tappedVerse);
+		this.$.versePopup.setVerse(enyo.byId("verse"+inSender.tappedVerse).innerHTML.replace(/<[^>]*>/g, ""));
 		this.$.versePopup.openAt({top: inSender.popupTop, left: inSender.popupLeft}, true);
-		if (enyo.byId("bmIcon"+this.$.mainView.tappedVerse).innerHTML !== "") {
+
+		var bmID = (inSender.name == "splitContainer") ? "bmIconLeft" : "bmIcon";
+		var noteID = (inSender.name == "splitContainer") ? "noteIconLeft" : "noteIcon";
+		
+		if (enyo.byId(bmID+inSender.tappedVerse).innerHTML !== "") {
 			this.$.versePopup.setBmCaption($L("Bookmark") + " - ");
 		} else {
 			this.$.versePopup.setBmCaption($L("Bookmark") + " + ");
 		}
-		if (enyo.byId("noteIcon"+this.$.mainView.tappedVerse).innerHTML !== "") {
+		if (enyo.byId(noteID+inSender.tappedVerse).innerHTML !== "") {
 			this.$.versePopup.setNoteCaption($L("Note") + " - ");
 		} else {
 			this.$.versePopup.setNoteCaption($L("Note") + " + ");
@@ -185,9 +189,11 @@ enyo.kind({
 	},
 	
 	handleNote: function () {
-		if (enyo.byId("noteIcon"+this.$.mainView.tappedVerse).innerHTML !== "") {
-			biblezTools.removeNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, enyo.bind(this, this.getNotes));
-			enyo.byId("noteIcon"+this.$.mainView.tappedVerse).innerHTML = "";
+		var verseNumber = (this.$.mainViewPane.getViewName() == "splitContainer") ? this.$.splitContainer.tappedVerse : this.$.mainView.tappedVerse;
+		var noteID = (this.$.mainViewPane.getViewName() == "splitContainer") ? "noteIconLeft" : "noteIcon";
+		if (enyo.byId(noteID+verseNumber).innerHTML !== "") {
+			biblezTools.removeNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), verseNumber, enyo.bind(this, this.getNotes));
+			enyo.byId(noteID+verseNumber).innerHTML = "";
 			this.$.versePopup.close();
 		} else {
 			this.openAddNote();
@@ -205,16 +211,21 @@ enyo.kind({
 	},
 	
 	addNote: function (inSender, inEvent) {
+		var verseNumber = (this.$.mainViewPane.getViewName() == "splitContainer") ? this.$.splitContainer.tappedVerse : this.$.mainView.tappedVerse;
 		if (inSender.edit === false) {
-			biblezTools.addNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, enyo.json.stringify(this.$.notePopup.getNote()), "", "", "", enyo.bind(this, this.getNotes));
+			biblezTools.addNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), verseNumber, enyo.json.stringify(this.$.notePopup.getNote()), "", "", "", enyo.bind(this, this.getNotes));
 		} else {
-			biblezTools.updateNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, enyo.json.stringify(this.$.notePopup.getNote()), "", "", "", enyo.bind(this, this.getNotes));
+			biblezTools.updateNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), verseNumber, enyo.json.stringify(this.$.notePopup.getNote()), "", "", "", enyo.bind(this, this.getNotes));
 		}		
 	},
 	
 	getNotes: function() {
-		biblezTools.getNotes(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setNotes));
-        biblezTools.getNotes(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleNotes));
+		if (this.$.mainViewPane.getViewName() == "splitContainer") {
+			biblezTools.getNotes(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.splitContainer, this.$.splitContainer.setNotes));
+		} else {
+			biblezTools.getNotes(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setNotes));
+		}
+		biblezTools.getNotes(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleNotes));
 	},
 	
 	openShowNote: function (inSender, inEvent) {
@@ -222,7 +233,7 @@ enyo.kind({
 		//this.$.noteView.setNote(inSender.notes[inSender.tappedNote].note);
 		enyo.keyboard.setResizesWindow(false);
 		this.$.notePopup.setCaption("");
-		this.$.notePopup.setNote(inSender.notes[inSender.tappedNote].note);
+		this.$.notePopup.setNote(enyo.application.notes[inSender.tappedNote].note);
 		this.$.notePopup.setEditMode();
 		this.$.notePopup.setDismissWithClick(true);
         this.$.notePopup.hideCancel();
@@ -231,16 +242,22 @@ enyo.kind({
 	
 	handleBookmark: function (inSender, inEvent) {
 		this.$.versePopup.close();
-		if (enyo.byId("bmIcon"+this.$.mainView.tappedVerse).innerHTML !== "") {
-			biblezTools.removeBookmark(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, enyo.bind(this, this.getBookmarks));
-			enyo.byId("bmIcon"+this.$.mainView.tappedVerse).innerHTML = "";
+		var verseNumber = (this.$.mainViewPane.getViewName() == "splitContainer") ? this.$.splitContainer.tappedVerse : this.$.mainView.tappedVerse;
+		var bmID = (this.$.mainViewPane.getViewName() == "splitContainer") ? "bmIconLeft" : "bmIcon";
+		if (enyo.byId(bmID+verseNumber).innerHTML !== "") {
+			biblezTools.removeBookmark(this.$.selector.getBnumber(), this.$.selector.getChapter(), verseNumber, enyo.bind(this, this.getBookmarks));
+			enyo.byId(bmID+verseNumber).innerHTML = "";
 		} else {
-			biblezTools.addBookmark(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, "", "", "", enyo.bind(this, this.getBookmarks));
+			biblezTools.addBookmark(this.$.selector.getBnumber(), this.$.selector.getChapter(), verseNumber, "", "", "", enyo.bind(this, this.getBookmarks));
 		}		
 	},
 	
 	getBookmarks: function() {
-		biblezTools.getBookmarks(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setBookmarks));
+		if (this.$.mainViewPane.getViewName() == "splitContainer") {
+			biblezTools.getBookmarks(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.splitContainer, this.$.splitContainer.setBookmarks));
+		} else {
+			biblezTools.getBookmarks(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setBookmarks));	
+		}
         biblezTools.getBookmarks(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleBookmarks));
 	},
 	
@@ -256,7 +273,11 @@ enyo.kind({
 	},
 	
 	getHighlights: function() {
-		biblezTools.getHighlights(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setHighlights));
+		if (this.$.mainViewPane.getViewName() == "splitContainer") {
+			biblezTools.getHighlights(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.splitContainer, this.$.splitContainer.setHighlights));
+		} else {
+			biblezTools.getHighlights(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setHighlights));
+		}
         biblezTools.getHighlights(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleHighlights));
 	},
 	
@@ -463,8 +484,8 @@ enyo.kind({
 	},
 	
 	handleGetVerses: function(verses, side, passage) {
-		//this.showError(enyo.json.parse(verses));
-		enyo.log(passage, side);
+		//enyo.log(verses);
+		//enyo.log(passage, side);
 		this.$.selector.setCurrentPassage(passage);
 		if (side == "right") {
 			this.versesRight = enyo.json.parse(verses);			
@@ -776,12 +797,10 @@ enyo.kind({
 			this.$.mainView.setVerses(this.verses, this.$.selector.verse);
 			this.$.mainView.setPrevChapter(this.$.selector.getPrevPassage().passage);
 			this.$.mainView.setNextChapter(this.$.selector.getNextPassage().passage);
-			
-			//Need to wait for setCurrentPassage???
+
 			this.getNotes();
 			this.getBookmarks();
 			this.getHighlights();
-
 		} else if (inView.name == "splitContainer") {
 			this.$.btSidebar.hide();
 			this.$.btStop.show();
@@ -805,7 +824,10 @@ enyo.kind({
 			}			
 			this.$.splitContainer.setPrevChapterLeft(this.$.selector.getPrevPassage().passage);
 			this.$.splitContainer.setNextChapterLeft(this.$.selector.getNextPassage().passage);
-			
+
+			this.getNotes("left");
+			this.getBookmarks("left");
+			this.getHighlights("left");
 		}
 	},
 	

@@ -408,10 +408,16 @@ var biblezTools = {
 		}
 	},
 
-	renderVerses: function (verses, vnumber, linebreak) {
+	renderVerses: function (verses, vnumber, linebreak, view) {
 		var findBreak = "";
 		var content = "";
 		var tmpVerse = "";
+		var noteID = (view == "left") ? "noteIconLeft" : "noteIcon";
+		var bmID = (view == "left") ? "bmIconLeft" : "bmIcon";
+		var verseID = (view == "left") ? "verseLeft" : "verse";
+
+		//enyo.log(noteID, bmID, verseID);
+
 		for (var i=0; i<verses.length; i++) {
 			tmpVerse = verses[i].content.replace(/\*x/g,"").replace(/color=\u0022red\u0022/g,"color=\u0022#E60000\u0022");//.replace(/color=\"red\"/g, "color=\u0022#BA0000\u0022");
 			if (tmpVerse.search(/<note.*<\/note>/i) != -1) {
@@ -424,18 +430,21 @@ var biblezTools = {
 				findBreak = "";
 			}
 			//enyo.log(tmpVerse);
+			if (verses[i].heading) {
+				content = content + "<div class='verse-heading'>" + verses[i].heading + "</div>";
+			}
 			content = content + "<a href='verse://" + verses[i].vnumber + "'>";
 			content = content + " <span id='" + verses[i].vnumber + "' class='verse-number'>" + verses[i].vnumber + "</span> </a>";
-			content = (parseInt(vnumber) != 1 && parseInt(vnumber) == parseInt(verses[i].vnumber)) ? content + "<span id='verse" + verses[i].vnumber +  "' class='verse-highlighted'>" + tmpVerse + "</span>" : content + "<span id='verse" + verses[i].vnumber +  "'>" + tmpVerse + "</span>";
-			content = content + " <span id='noteIcon" + verses[i].vnumber + "'></span> ";
-			content = content + " <span id='bmIcon" + verses[i].vnumber + "'></span> ";
+			content = (parseInt(vnumber) != 1 && parseInt(vnumber) == parseInt(verses[i].vnumber)) ? content + "<span id='" + verseID + verses[i].vnumber +  "' class='verse-highlighted'>" + tmpVerse + "</span>" : content + "<span id='" + verseID + verses[i].vnumber +  "'>" + tmpVerse + "</span>";
+			content = content + " <span id='" + noteID + verses[i].vnumber + "'></span> ";
+			content = content + " <span id='" + bmID + verses[i].vnumber + "'></span> ";
 			content = content + findBreak;
 			
 			if (linebreak) {
 				content = content + "<br>";
 			}
 		}
-
+		//enyo.log(content);
 		return content;
 	},
 	

@@ -226,21 +226,45 @@ PDL_bool getVerses(PDL_JSParameters *parms) {
 	const char* side = PDL_GetJSParamString(parms, 2);
 	std::string verseText;
 	std::stringstream out;
+	int headingOn = 0;
 
 	SWModule *module = displayLibrary->getModule(moduleName);
 	ListKey verses = VerseKey().ParseVerseList(key, "", true);
 
 	//library.setGlobalOption("Footnotes","On");
-	//library.setGlobalOption("Headings", "On");
+	displayLibrary->setGlobalOption("Headings", "On");
+
+	AttributeTypeList::iterator i1;
+	AttributeList::iterator i2;
+	AttributeValue::iterator i3;
 
 	out << "[";
 	
 	for (verses = TOP; !verses.Error(); verses++) {
 		module->setKey(verses);
 		if (strcmp(module->RenderText(), "") != 0) {
+			headingOn = 0;
 			out << "{\"content\": \"" << convertString(module->RenderText()) << "\", ";
 			out << "\"vnumber\": \"" << VerseKey(module->getKeyText()).Verse() << "\", ";
-			out << "\"cnumber\": \"" << VerseKey(module->getKeyText()).Chapter() << "\"}";
+			out << "\"cnumber\": \"" << VerseKey(module->getKeyText()).Chapter() << "\"";
+			
+			for (i1 = module->getEntryAttributes().begin(); i1 != module->getEntryAttributes().end(); i1++) {
+				if (strcmp(i1->first, "Heading") == 0) {
+					for (i2 = i1->second.begin(); i2 != i1->second.end(); i2++) {
+						if (strcmp(i2->first, "Preverse") == 0) {
+							for (i3 = i2->second.begin(); i3 != i2->second.end(); i3++) {
+								out << ", \"heading\": \"" << i3->second << "\"}";
+								headingOn = 1;
+							}
+						}
+					}
+				}	
+			}
+
+			if (headingOn == 0) {
+				out << "}";
+			}
+
 			ListKey helper = verses;
 			helper++;
 			if (!helper.Error()) {

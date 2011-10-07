@@ -4,10 +4,14 @@ enyo.kind({
     //style: "background: url('../images/background.png')",
     //className: "scroller-background",
     published: {
-        linebreak: false
+        linebreak: false,
+        tappedVerse: 1,
+        tappedNote: 0
     },
     events: {
-        onLeftSnap: ""
+        onLeftSnap: "",
+        onVerseTap: "",
+        onShowNote: ""
     },
 	components: [
         {kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
@@ -16,7 +20,7 @@ enyo.kind({
                 {name: "prevChapterLeft", content: "Previous Chapter", className: "chapter-nav-left chapter-nav"}	
 	        ]},
 	        {name: "leftScroller", kind: "Scroller", className: "selector-scroller", components: [
-                {name: "leftView", kind: "HtmlContent", allowHtml: true, content: "middle", className: "splitview-verse"}
+                {name: "leftView", kind: "HtmlContent", allowHtml: true, content: "middle", className: "splitview-verse", onLinkClick: "handleVerseTap"}
 	        ]},
 	        {className: "selector-scroller", components: [
                 {name: "nextChapterLeft", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}	
@@ -41,6 +45,27 @@ enyo.kind({
         this.$.leftleft.hide();
     },
 
+    handleVerseTap: function(inSender, inUrl) {
+        //console.log(inUrl + " " + inUrl.match(/.*\:\/\//i));
+        if (inUrl.match(/.*\:\/\//i) == "verse://") {
+            this.tappedVerse = inUrl.replace("verse://","");
+            enyo.application.tappedVerse = inUrl.replace("verse://","");
+            this.popupTop = enyo.byId("verseLeft" + inUrl.replace("verse://","")).getBoundingClientRect().top;
+            this.popupLeft = enyo.byId("verseLeft" + inUrl.replace("verse://","")).getBoundingClientRect().left;
+            this.doVerseTap();
+        } else if (inUrl.match(/.*\:\/\//i) == "note://") {
+            this.tappedNote = parseInt(inUrl.replace("note://","").split(":")[0]);
+            this.tappedVerse = parseInt(inUrl.replace("note://","").split(":")[1]);
+            enyo.application.tappedNote = parseInt(inUrl.replace("note://","").split(":")[0]);
+            enyo.application.tappedVerse = parseInt(inUrl.replace("note://","").split(":")[1]);
+            this.popupTop = enyo.byId("noteLeft" + this.tappedNote).getBoundingClientRect().top;
+            this.popupLeft = enyo.byId("noteLeft" + this.tappedNote).getBoundingClientRect().left;
+            this.doShowNote();
+        }
+        
+        //this.$.versePopup.openAt({top: top, left: left});
+    },
+
     setBackground: function (className) {
         //this.$.leftSnapper.setClassName("splitview-left " + className);
         //this.$.rightSnapper.setClassName(className);
@@ -63,7 +88,7 @@ enyo.kind({
         this.$.leftScroller.setScrollTop(0);
         //enyo.log(this.node.clientHeight, this.$.leftSnapper.node.clientHeight);
         this.$.leftScroller.addStyles("height: " + this.node.clientHeight + "px;");
-        this.$.leftView.setContent(biblezTools.renderVerses(verses, vnumber, this.linebreak));
+        this.$.leftView.setContent(biblezTools.renderVerses(verses, vnumber, this.linebreak, "left"));
     },
 
     setVersesRight: function (verses, vnumber) {
@@ -71,7 +96,28 @@ enyo.kind({
         this.$.rightScroller.setScrollTop(0);
         //enyo.log(this.node.clientHeight, this.$.leftSnapper.node.clientHeight);
         this.$.rightScroller.addStyles("height: " + this.node.clientHeight + "px;");
-        this.$.rightView.setContent(biblezTools.renderVerses(verses, vnumber, this.linebreak));
+        this.$.rightView.setContent(biblezTools.renderVerses(verses, vnumber, this.linebreak, "left"));
+    },
+
+    setNotes: function(notes) {
+        enyo.application.notes = notes;
+        for (var i=0;i<notes.length; i++) {
+            enyo.byId("noteIconLeft"+notes[i].vnumber).innerHTML = "<a href='note://" + i + ":" + notes[i].vnumber + "'><img id='noteLeft" + i + "' src='images/note.png' /></a>";
+        }
+    },
+    
+    setBookmarks: function(bookmarks) {
+        enyo.application.bookmarks = bookmarks;
+        for (var i=0;i<bookmarks.length; i++) {
+            enyo.byId("bmIconLeft"+bookmarks[i].vnumber).innerHTML = "<a href='bookmark://" + i + ":" + bookmarks[i].vnumber + "'><img id='bookmarkLeft" + i + "' src='images/bookmark.png' /></a>";
+        }
+    },
+    
+    setHighlights: function(highlights) {
+        enyo.application.highlights = highlights;
+        for (var i=0;i<highlights.length; i++) {
+            enyo.byId("verseLeft"+ highlights[i].vnumber).style.backgroundColor = highlights[i].color;
+        }
     },
 
     setMessageLeft: function (message) {
