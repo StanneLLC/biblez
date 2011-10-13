@@ -52,7 +52,16 @@ a {
 
 .splitview-left {
     border-right: 1px solid;
+    /*border-width: 0px 20px 0px 0px;
+    -webkit-border-image: url(../images/sidebar-shadow.png) 0 20 0 0 repeat repeat; */
 }
+
+.splitview-right {
+    /* border-right: 1px solid; */
+    /*border-width: 0px 0px 0px 20px;
+    -webkit-border-image: url(../images/toaster-shadow.png) 0 0 0 20 repeat repeat; */
+}
+
 
 .scroller-background {
     background: url("../images/background.png");
@@ -101,9 +110,9 @@ a {
 }
 
 .verse-footnote {
-    /*font-size: 0.8em;
+    font-size: 0.8em;
     font-style: italic;
-    line-height: 10px;*/
+    line-height: 10px;
 }
 
 .verse-heading {

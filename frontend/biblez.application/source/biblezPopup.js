@@ -142,6 +142,7 @@ enyo.kind({
     kind: "ModalDialog",
     layoutKind:"VFlexLayout",
     lazy: false,
+    scrim: false,
     events: {
       onAddNote: ""
     },

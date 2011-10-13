@@ -40,16 +40,26 @@ enyo.kind({
 		{name: "mainPane", flex: 1, kind: "Pane", transitionKind: "enyo.transitions.Simple", onSelectView: "viewSelected", components: [
 			{name: "verseView", kind: "VFlexBox", flex: 1, components: [
 				{name: "mainToolbar", kind: "Toolbar", components: [
-					{icon: "images/history.png", onclick: "openHistoryMenu"},
-					{kind: "Spacer"},
-                    {icon: "images/modules.png", onclick: "selectModule"},
-					{name: "tbPassage", caption: "Go To", onclick: "showToaster"},
-					{icon: "images/splitView.png", onclick: "openSplitMenu"},
-                    {kind: "Spacer"},
-					{kind: "Spinner", showing: true},
-					{icon: "images/font.png", onclick: "openFontMenu"},
-					{name: "btSidebar", icon: "images/sidebar.png", toggling: true,  onclick: "openSidebar"},
-					{name: "btStop", icon: "images/stop.png", onclick: "hideSplitView"}
+                    //{icon: "images/modules.png", onclick: "selectModule"},
+                    {kind: "HFlexBox", flex: 1, components: [
+						{kind: "Spacer"},
+						{kind: "ToolButton", name: "tbModLeft", onclick: "selectModule"}
+	                ]},
+	                {kind: "HFlexBox", flex: 1, components: [
+						{kind: "Spacer"},
+						{kind: "ToolButton", name: "tbPassage", caption: "Go To", onclick: "showToaster"},
+						{kind: "Spinner", showing: true},
+						{kind: "Spacer"}
+	                ]},
+                    {kind: "HFlexBox", flex: 1, components: [
+						{kind: "ToolButton", name: "btSplitView", icon: "images/splitView.png", onclick: "openSplitMenu"},
+						{kind: "ToolButton", name: "tbModRight", onclick: "openSplitMenu", showing: false},				
+						{kind: "Spacer"},
+						{kind: "ToolButton", icon: "images/history.png", onclick: "openHistoryMenu"},
+						{kind: "ToolButton", icon: "images/font.png", onclick: "openFontMenu"},
+						{kind: "ToolButton", name: "btSidebar", icon: "images/sidebar.png", toggling: true,  onclick: "openSidebar"},
+						{kind: "ToolButton", name: "btStop", icon: "images/stop.png", showing: false, onclick: "hideSplitView"}
+	                ]}					
 				]},
 				{name: "modMenu", kind: "Menu", lazy: false},
 				{name: "splitMenu", kind: "Menu", lazy: false},
@@ -57,7 +67,7 @@ enyo.kind({
 				//{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"},
 				{name: "mainViewPane", kind: "Pane", flex: 1, className: "scroller-background", transitionKind: "enyo.transitions.Simple", onSelectView: "mainSelected", components: [
 					{name: "singleContainer", kind: "HFlexBox", flex: 1, components: [
-						{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"},
+						{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote", onShowFootnote: "openFootnote"},
 						{name: "sidebarContainer", className: "main-sidebar",components: [
 							{name: "noteBmSidebar", kind: "BibleZ.Sidebar", onVerse: "handleSidebarVerse", onSearch: "handleSearch"}		
 						]}
@@ -67,7 +77,7 @@ enyo.kind({
 						{allowHtml: true, content: $L("Thank you for installing BibleZ HD. Currently there are no modules installed. Please open the Module Manager and add at least one module!")},
 						{kind: "Button", caption: $L("Open Module Manager"), className: "first-start-button", onclick: "openModuleMgr"}
 					]},
-					{name: "splitContainer", flex: 1, kind: "BibleZ.SplitView", onLeftSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote"}
+					{name: "splitContainer", flex: 1, kind: "BibleZ.SplitView", onLeftSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote", onShowFootnote: "openFootnote"}
 				]}
 			]},
 			{name: "selector", kind: "BibleZ.Selector", onChapter: "getVMax", onVerse: "getPassage"},
@@ -91,11 +101,13 @@ enyo.kind({
 		enyo.application.splitBnumber = 0;
 		enyo.application.splitCnumber = 0;
 		enyo.application.splitVnumber = 0;
+		enyo.application.footnotes = true;
+		enyo.application.heading = true;
 
 		/*this.$.firstStart.hide();
 		this.$.biblezHint.hide(); */
 		this.$.sidebarContainer.hide();
-		this.$.mainToolbar.hide();
+		//this.$.mainToolbar.hide();
 
 		biblezTools.createDB();
 		this.start = 0;
@@ -140,7 +152,7 @@ enyo.kind({
 	
 	//SIDEBAR STUFF
 	openSidebar: function () {
-		if (this.$.btSidebar.depressed == true) {
+		if (this.$.btSidebar.depressed === true) {
 			this.$.sidebarContainer.show();
 			//this.$.btSidebar.setState("down", true);
 			this.$.mainView.setSidebarWidth(320);
@@ -239,6 +251,17 @@ enyo.kind({
         this.$.notePopup.hideCancel();
 		this.$.notePopup.openAt({top: inSender.popupTop, left: inSender.popupLeft}, true);
 	},
+
+	openFootnote: function (inSender, inEvent) {
+		//enyo.log("Show footnote...");
+		enyo.keyboard.setResizesWindow(false);
+		//this.$.notePopup.setCaption("");
+		this.$.noteView.setNote(enyo.application.currentFootnote);
+		//this.$.notePopup.setEditMode();
+		//this.$.notePopup.setDismissWithClick(true);
+        //this.$.notePopup.hideCancel();
+		this.$.noteView.openAt({top: inSender.popupTop, left: inSender.popupLeft}, true);
+	},
 	
 	handleBookmark: function (inSender, inEvent) {
 		this.$.versePopup.close();
@@ -263,12 +286,14 @@ enyo.kind({
 	
 	handleHighlight: function (inSender, inEvent) {
 		//enyo.log("BG:",enyo.byId("verse"+this.$.mainView.tappedVerse).style.backgroundColor);
-		if (enyo.byId("verse"+this.$.mainView.tappedVerse).style.backgroundColor.search("rgba") == -1) {
-			biblezTools.addHighlight(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse,inSender.getColor(), "",enyo.bind(this, this.getHighlights));
+		var verseNumber = (this.$.mainViewPane.getViewName() == "splitContainer") ? this.$.splitContainer.tappedVerse : this.$.mainView.tappedVerse;
+		var verseID = (this.$.mainViewPane.getViewName() == "splitContainer") ? "verseLeft" : "verse";
+		if (enyo.byId(verseID+verseNumber).style.backgroundColor.search("rgba") == -1) {
+			biblezTools.addHighlight(this.$.selector.getBnumber(), this.$.selector.getChapter(), verseNumber, inSender.getColor(), "",enyo.bind(this, this.getHighlights));
 		} else {
-			biblezTools.updateHighlight(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse,inSender.getColor(), "",enyo.bind(this, this.getHighlights));
+			biblezTools.updateHighlight(this.$.selector.getBnumber(), this.$.selector.getChapter(), verseNumber, inSender.getColor(), "",enyo.bind(this, this.getHighlights));
 		}
-		enyo.byId("verse"+this.$.mainView.tappedVerse).style.backgroundColor = inSender.getColor();
+		enyo.byId(verseID+verseNumber).style.backgroundColor = inSender.getColor();
 		
 	},
 	
@@ -386,14 +411,14 @@ enyo.kind({
 			
 			//Check if saved Module currently exists
 			var ifModule = 0;
-			if (this.dbSets["lastRead"]) {
+			if (this.dbSets.lastRead) {
 				for (var k=0;k<mods.length;k++) {
-					if (enyo.json.parse(this.dbSets["lastRead"]).module.name == mods[k].name) {
+					if (enyo.json.parse(this.dbSets.lastRead).module.name == mods[k].name) {
 						ifModule = 1;
 					}
 				}
 			}				
-			this.currentModule = (this.dbSets["lastRead"] && ifModule == 1)? enyo.json.parse(this.dbSets["lastRead"]).module : mods[0];
+			this.currentModule = (this.dbSets.lastRead && ifModule == 1)? enyo.json.parse(this.dbSets.lastRead).module : mods[0];
 			
 			//Get current Booknames
 			this.getBooknames(this.currentModule.name);
@@ -413,8 +438,8 @@ enyo.kind({
 			this.$.splitMenu.render();
 			
 			if (this.start === 0) {
-				if (this.dbSets["lastRead"]) {
-					var lastRead = enyo.json.parse(this.dbSets["lastRead"]);
+				if (this.dbSets.lastRead) {
+					var lastRead = enyo.json.parse(this.dbSets.lastRead);
 					this.$.selector.setBnumber(lastRead.bnumber);
 					this.$.selector.setChapter(lastRead.chapter);
 					this.$.selector.setVerse(lastRead.verse);
@@ -428,6 +453,10 @@ enyo.kind({
 					this.$.mainView.setLinebreak(lastRead.linebreak);
 					this.$.splitContainer.setLinebreak(lastRead.linebreak);
 					this.$.prefs.setLinebreak(lastRead.linebreak);
+					enyo.application.heading = lastRead.heading;
+					this.$.prefs.setHeading(lastRead.heading);
+					enyo.application.footnotes = lastRead.footnotes;
+					this.$.prefs.setFootnotes(lastRead.footnotes);
 				}				
 			}
 			this.start = 1;	
@@ -485,12 +514,16 @@ enyo.kind({
 	
 	handleGetVerses: function(verses, side, passage) {
 		//enyo.log(verses);
+		//this.$.mainView.setPlain(verses);
 		//enyo.log(passage, side);
 		this.$.selector.setCurrentPassage(passage);
 		if (side == "right") {
-			this.versesRight = enyo.json.parse(verses);			
+			this.versesRight = enyo.json.parse(verses);
+			enyo.application.versesRight = enyo.json.parse(verses);
+
 		} else {
 			this.verses = enyo.json.parse(verses);
+			enyo.application.verses = enyo.json.parse(verses);
 		}
 		
 		
@@ -717,7 +750,7 @@ enyo.kind({
 	},
 	
 	changeChapter: function (inSender, inEvent) {
-		enyo.log("CHANGE CHAPTER... " + inSender.index);
+		//enyo.log("CHANGE CHAPTER... " + inSender.index);
 		if (inSender.index === 0 || inSender.getIndexLeft() === 0) {
 			var prev = this.$.selector.getPrevPassage();
 			enyo.log(prev);
@@ -764,7 +797,8 @@ enyo.kind({
 	},
 
 	openReview: function () {
-		window.location = "http://developer.palm.com/appredirect/?packageid=de.zefanjas.biblez.enyo";
+		//window.location = "http://developer.palm.com/appredirect/?packageid=de.zefanjas.biblez.enyo";
+		this.$.mainViewPane.selectViewByName("splitContainer");
 	},
 	
 	showToaster: function() {
@@ -792,8 +826,11 @@ enyo.kind({
 		if (inView.name == "singleContainer") {
 			this.$.btSidebar.show();
 			this.$.btStop.hide();
+			this.$.tbModRight.hide();
+			this.$.btSplitView.show();
 
-			this.$.tbPassage.setCaption(this.currentModule.name + " - " + this.$.selector.getBook().name + " " + this.$.selector.getChapter());
+			this.$.tbPassage.setCaption(this.$.selector.getBook().name + " " + this.$.selector.getChapter());
+			this.$.tbModLeft.setCaption(this.currentModule.name);
 			this.$.mainView.setVerses(this.verses, this.$.selector.verse);
 			this.$.mainView.setPrevChapter(this.$.selector.getPrevPassage().passage);
 			this.$.mainView.setNextChapter(this.$.selector.getNextPassage().passage);
@@ -804,7 +841,11 @@ enyo.kind({
 		} else if (inView.name == "splitContainer") {
 			this.$.btSidebar.hide();
 			this.$.btStop.show();
-			this.$.tbPassage.setCaption(this.currentModule.name + " - " + this.$.selector.getBook().name + " " + this.$.selector.getChapter() + " - " + this.currentSplitModule.name);
+			this.$.tbModRight.show();
+			this.$.btSplitView.hide();
+			this.$.tbPassage.setCaption(this.$.selector.getBook().name + " " + this.$.selector.getChapter());
+			this.$.tbModLeft.setCaption(this.currentModule.name);
+			this.$.tbModRight.setCaption(this.currentSplitModule.name);
 			//this.$.splitContainer.windowRotated();
 
 			//Right
@@ -856,11 +897,13 @@ enyo.kind({
 			"fontSize": this.currentFontSize,
 			"font": this.currentFont,
 			"background" : this.$.prefs.getBackground(),
-			"linebreak": this.$.prefs.getLinebreak()
+			"linebreak": this.$.prefs.getLinebreak(),
+			"footnotes": enyo.application.footnotes,
+			"heading": enyo.application.heading
 		};
 		//enyo.log(enyo.json.stringify(lastRead));
 		if(this.currentModule) {
-			this.dbSets["lastRead"] = enyo.json.stringify(lastRead);
+			this.dbSets.lastRead = enyo.json.stringify(lastRead);
 		}
 	}
 });

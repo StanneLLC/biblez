@@ -135,8 +135,8 @@ void refreshManagers() {
 	delete searchLibrary;
 	displayLibrary = new SWMgr(new MarkupFilterMgr(FMT_HTMLHREF));
 	searchLibrary = new SWMgr();
-    displayLibrary->setGlobalOption("Footnotes","Off");
-	displayLibrary->setGlobalOption("Headings", "Off");
+    displayLibrary->setGlobalOption("Footnotes","On");
+	displayLibrary->setGlobalOption("Headings", "On");
 }
 
 PDL_bool getModules(PDL_JSParameters *parms) {
@@ -226,13 +226,16 @@ PDL_bool getVerses(PDL_JSParameters *parms) {
 	const char* side = PDL_GetJSParamString(parms, 2);
 	std::string verseText;
 	std::stringstream out;
-	int headingOn = 0;
+	//int headingOn = 0;
+	//int footnotesOn = 0;
 
+	//SWModule *module = displayLibrary->getModule("GerNeUe");
 	SWModule *module = displayLibrary->getModule(moduleName);
 	ListKey verses = VerseKey().ParseVerseList(key, "", true);
+	//ListKey verses = VerseKey().ParseVerseList("Gen 1:28", "", true);
 
 	//library.setGlobalOption("Footnotes","On");
-	displayLibrary->setGlobalOption("Headings", "On");
+	//displayLibrary->setGlobalOption("Headings", "On");
 
 	AttributeTypeList::iterator i1;
 	AttributeList::iterator i2;
@@ -243,7 +246,7 @@ PDL_bool getVerses(PDL_JSParameters *parms) {
 	for (verses = TOP; !verses.Error(); verses++) {
 		module->setKey(verses);
 		if (strcmp(module->RenderText(), "") != 0) {
-			headingOn = 0;
+			//headingOn = 0;
 			out << "{\"content\": \"" << convertString(module->RenderText()) << "\", ";
 			out << "\"vnumber\": \"" << VerseKey(module->getKeyText()).Verse() << "\", ";
 			out << "\"cnumber\": \"" << VerseKey(module->getKeyText()).Chapter() << "\"";
@@ -253,17 +256,32 @@ PDL_bool getVerses(PDL_JSParameters *parms) {
 					for (i2 = i1->second.begin(); i2 != i1->second.end(); i2++) {
 						if (strcmp(i2->first, "Preverse") == 0) {
 							for (i3 = i2->second.begin(); i3 != i2->second.end(); i3++) {
-								out << ", \"heading\": \"" << i3->second << "\"}";
-								headingOn = 1;
+								out << ", \"heading\": \"" << convertString(i3->second.c_str()) << "\"";
+								//headingOn = 1;
 							}
 						}
 					}
-				}	
+				} else if (strcmp(i1->first, "Footnote") == 0) {
+					out << ", \"footnotes\": [";
+					for (i2 = i1->second.begin(); i2 != i1->second.end(); i2++) {
+						out << "{";
+						for (i3 = i2->second.begin(); i3 != i2->second.end(); i3++) {
+							out << "\"" << i3->first << "\": \"" << convertString(i3->second.c_str()) << "\"";
+							//footnotesOn = 1;
+							if (i3 != --i2->second.end()) {
+								out << ", ";
+							}
+						}
+						out << "}";
+						if (i2 != --i1->second.end()) {
+							out << ", ";
+						}
+					}
+					out << "]";
+				}
 			}
 
-			if (headingOn == 0) {
-				out << "}";
-			}
+			out << "}";
 
 			ListKey helper = verses;
 			helper++;

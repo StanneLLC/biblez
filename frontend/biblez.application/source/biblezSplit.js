@@ -11,7 +11,8 @@ enyo.kind({
     events: {
         onLeftSnap: "",
         onVerseTap: "",
-        onShowNote: ""
+        onShowNote: "",
+        onShowFootnote: ""
     },
 	components: [
         {kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
@@ -26,7 +27,7 @@ enyo.kind({
                 {name: "nextChapterLeft", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}	
 	        ]}
 		]},
-		{name: "rightSnapper", kind: "SnapScroller", flex: 1, onSnap: "", autoVertical: false, vertical: false, components: [
+		{name: "rightSnapper", kind: "SnapScroller", flex: 1, onSnap: "", className: "splitview-right", autoVertical: false, vertical: false, components: [
 			{name: "leftleft", className: "selector-scroller", components: [
                 {name: "prevChapterRight", content: "Previous Chapter", className: "chapter-nav-left chapter-nav"}   
             ]},
@@ -47,6 +48,7 @@ enyo.kind({
 
     handleVerseTap: function(inSender, inUrl) {
         //console.log(inUrl + " " + inUrl.match(/.*\:\/\//i));
+        var urlParams = biblezTools.getUrlParams(inUrl);
         if (inUrl.match(/.*\:\/\//i) == "verse://") {
             this.tappedVerse = inUrl.replace("verse://","");
             enyo.application.tappedVerse = inUrl.replace("verse://","");
@@ -61,6 +63,13 @@ enyo.kind({
             this.popupTop = enyo.byId("noteLeft" + this.tappedNote).getBoundingClientRect().top;
             this.popupLeft = enyo.byId("noteLeft" + this.tappedNote).getBoundingClientRect().left;
             this.doShowNote();
+        } else if (urlParams.action == "showNote") {
+            enyo.application.currentFootnote = enyo.application.verses[parseInt(urlParams.passage.split(":")[1], 10)-1].footnotes[parseInt(urlParams.value, 10)-1].body;
+            //enyo.log(enyo.application.verses[parseInt(urlParams.passage.split(":")[1], 10)-1].footnotes[parseInt(urlParams.value, 10)-1].body);
+            this.tappedVerse = parseInt(urlParams.passage.split(":")[1], 10);
+            this.popupTop = enyo.byId("footnoteLeft" + this.tappedVerse).getBoundingClientRect().top;
+            this.popupLeft = enyo.byId("footnoteLeft" + this.tappedVerse).getBoundingClientRect().left;
+            this.doShowFootnote();
         }
         
         //this.$.versePopup.openAt({top: top, left: left});
@@ -96,7 +105,7 @@ enyo.kind({
         this.$.rightScroller.setScrollTop(0);
         //enyo.log(this.node.clientHeight, this.$.leftSnapper.node.clientHeight);
         this.$.rightScroller.addStyles("height: " + this.node.clientHeight + "px;");
-        this.$.rightView.setContent(biblezTools.renderVerses(verses, vnumber, this.linebreak, "left"));
+        this.$.rightView.setContent(biblezTools.renderVerses(verses, vnumber, this.linebreak, "right"));
     },
 
     setNotes: function(notes) {

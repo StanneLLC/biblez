@@ -25,6 +25,7 @@ enyo.kind({
 	events: {
       onVerseTap: "",
 	  onShowNote: "",
+	  onShowFootnote: "",
 	  onPrevChapter: "",
 	  onNextChapter: ""
     },
@@ -111,18 +112,26 @@ enyo.kind({
 	},
 	
 	handleVerseTap: function(inSender, inUrl) {
-		//console.log(inUrl + " " + inUrl.match(/.*\:\/\//i));
+		//enyo.log(inUrl + " " + inUrl.match(/.*\:\/\//i));
+		var urlParams = biblezTools.getUrlParams(inUrl);
 		if (inUrl.match(/.*\:\/\//i) == "verse://") {
 			this.tappedVerse = inUrl.replace("verse://","");
 			this.popupTop = enyo.byId(inUrl.replace("verse://","")).getBoundingClientRect().top;
 			this.popupLeft = enyo.byId(inUrl.replace("verse://","")).getBoundingClientRect().left;
 			this.doVerseTap();
 		} else if (inUrl.match(/.*\:\/\//i) == "note://") {
-			this.tappedNote = parseInt(inUrl.replace("note://","").split(":")[0]);
-			this.tappedVerse = parseInt(inUrl.replace("note://","").split(":")[1]);		
+			this.tappedNote = parseInt(inUrl.replace("note://","").split(":")[0], 10);
+			this.tappedVerse = parseInt(inUrl.replace("note://","").split(":")[1], 10);		
 			this.popupTop = enyo.byId("note" + this.tappedNote).getBoundingClientRect().top;
 			this.popupLeft = enyo.byId("note" + this.tappedNote).getBoundingClientRect().left;
 			this.doShowNote();
+		} else if (urlParams.action == "showNote") {
+			enyo.application.currentFootnote = enyo.application.verses[parseInt(urlParams.passage.split(":")[1], 10)-1].footnotes[parseInt(urlParams.value, 10)-1].body;
+			//enyo.log(enyo.application.verses[parseInt(urlParams.passage.split(":")[1], 10)-1].footnotes[parseInt(urlParams.value, 10)-1].body);
+			this.tappedVerse = parseInt(urlParams.passage.split(":")[1], 10);
+			this.popupTop = enyo.byId("footnote" + this.tappedVerse).getBoundingClientRect().top;
+			this.popupLeft = enyo.byId("footnote" + this.tappedVerse).getBoundingClientRect().left;
+			this.doShowFootnote();
 		}
 		
 		//this.$.versePopup.openAt({top: top, left: left});
@@ -160,8 +169,10 @@ enyo.kind({
 	},
 	
 	setPlain: function (content) {
+		//enyo.log(content);
+		//this.$.mainView.setAllowHtml(false);
 		this.$.mainView.setContent(content);
-		this.log(content.length);
+		//this.log(content.length);
 	},
 	
 	setPrevChapter: function (passage) {
@@ -177,7 +188,7 @@ enyo.kind({
 		//this.resized();
 		var height = this.node.clientHeight - 40;
 		this.$.mainView.addStyles("height: " + height + "px;");
-		if (this.vnumber !== 0) {this.setSnappers()};
+		if (this.vnumber !== 0) {this.setSnappers();}
 	},
 	
 	setFont: function (font) {
@@ -929,4 +940,4 @@ enyo.kind({
 			this.setStyle("height: 940px;");
 		}		
 	}
-})
+});

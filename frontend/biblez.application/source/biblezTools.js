@@ -388,7 +388,7 @@ var biblezTools = {
 		//enyo.log("NOTES: ", bnumber, cnumber);
 		var hl = [];
 		try {
-			var sql = (parseInt(bnumber) !== -1 && parseInt(cnumber) !== -1) ? "SELECT * FROM highlights WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM highlights ORDER BY bnumber, cnumber, vnumber ASC;"
+			var sql = (parseInt(bnumber) !== -1 && parseInt(cnumber) !== -1) ? "SELECT * FROM highlights WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM highlights ORDER BY bnumber, cnumber, vnumber ASC;";
 		    //enyo.log(sql);
 			//var sql = "SELECT * FROM notes;";
 			this.db.transaction( 
@@ -415,14 +415,22 @@ var biblezTools = {
 		var noteID = (view == "left") ? "noteIconLeft" : "noteIcon";
 		var bmID = (view == "left") ? "bmIconLeft" : "bmIcon";
 		var verseID = (view == "left") ? "verseLeft" : "verse";
+		var fnID = (view == "left") ? "footnoteLeft" : "footnote";
+		var notes = [];
 
 		//enyo.log(noteID, bmID, verseID);
 
 		for (var i=0; i<verses.length; i++) {
-			tmpVerse = verses[i].content.replace(/\*x/g,"").replace(/color=\u0022red\u0022/g,"color=\u0022#E60000\u0022");//.replace(/color=\"red\"/g, "color=\u0022#BA0000\u0022");
-			if (tmpVerse.search(/<note.*<\/note>/i) != -1) {
-				tmpVerse = tmpVerse.replace(/<note.*<\/note>/i, " <span class='verse-footnote'>" + tmpVerse.match(/<note.*<\/note>/i) + "</span>");
+			//.replace(/\*x/g,"")
+			tmpVerse = verses[i].content.replace(/color=\u0022red\u0022/g,"color=\u0022#E60000\u0022").replace(/\*x/g,"");
+			//enyo.log(tmpVerse);
+			
+			if (view == "right" || enyo.application.footnotes === false) {
+				tmpVerse = tmpVerse.replace(/<small><sup[^>]*>\*n<\/sup><\/small>/g, "");
+			} else {
+				tmpVerse = tmpVerse.replace(/<small><sup[^>]*>\*n<\/sup><\/small>/g, " <img id='" + fnID + verses[i].vnumber + "' src='images/footnote.png' />");
 			}
+	
 			if (tmpVerse.search("<br /><br />") != -1) {
 				findBreak = "<br /><br />";
 				tmpVerse = tmpVerse.replace(/<br \/><br \/>/g, "");
@@ -430,7 +438,7 @@ var biblezTools = {
 				findBreak = "";
 			}
 			//enyo.log(tmpVerse);
-			if (verses[i].heading) {
+			if (verses[i].heading && enyo.application.heading === true) {
 				content = content + "<div class='verse-heading'>" + verses[i].heading + "</div>";
 			}
 			content = content + "<a href='verse://" + verses[i].vnumber + "'>";
@@ -446,6 +454,24 @@ var biblezTools = {
 		}
 		//enyo.log(content);
 		return content;
+	},
+
+	getUrlParams: function (url) {
+		var params = {};
+		//enyo.log(url);
+		if (url.search("&") != -1) {
+			var tmpUrl = url.split("?")[1];
+			if (tmpUrl.search("&") != -1 && tmpUrl.search("=") -1) {
+				for (var i=0; i<tmpUrl.split("&").length; i++) {
+					params[tmpUrl.split("&")[i].split("=")[0]] = decodeURIComponent(tmpUrl.split("&")[i].split("=")[1]);
+				}
+			}
+			//enyo.log(enyo.json.stringify(params));
+			return params;
+		} else {
+			return params;
+		}
+		
 	},
 	
 	errorHandler: function (transaction, error) {

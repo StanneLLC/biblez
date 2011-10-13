@@ -24,6 +24,8 @@ enyo.kind({
 	published: {
 		background: "biblez",
 		linebreak: false,
+        footnotes: true,
+        heading: true,
 		backupTime: ""
 	},
 	components: [
@@ -46,8 +48,15 @@ enyo.kind({
 				{align: "center", components: [
 					{flex: 1, name: "linebreak", content: $L("Enable Linebreaks")},
 					{name: "toggleLB", kind: "ToggleButton", state: this.linebreak, onChange: "changeLinebreak"}
-				]}
-				
+				]},
+                {align: "center", components: [
+                    {flex: 1, content: $L("Enable Headings")},
+                    {name: "toggleHeading", kind: "ToggleButton", state: true, onChange: "changeHeading"}
+                ]},
+                {align: "center", components: [
+                    {flex: 1, name: "footnotes", content: $L("Enable Footnotes")},
+                    {name: "toggleFN", kind: "ToggleButton", state: true, onChange: "changeFootnote"}
+                ]}				
             ]},
             {kind: "RowGroup", caption: $L("Backup"), defaultKind: "HFlexBox", style: "margin-left: auto; margin-right: auto;", className: "prefs-container", components: [
 				{kind: "VFlexBox", components: [
@@ -74,10 +83,30 @@ enyo.kind({
 		this.linebreak = inState;
 		this.doLbChange();
 	},
+
+    changeHeading: function (inSender, inState) {
+        //enyo.log(inState);
+        this.heading = inState;
+        enyo.application.heading = inState;
+    },
+
+    changeFootnote: function (inSender, inState) {
+        //enyo.log(inState);
+        this.footnotes = inState;
+        enyo.application.footnotes = inState;
+    },
 	
 	linebreakChanged: function (inSender, inEvent) {
 		this.$.toggleLB.setState(this.linebreak);
 	},
+
+    headingChanged: function (inSender, inEvent) {
+        this.$.toggleHeading.setState(this.heading);
+    },
+
+    footnotesChanged: function (inSender, inEvent) {
+        this.$.toggleFN.setState(this.footnotes);
+    },
 
 	handleBackup: function (inSender, inEvent) {
 		this.$.btBackup.setActive(true);
