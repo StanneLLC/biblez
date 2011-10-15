@@ -181,6 +181,16 @@ a {
 	padding: 5px 10px 5px 10px;
 }
 
+.sidebar-folder {
+    font-size: 0.8em;
+    color: gray;
+}
+
+.sidebar-tags {
+    font-size: 0.8em;
+    color: gray;
+}
+
 /*SELECTOR */
 
 .selector-scroller {
@@ -356,6 +366,12 @@ a {
 
 .color-button {
     height: 20px;
+}
+
+.popup-label {
+    font-size: 0.8em;
+    color: rgb(31, 117,191);
+    text-transform: uppercase;
 }
 
 /*PREFERENCES */

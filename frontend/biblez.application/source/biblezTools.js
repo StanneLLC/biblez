@@ -283,6 +283,26 @@ var biblezTools = {
 			enyo.log("ERROR", e);
 		}
 	},
+
+	updateBookmark: function (bnumber, cnumber, vnumber, title, folder, tags, inCallback) {
+		enyo.log(bnumber, cnumber, vnumber, title, folder, tags);
+		try {
+			var sql = 'UPDATE bookmarks SET title = "' + title + '", folder = "' + folder + '", tags = "' + tags + '" WHERE bnumber = "' + bnumber + '" AND cnumber = "' + cnumber + '" AND vnumber = "' + vnumber + '"';
+		    enyo.log(sql);
+			this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [], 
+					enyo.bind(this, function () {
+                        enyo.log("Successfully updated bookmark!");
+						inCallback();
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.log("ERROR", e);
+		}
+	},
 	
 	removeBookmark: function (bnumber, cnumber, vnumber, inCallback) {
 		//enyo.log(bnumber, cnumber, vnumber);

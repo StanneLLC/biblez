@@ -306,6 +306,56 @@ enyo.kind({
     }
 });
 
+enyo.kind({
+    name: "BibleZ.EditBookmark",
+    kind: "ModalDialog",
+    layoutKind:"VFlexLayout",
+    lazy: false,
+    scrim: true,
+    events: {
+      onEditBM: ""
+    },
+    published: {
+        title: "",
+        folder: "",
+        tags: ""
+    },
+    caption: $L("Edit Bookmark"), 
+    components:[        
+        {name: "titleInput", kind: "Input", hint: $L("Add your title here."), components: [
+            {content: $L("Title"), className: "popup-label"}
+        ]},
+        {name: "folderInput", kind: "Input", components: [
+            {content: $L("Folder"), className: "popup-label"}
+        ]},
+        {name: "tagsInput", kind: "RichText", hint: $L("Add your tags here."), components: [
+            {content: $L("Tags"), className: "popup-label"}
+        ]},
+        {layoutKind: "HFlexLayout", style: "margin-top: 10px;", components: [  
+            {name: "btCancel", kind: "Button", caption: $L("Cancel"), flex: 1, onclick: "closePopup"},
+            {name: "btAdd", kind: "Button", caption: $L("Edit"), flex: 1, onclick: "doEditBM", className: "enyo-button-affirmative"}
+        ]}
+        
+    ],
+
+    setFocus: function () {
+        this.$.titleInput.forceFocusEnableKeyboard();
+    },
+
+    setData: function (title, folder, tags) {
+        this.$.titleInput.setValue(title);
+        this.$.folderInput.setValue(folder);
+        this.$.tagsInput.setValue(tags);
+    },
+
+    getData: function () {
+        return {"title": this.$.titleInput.getValue(), "folder": this.$.folderInput.getValue(), "tags": this.$.tagsInput.getValue().replace(/<[^>]*>/g, "")};
+    },
+
+    closePopup: function () {
+       this.close();
+    }
+});
 
 enyo.kind({
     name: "BibleZ.About",

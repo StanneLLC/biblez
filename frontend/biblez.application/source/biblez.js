@@ -89,7 +89,8 @@ enyo.kind({
 	published: {
         dbSets: window.localStorage,
         verses: {},
-        versesRight: {}
+        versesRight: {},
+        launchParams: null
     },
 	
 	pluginReady: false,
@@ -141,8 +142,15 @@ enyo.kind({
 	rendered: function () {
 		this.inherited(arguments);
 		//enyo.byId("main").className = enyo.byId("main").className + " scroller-grayscale";
-		enyo.log(this.$.mainViewPane.node);
+		//enyo.log(this.$.mainViewPane.node);
 	},
+
+	launchParamsChanged: function () {
+		if (this.launchParams) {
+			enyo.log("Lauchned with params", this.launchParams);
+		}
+		
+	}, 
 
 	//SERVICE STUFF
 	callFileService: function () {
@@ -398,7 +406,7 @@ enyo.kind({
 		var mods = enyo.json.parse(modules);
 		this.$.modManView.setInstalledModules(enyo.json.parse(modules));
 
-		var comp = this.getComponents()
+		var comp = this.getComponents();
 		for (var j=0;j<comp.length;j++) {
 			if (comp[j].name.search(/modulesItem\d+/) != -1 || comp[j].name.search(/splitItem\d+/) != -1) {
 				comp[j].destroy();
@@ -797,8 +805,8 @@ enyo.kind({
 	},
 
 	openReview: function () {
-		//window.location = "http://developer.palm.com/appredirect/?packageid=de.zefanjas.biblez.enyo";
-		this.$.mainViewPane.selectViewByName("splitContainer");
+		window.location = "http://developer.palm.com/appredirect/?packageid=de.zefanjas.biblez.enyo";
+		//this.$.mainViewPane.selectViewByName("splitContainer");
 	},
 	
 	showToaster: function() {

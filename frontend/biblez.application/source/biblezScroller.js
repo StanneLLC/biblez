@@ -309,9 +309,8 @@ enyo.kind({
 				]},
 				{name: "verseScroller", kind: "Scroller", className: "selector-scroller", components: [
 					{name: "verseSelector", content: $L("Select a chapter!"), className: "hint"}
-				]},
-			]
-			},
+				]}
+			]},
 			{kind: "Toolbar", components: [
 				{kind: "Spacer"},
 				/*{caption: "Go", onclick: "handleChapters"},
@@ -556,7 +555,7 @@ enyo.kind({
 			this.$.selectorSnapper.snapTo(ctx);
 		}
 	}
-})
+});
 
 enyo.kind({
 	name: "BibleZ.Sidebar",
@@ -577,21 +576,31 @@ enyo.kind({
 		verse: 0,
 		scope: "Mat-Rev",
 		searchTerm: "",
-		searchType: -2
+		searchType: -2,
+		currentBookmark: {},
+		currentNote: {},
+		currentHighlight: {}
     },
 	components: [
 		/*enyo.fetchDeviceInfo().screenHeight-138 +"px"*/
 		{kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
+		{name: "editBM", kind: "BibleZ.EditBookmark", onEditBM: "updateBookmark"},
 		{className: "sidebar-shadow"},
 		{name: "sidebarPane", kind: "Pane", flex: 1, transitionKind: "enyo.transitions.Simple", onSelectView: "viewSelected", components: [
 			{name: "bmView", kind: "VFlexBox", components: [
 				{name: "scrollerBm", kind: "Scroller", flex: 1,components: [
 					{name: "bmHint", content: $L("No Bookmarks available. Tap on a verse number to add one!"), className: "hint"},
 					{name: "bmList", kind: "VirtualRepeater", onSetupRow: "getBmListItem", components: [
-						{name: "itemBm", kind: "SwipeableItem", onConfirm: "deleteBookmark", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
-							{name: "bmPassage"}
+						{name: "itemBm", kind: "SwipeableItem", onConfirm: "deleteBookmark", layoutKind: "VFlexLayout", tapHighlight: false, className: "list-item", components: [
+							{name: "bmPassage"},
+							{kind: "HFlexBox", components: [
+								{name: "bmFolder", flex: 1, className: "sidebar-folder"},
+								{name: "bmTags", flex: 1, className: "sidebar-tags"}
+							]}
 						],
-						onclick: "goToVerse"
+						onclick: "goToVerse",
+						onmousehold: "openEditBookmark",
+						onmouseout: "mouseUp"
 						}]
 					}
 				]}
@@ -600,7 +609,7 @@ enyo.kind({
 				{name: "scrollerNote", kind: "Scroller", flex: 1, components: [
 					{name: "noteHint", content: $L("No Notes available. Tap on a verse number to add one!"), className: "hint"},
 					{name: "noteList", kind: "VirtualRepeater", onSetupRow: "getNoteListItem", components: [
-						{name: "itemNote", kind: "SwipeableItem", onConfirm: "deleteNote", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
+						{name: "itemNote", kind: "SwipeableItem", onConfirm: "deleteNote", layoutKind: "VFlexLayout", tapHighlight: false, className: "list-item", components: [
 							{name: "notePassage", className: "note-passage"},
 							{name: "noteText", allowHtml: true}
 						],
@@ -613,7 +622,7 @@ enyo.kind({
 				{name: "scrollerHl", kind: "Scroller", flex: 1,components: [
 					{name: "hlHint", content: $L("No Highlights available. Tap on a verse number to add one!"), className: "hint"},
 					{name: "hlList", kind: "VirtualRepeater", onSetupRow: "getHlListItem", components: [
-						{name: "itemHl", kind: "SwipeableItem", onConfirm: "deleteHighlight", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
+						{name: "itemHl", kind: "SwipeableItem", onConfirm: "deleteHighlight", layoutKind: "VFlexLayout", tapHighlight: false, className: "list-item", components: [
 							{name: "hlPassage"}
 						],
 						onclick: "goToVerse"
@@ -632,7 +641,7 @@ enyo.kind({
 					{name: "searchType", kind: "ListSelector", value: -2, onChange: "typeChanged", items: [
 						{caption: $L("Regular Expression"), value: 1},
 						{caption: $L("Multiword"), value: -2},
-						{caption: $L("Exact Phrase"), value: -1},
+						{caption: $L("Exact Phrase"), value: -1}
 					]}
 				]},				
 				//{name: "searchProgress", kind: "ProgressBar"},
@@ -662,7 +671,7 @@ enyo.kind({
 	
 	create: function () {
 		this.inherited(arguments);
-		this.windowRotated()
+		this.windowRotated();
 		this.$.noteHint.hide();
 		this.$.bmHint.hide();
 		this.$.hlHint.hide();
@@ -691,7 +700,7 @@ enyo.kind({
 	handleNotes: function (notes) {
 		//this.$.spinner.hide();
 		this.notes = notes;
-		if (this.notes.length != 0) {
+		if (this.notes.length !== 0) {
 			this.$.noteHint.hide();
 		} else {
 			this.$.noteHint.show();
@@ -703,11 +712,11 @@ enyo.kind({
         var r = this.notes[inIndex];
         if (r) {
 			this.$.noteText.setContent(r.note.replace(/"/g,""));
-            if (this.bookNames[parseInt(r.bnumber)]) {
-				this.$.notePassage.setContent(this.bookNames[parseInt(r.bnumber)].abbrev + " " + r.cnumber + ":" + r.vnumber);
+            if (this.bookNames[parseInt(r.bnumber, 10)]) {
+				this.$.notePassage.setContent(this.bookNames[parseInt(r.bnumber, 10)].abbrev + " " + r.cnumber + ":" + r.vnumber);
 			}
 			var isRowSelected = (inIndex == this.tappedItem);
-			this.$.itemNote.applyStyle("background", isRowSelected ? "#3A8BCB" : null);
+			this.$.itemNote.applyStyle("background", isRowSelected ? "#cde6f3" : null);
             return true;
         } else {
             return false;
@@ -723,7 +732,7 @@ enyo.kind({
 		//enyo.log(enyo.json.stringify(bm));
 		//this.$.spinner.hide();
 		this.bookmarks = bm;
-		if (this.bookmarks.length != 0) {
+		if (this.bookmarks.length !== 0) {
 			this.$.bmHint.hide();
 		} else {
 			this.$.bmHint.show();
@@ -734,12 +743,18 @@ enyo.kind({
 	getBmListItem: function(inSender, inIndex) {
         var r = this.bookmarks[inIndex];
         if (r) {
-			if (this.bookNames[parseInt(r.bnumber)]) {
-				this.$.bmPassage.setContent(this.bookNames[parseInt(r.bnumber)].abbrev + " " + r.cnumber + ":" + r.vnumber);
+			if (this.bookNames[parseInt(r.bnumber, 10)]) {
+				if (r.title !== "") {
+					this.$.bmPassage.setContent(r.title + " (" + this.bookNames[parseInt(r.bnumber, 10)].abbrev + " " + r.cnumber + ":" + r.vnumber + ")");
+				} else {
+					this.$.bmPassage.setContent(this.bookNames[parseInt(r.bnumber, 10)].abbrev + " " + r.cnumber + ":" + r.vnumber);
+				}
+				this.$.bmFolder.setContent(r.folder);
+				this.$.bmTags.setContent(r.tags);
 			}
             
 			var isRowSelected = (inIndex == this.tappedItem);
-			this.$.itemBm.applyStyle("background", isRowSelected ? "#3A8BCB" : null);
+			this.$.itemBm.applyStyle("background", isRowSelected ? "#cde6f3" : null);
             return true;
         } else {
             return false;
@@ -757,7 +772,7 @@ enyo.kind({
 		//enyo.log(enyo.json.stringify(hl));
 		//this.$.spinner.hide();
 		this.highlights = hl;
-		if (this.highlights.length != 0) {
+		if (this.highlights.length !== 0) {
 			this.$.hlHint.hide();
 		} else {
 			this.$.hlHint.show();
@@ -768,13 +783,13 @@ enyo.kind({
 	getHlListItem: function(inSender, inIndex) {
         var r = this.highlights[inIndex];
         if (r) {
-			if (this.bookNames[parseInt(r.bnumber)]) {
-				this.$.hlPassage.setContent(this.bookNames[parseInt(r.bnumber)].abbrev + " " + r.cnumber + ":" + r.vnumber);
+			if (this.bookNames[parseInt(r.bnumber, 10)]) {
+				this.$.hlPassage.setContent(this.bookNames[parseInt(r.bnumber, 10)].abbrev + " " + r.cnumber + ":" + r.vnumber);
 				this.$.itemHl.addStyles("background-color: " + r.color +";");
 			}		
             
 			var isRowSelected = (inIndex == this.tappedItem);
-			this.$.itemHl.applyStyle("background", isRowSelected ? "#3A8BCB" : null);
+			this.$.itemHl.applyStyle("background", isRowSelected ? "#cde6f3" : null);
             return true;
         } else {
             return false;
@@ -833,7 +848,7 @@ enyo.kind({
         if (r) {
 			this.$.searchPassage.setContent(r.passage);
 			var isRowSelected = (inIndex == this.tappedItem);
-			this.$.itemSearch.applyStyle("background", isRowSelected ? "#3A8BCB" : null);
+			this.$.itemSearch.applyStyle("background", isRowSelected ? "#cde6f3" : null);
             return true;
         } else {
             return false;
@@ -869,29 +884,28 @@ enyo.kind({
 			case "itemNote":
 				this.tappedItem = rowIndex;
 				this.$.noteList.render();
-				this.passage = this.bookNames[parseInt(this.notes[rowIndex].bnumber)].abbrev + " " + this.notes[rowIndex].cnumber;
+				this.passage = this.bookNames[parseInt(this.notes[rowIndex].bnumber, 10)].abbrev + " " + this.notes[rowIndex].cnumber;
 				this.verse = this.notes[rowIndex].vnumber;
 			break;
 			case "itemBm":
 				this.tappedItem = rowIndex;
 				this.$.bmList.render();
-				this.passage = this.bookNames[parseInt(this.bookmarks[rowIndex].bnumber)].abbrev + " " + this.bookmarks[rowIndex].cnumber;
+				this.passage = this.bookNames[parseInt(this.bookmarks[rowIndex].bnumber, 10)].abbrev + " " + this.bookmarks[rowIndex].cnumber;
 				this.verse = this.bookmarks[rowIndex].vnumber;
 			break;
 			case "itemHl":
 				this.tappedItem = rowIndex;
 				this.$.hlList.render();
-				this.passage = this.bookNames[parseInt(this.highlights[rowIndex].bnumber)].abbrev + " " + this.highlights[rowIndex].cnumber;
+				this.passage = this.bookNames[parseInt(this.highlights[rowIndex].bnumber, 10)].abbrev + " " + this.highlights[rowIndex].cnumber;
 				this.verse = this.highlights[rowIndex].vnumber;
 			break;
 			case "itemSearch":
 				this.tappedItem = rowIndex;
 				this.$.searchList.render();
 				this.passage = this.results[rowIndex].abbrev + " " + this.results[rowIndex].cnumber;
-				this.verse = parseInt(this.results[rowIndex].vnumber);
+				this.verse = parseInt(this.results[rowIndex].vnumber, 10);
 			break;		
 		}
-		enyo.log(this.passage, this.verse);
 		this.doVerse();
 	},
 	
@@ -924,6 +938,33 @@ enyo.kind({
 			this.getHighlights();
 			enyo.byId("verse"+this.verse).style.backgroundColor = "transparent";
 		}
+	},
+
+	openEditBookmark: function (inSender, inEvent) {
+		//enyo.log("Open Edit Menu...", inEvent.rowIndex);
+		var r = this.bookmarks[inEvent.rowIndex];
+		enyo.log(r);
+		this.currentBookmark = r;
+		this.$.editBM.openAtCenter();
+		this.$.editBM.setCaption($L("Edit") + " " + this.bookNames[parseInt(r.bnumber, 10)].abbrev + " " + r.cnumber + ":" + r.vnumber);
+		this.$.editBM.setData(r.title, r.folder, r.tags);	
+	},
+
+	mouseUp: function (inSender, inEvent) {
+		//enyo.log("MouseUp");
+		this.$.editBM.setFocus();
+	},
+
+	updateBookmark: function (inSender, inEvent) {
+		var tmp = inSender.getData();
+		//enyo.log(tmp);
+		biblezTools.updateBookmark(this.currentBookmark.bnumber, this.currentBookmark.cnumber, this.currentBookmark.vnumber, tmp.title, tmp.folder, tmp.tags, enyo.bind(this, this.handleUpdateBookmark));
+		this.$.editBM.close();
+	},
+
+	handleUpdateBookmark: function () {
+		enyo.log("Updated Bookmark");
+		this.getBookmarks();
 	},
 	
 	bookNamesChanged: function () {
