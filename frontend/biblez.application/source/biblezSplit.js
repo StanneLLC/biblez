@@ -1,3 +1,18 @@
+/*### BEGIN LICENSE
+# Copyright (C) 2011 Stephan Tetzel <info@zefanjas.de>
+# This program is free software: you can redistribute it and/or modify it 
+# under the terms of the GNU General Public License version 3, as published 
+# by the Free Software Foundation.
+# 
+# This program is distributed in the hope that it will be useful, but 
+# WITHOUT ANY WARRANTY; without even the implied warranties of 
+# MERCHANTABILITY, SATISFACTORY QUALITY, or FITNESS FOR A PARTICULAR 
+# PURPOSE.  See the GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along 
+# with this program.  If not, see <http://www.gnu.org/licenses/>.
+### END LICENSE*/
+
 enyo.kind({
 	name: "BibleZ.SplitView",
 	kind: "HFlexBox",
@@ -12,7 +27,8 @@ enyo.kind({
         onLeftSnap: "",
         onVerseTap: "",
         onShowNote: "",
-        onShowFootnote: ""
+        onShowFootnote: "",
+        onRotate: ""
     },
 	components: [
         {kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
@@ -163,7 +179,7 @@ enyo.kind({
         var height = enyo.byId("main").clientHeight;
         var width = enyo.byId("main").clientWidth/2;
         var widthFull = enyo.byId("main").clientWidth;
-        enyo.log(height, width);
+        //enyo.log(height, width);
         this.$.leftScroller.addStyles("height: " + height + "px;");
         this.$.leftScroller.addStyles("width: " + width + "px;");
         this.$.rightScroller.addStyles("height: " + height + "px;");
@@ -171,5 +187,7 @@ enyo.kind({
         
         this.$.leftSnapper.setIndex(this.$.leftSnapper.index);
         this.$.rightSnapper.setIndex(this.$.rightSnapper.index);
+
+        //this.doRotate();
     }
 });

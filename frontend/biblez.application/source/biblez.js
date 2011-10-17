@@ -34,7 +34,7 @@ enyo.kind({
 		]},
 		{name: "notePopup", kind: "BibleZ.AddNote", onAddNote: "addNote"},
 		{name: "noteView", kind: "BibleZ.ShowNote", style: "min-width: 100px; max-width: 300px;"},
-		{name: "versePopup", kind: "BibleZ.VersePopup", className: "verse-popup", onOpen: "hideColors", onNote: "handleNote", onBookmark: "handleBookmark", onHighlight: "handleHighlight"},
+		{name: "versePopup", kind: "BibleZ.VersePopup", className: "verse-popup", onOpen: "hideColors", onNote: "handleNote", onBookmark: "handleBookmark", onEditBookmark: "handleEditBookmark", onHighlight: "handleHighlight", onRelease: "handleSidebarMouseRelease"},
 		{name: "fontMenu", kind: "BibleZ.FontMenu", onFontSize: "changeFontSize", onFont: "changeFont"},
 		{name: "biblezAbout", kind: "BibleZ.About"},
 		{name: "mainPane", flex: 1, kind: "Pane", transitionKind: "enyo.transitions.Simple", onSelectView: "viewSelected", components: [
@@ -69,7 +69,7 @@ enyo.kind({
 					{name: "singleContainer", kind: "HFlexBox", flex: 1, components: [
 						{name: "mainView", kind: "BibleZ.Scroller", onSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote", onShowFootnote: "openFootnote"},
 						{name: "sidebarContainer", className: "main-sidebar",components: [
-							{name: "noteBmSidebar", kind: "BibleZ.Sidebar", onVerse: "handleSidebarVerse", onSearch: "handleSearch"}		
+							{name: "noteBmSidebar", kind: "BibleZ.Sidebar", onVerse: "handleSidebarVerse", onSearch: "handleSearch", onNewBm: "getBookmarks"}
 						]}
 					]},
 					{name: "biblezHint", flex: 1, className: "scroller-background biblez-hint", content: ""},
@@ -77,7 +77,7 @@ enyo.kind({
 						{allowHtml: true, content: $L("Thank you for installing BibleZ HD. Currently there are no modules installed. Please open the Module Manager and add at least one module!")},
 						{kind: "Button", caption: $L("Open Module Manager"), className: "first-start-button", onclick: "openModuleMgr"}
 					]},
-					{name: "splitContainer", flex: 1, kind: "BibleZ.SplitView", onLeftSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote", onShowFootnote: "openFootnote"}
+					{name: "splitContainer", flex: 1, kind: "BibleZ.SplitView", onRotate: "splitRotated", onLeftSnap: "changeChapter", onVerseTap: "handleVerseTap", onShowNote: "openShowNote", onShowFootnote: "openFootnote"}
 				]}
 			]},
 			{name: "selector", kind: "BibleZ.Selector", onChapter: "getVMax", onVerse: "getPassage"},
@@ -281,6 +281,24 @@ enyo.kind({
 		} else {
 			biblezTools.addBookmark(this.$.selector.getBnumber(), this.$.selector.getChapter(), verseNumber, "", "", "", enyo.bind(this, this.getBookmarks));
 		}		
+	},
+
+	handleEditBookmark: function (inSender, inEvent) {
+		this.$.versePopup.close();
+		var verseNumber = (this.$.mainViewPane.getViewName() == "splitContainer") ? this.$.splitContainer.tappedVerse : this.$.mainView.tappedVerse;
+		var bmID = (this.$.mainViewPane.getViewName() == "splitContainer") ? "bmIconLeft" : "bmIcon";
+		var passage = {"bnumber" : this.$.selector.getBnumber(), "cnumber": this.$.selector.getChapter(), "vnumber" : verseNumber};
+		if (enyo.byId(bmID+verseNumber).innerHTML !== "") {
+			this.$.noteBmSidebar.setBmMode("edit");
+			this.$.noteBmSidebar.openEditBookmark(null, null, passage);
+		} else {
+			this.$.noteBmSidebar.setBmMode("add");
+			this.$.noteBmSidebar.openEditBookmark(null, null, passage);
+		}
+	},
+
+	handleSidebarMouseRelease: function (inSender, inEvent) {
+		this.$.noteBmSidebar.setPopupFocus();
 	},
 	
 	getBookmarks: function() {
@@ -511,9 +529,10 @@ enyo.kind({
 	
 	handleBooknames: function(response) {
 		//enyo.log(response);
-		this.$.selector.createSection("books", enyo.json.parse(response));
-		this.$.selector.setBookNames(enyo.json.parse(response));
-		this.$.noteBmSidebar.setBookNames(enyo.json.parse(response));
+		enyo.application.bookNames = enyo.json.parse(response);
+		this.$.selector.createSection("books", enyo.application.bookNames);
+		this.$.selector.setBookNames(enyo.application.bookNames);
+		this.$.noteBmSidebar.setBookNames(enyo.application.bookNames);
 		if (this.$.mainPane.getViewName() == "verseView") {
 		    this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), this.currentModule.name);
 		}
@@ -840,6 +859,7 @@ enyo.kind({
 			this.$.tbPassage.setCaption(this.$.selector.getBook().name + " " + this.$.selector.getChapter());
 			this.$.tbModLeft.setCaption(this.currentModule.name);
 			this.$.mainView.setVerses(this.verses, this.$.selector.verse);
+			//this.$.mainView.setSnappers(this.$.selector.verse);
 			this.$.mainView.setPrevChapter(this.$.selector.getPrevPassage().passage);
 			this.$.mainView.setNextChapter(this.$.selector.getNextPassage().passage);
 
@@ -880,8 +900,10 @@ enyo.kind({
 		}
 	},
 	
-	windowRotated: function(inSender) {
-		//this.render();
+	splitRotated: function(inSender) {
+		//enyo.log("SpliView rotated");
+		//this.$.mainView.setVerses(this.verses, this.$.selector.verse);
+		//this.$.mainView.windowRotated();
 	},
 	
 	openAppMenuHandler: function() {

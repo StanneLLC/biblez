@@ -245,7 +245,7 @@ var biblezTools = {
 		//enyo.log("NOTES: ", bnumber, cnumber);
 		var notes = [];
 		try {
-			var sql = (parseInt(bnumber) !== -1 && parseInt(cnumber) !== -1) ? "SELECT * FROM notes WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM notes ORDER BY bnumber, cnumber, vnumber ASC;";
+			var sql = (parseInt(bnumber, 10) !== -1 && parseInt(cnumber, 10) !== -1) ? "SELECT * FROM notes WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM notes ORDER BY bnumber, cnumber, vnumber ASC;";
 		    //enyo.log(sql);
 			//var sql = "SELECT * FROM notes;";
 			this.db.transaction( 
@@ -323,21 +323,51 @@ var biblezTools = {
 		}
 	},
 	
-	getBookmarks: function(bnumber, cnumber, inCallback) {
+	getBookmarks: function(bnumber, cnumber, inCallback, searchTerm) {
 		//enyo.log("BM: ", bnumber, cnumber);
 		var bm = [];
-		try {
-			var sql = (parseInt(bnumber) !== -1 && parseInt(cnumber) !== -1) ? "SELECT * FROM bookmarks WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM bookmarks ORDER BY bnumber, cnumber, vnumber ASC;"
-		    //enyo.log(sql);
-			//var sql = "SELECT * FROM notes;";
+		var sql = "";
+		try {		
+			sql = (parseInt(bnumber, 10) !== -1 && parseInt(cnumber, 10) !== -1) ? "SELECT * FROM bookmarks WHERE bnumber = '" + bnumber + "' AND cnumber = '" + cnumber + "' ORDER BY vnumber ASC;" : "SELECT * FROM bookmarks ORDER BY bnumber, cnumber, vnumber ASC;";			
 			this.db.transaction( 
 		        enyo.bind(this,(function (transaction) { 
 		            transaction.executeSql(sql, [], 
 					enyo.bind(this, function (transaction, results) {
                         for (var j=0; j<results.rows.length; j++) {
-							bm.push({"bnumber": results.rows.item(j).bnumber, "cnumber": results.rows.item(j).cnumber, "vnumber": results.rows.item(j).vnumber, "title": results.rows.item(j).title, "folder": results.rows.item(j).folder, "tags": results.rows.item(j).tags});
+							if (searchTerm) {
+								if (results.rows.item(j).title.toLowerCase().search(searchTerm) !== -1 || results.rows.item(j).folder.toLowerCase().search(searchTerm) !== -1 || results.rows.item(j).tags.toLowerCase().search(searchTerm) !== -1 || enyo.application.bookNames[parseInt(results.rows.item(j).bnumber, 10)].abbrev.toLowerCase().search(searchTerm) !== -1) {
+									bm.push({"bnumber": results.rows.item(j).bnumber, "cnumber": results.rows.item(j).cnumber, "vnumber": results.rows.item(j).vnumber, "title": results.rows.item(j).title, "folder": results.rows.item(j).folder, "tags": results.rows.item(j).tags});
+								}
+							} else {
+								bm.push({"bnumber": results.rows.item(j).bnumber, "cnumber": results.rows.item(j).cnumber, "vnumber": results.rows.item(j).vnumber, "title": results.rows.item(j).title, "folder": results.rows.item(j).folder, "tags": results.rows.item(j).tags});
+							}
 						}
 						inCallback(bm);
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.log("ERROR", e);
+		}
+	},
+
+	getBmFolders: function (inCallback) {
+		var folders = [];
+		var sql = "";
+		try {		
+			sql = "SELECT folder FROM bookmarks ORDER BY folder ASC;";
+			this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [], 
+					enyo.bind(this, function (transaction, results) {
+                        for (var j=0; j<results.rows.length; j++) {
+							//enyo.log(results.rows.item(j));
+							if (results.rows.item(j).folder !== "" && results.rows.item(j).folder !== results.rows.item(j-1).folder) {
+								folders.push(results.rows.item(j).folder);
+							}
+						}
+						inCallback(folders);
 					}),
                     enyo.bind(this,this.errorHandler)); 
 		        }))

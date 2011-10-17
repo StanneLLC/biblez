@@ -280,6 +280,12 @@ a {
     text-align: center;
 }
 
+.popup-edit-title {
+    font-size: 1em;
+    text-align: center;
+    padding-bottom: 5px;
+}
+
 .popup-info {
     margin-top: 1em;
     margin-bottom: 1em;

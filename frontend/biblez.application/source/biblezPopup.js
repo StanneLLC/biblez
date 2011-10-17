@@ -13,6 +13,94 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 ### END LICENSE*/
 
+//START SPAZ LICENSE
+
+/*Copyright (c) 2007-2011, Edward Finkler, Funkatron Productions
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following
+disclaimer in the documentation and/or other materials provided
+with the distribution.
+
+Neither the name of Edward Finkler, Funkatron Productions nor
+the names of its contributors may be used to endorse or promote
+products derived from this software without specific prior written
+permission. */
+
+enyo.kind({
+    name: "BibleZ.Popup",
+    kind: "Popup",
+    fixPositionY: true, // set this to false to get normal repositioning behavior
+    current_y: null,
+    openAtTopCenter:function() {
+        this.setBoundsInfo("applyHalfCenterBounds", arguments);
+        this.open();
+    },
+    'applyHalfCenterBounds':function(x_only) {
+        this.applyBounds(this.calcHalfCenterPosition(x_only));
+    },
+    calcHalfCenterPosition: function(x_only) {
+        var s = this.calcSize();
+        var vp = this.calcViewport();
+        var o = {
+            left: Math.max(0, (vp.width - s.width) / 2),
+            top: Math.max(0, ((vp.height - s.height) / 2) / 8) // dividing by 8 to get the popup close to top
+        };
+
+        if (this.fixPositionY && this.showing && x_only && this.current_y !== null) {
+            o.top = this.current_y;
+        } else {
+            this.current_y = o.top;
+        }
+
+        return o;
+    },
+    resizeHandler: function() {
+        if (this.isOpen) {
+            var args = arguments;
+            // FIXME: Wait a beat to resize. We need to do this to dismiss correctly via a click
+            // when the device keyboard hides as the result of the click.
+            // This is because the keyboard hides on mouse up and if it is in resize window mode, the
+            // window resizes, prompting this resize handler to be called. Resizing a popup can result
+            // in it moving position and this can move the button the user clicked on at mouseup time.
+            // Moving a button underneath the mouse at mouse up time can prevent a click from firing.
+            // Avoid this issue by deferring resize slightly; we only need the space between mouseup and click.
+            enyo.asyncMethod(this, function() {
+                this.applyBoundsInfo('x_only');
+            });
+        }
+    },
+    applyBoundsInfo: function(x_only) {
+        x_only = !!x_only;
+        var bi = this.boundsInfo;
+        if (bi) {
+            bi.args = [x_only];
+            this.clearSizeCache();
+            this.clearClampedSize();
+            this[bi.method].apply(this, bi.args);
+        }
+    },
+    clearClampedSize: function() {
+        var s = this.getContentControl();
+        if (this._clampedWidth) {
+            s.applyStyle("max-width", null);
+        }
+        if (this._clampedHeight) {
+            s.applyStyle("max-height", null);
+        }
+        this._clampedHeight = this._clampedWidth = false;
+    }
+});
+
+//END SPAZ LICENSE
+
 enyo.kind({
     name: "BibleZ.VersePopup",
     scrim: false,
@@ -24,7 +112,9 @@ enyo.kind({
     events: {
       onNote: "",
       onBookmark: "",
-      onHighlight: ""
+      onEditBookmark: "",
+      onHighlight: "",
+      onRelease: ""
     },
     published: {
 		color: "",
@@ -35,21 +125,13 @@ enyo.kind({
         {kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open"},
         {kind: "VFlexBox", flex: 1, components: [
             {kind: "HFlexBox", components: [
-                {name: "bmCaption", flex: 1, className: "verse-popup-top-left", content: $L("Bookmark") + " + ", onclick: "doBookmark"},
+                {name: "bmCaption", flex: 1, className: "verse-popup-top-left", content: $L("Bookmark") + " + ", onclick: "addRmBookmark", onmousehold: "showBmOptions", onmouseout: "doRelease", hold: false},
                 {name: "noteCaption", flex: 1, className: "verse-popup-top-right", content: $L("Note") + " + ", onclick: "doNote"}
             ]},
             {kind: "HFlexBox", components: [
                 {name: "hlCaption", flex: 1, className: "verse-popup-bottom-left", content: $L("Highlight"), onclick: "openColors"},
                 {name: "csCaption", flex: 1, className: "verse-popup-bottom-right", content: $L("Copy & Share"), onclick: "openCopy"}
             ]},
-            /* {kind: "ToolButtonGroup", components: [
-                //{content: "Copy"},
-                {name: "bmCaption", caption: $L("Bookmark") + " + ", onclick: "doBookmark"},
-                {name: "noteCaption", caption: $L("Note") + " + ", onclick: "doNote"},
-                {name: "hlCaption", caption: $L("Highlight"), onclick: "openColors"},
-                {name: "csCaption", caption: $L("Copy & Share"), onclick: "openCopy"}
-                //{content: "Highlight"},
-            ]}, */
             {name: "colorSelector", kind: "HFlexBox", className: "color-selector", components: [
                 {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(255,99,71,0.5)", style: "background-color: red;"},
                 {kind: "Button", caption: " ", flex: 1, onclick: "highlightVerse", className: "color-button", color: "rgba(135,206,250,0.5)", style: "background-color: blue;"},
@@ -130,6 +212,18 @@ enyo.kind({
                 messageText: this.verse
             }
         }); 
+    },
+
+    addRmBookmark: function (inSender, inEvent) {
+        if (!inSender.hold) {
+            this.doBookmark();
+        }
+        inSender.hold = false;
+    },
+
+    showBmOptions: function (inSender, inEvent) {
+        this.doEditBookmark();
+        inSender.hold = true;
     },
     
     closePopup: function() {
@@ -308,10 +402,11 @@ enyo.kind({
 
 enyo.kind({
     name: "BibleZ.EditBookmark",
-    kind: "ModalDialog",
+    kind: "BibleZ.Popup",
     layoutKind:"VFlexLayout",
     lazy: false,
     scrim: true,
+    modal: true,
     events: {
       onEditBM: ""
     },
@@ -320,15 +415,21 @@ enyo.kind({
         folder: "",
         tags: ""
     },
-    caption: $L("Edit Bookmark"), 
-    components:[        
-        {name: "titleInput", kind: "Input", hint: $L("Add your title here."), components: [
+    //caption: $L("Edit Bookmark"), 
+    components:[
+        {name: "folderMenu", kind: "Menu", lazy: false},      
+        {name: "popupTitle", content: $L("Edit Bookmark"), className: "popup-edit-title"},
+        {name: "titleInput", kind: "Input", hint: "", components: [
             {content: $L("Title"), className: "popup-label"}
         ]},
-        {name: "folderInput", kind: "Input", components: [
-            {content: $L("Folder"), className: "popup-label"}
-        ]},
-        {name: "tagsInput", kind: "RichText", hint: $L("Add your tags here."), components: [
+        {kind: "HFlexBox", components: [
+            {name: "folderInput", flex: 10, hint: "", kind: "Input", components: [
+                {content: $L("Folder"), className: "popup-label"}
+            ]},
+            {kind: "IconButton", flex: 1, icon: "images/folder.png", onclick: "openFolders"}
+            
+        ]},        
+        {name: "tagsInput", kind: "RichText", hint: "", components: [
             {content: $L("Tags"), className: "popup-label"}
         ]},
         {layoutKind: "HFlexLayout", style: "margin-top: 10px;", components: [  
@@ -342,14 +443,50 @@ enyo.kind({
         this.$.titleInput.forceFocusEnableKeyboard();
     },
 
+    setCaption: function (caption) {
+        this.$.popupTitle.setContent(caption);
+    },
+
+    setBtCaption: function (caption) {
+        this.$.btAdd.setCaption(caption);
+    },
+
     setData: function (title, folder, tags) {
-        this.$.titleInput.setValue(title);
-        this.$.folderInput.setValue(folder);
-        this.$.tagsInput.setValue(tags);
+        var tmpTitle = (title) ? title : "";
+        var tmpFolder = (folder) ? folder : "";
+        var tmpTags = (tags) ? tags : "";
+        this.$.titleInput.setValue(tmpTitle);
+        this.$.folderInput.setValue(tmpFolder);
+        this.$.tagsInput.setValue(tmpTags);
     },
 
     getData: function () {
         return {"title": this.$.titleInput.getValue(), "folder": this.$.folderInput.getValue(), "tags": this.$.tagsInput.getValue().replace(/<[^>]*>/g, "")};
+    },
+
+    handleFolders: function (folders) {
+        //enyo.log(folders);
+        var comp = this.getComponents();
+        for (var j=0;j<comp.length;j++) {
+            if (comp[j].name.search(/folderItem\d+/) != -1) {
+                comp[j].destroy();
+            }
+        }
+        
+        var kindName = "";
+        for (var i=0;i<folders.length;i++) {
+            kindName = "folderItem" + i;
+            this.$.folderMenu.createComponent({name: kindName, kind: "MenuItem", folder: folders[i], caption: folders[i], onclick: "handleSelectFolder", className: "module-item"}, {owner: this});
+        }
+        this.$.folderMenu.render();
+    },
+
+    handleSelectFolder: function (inSender, inEvent) {
+        this.$.folderInput.setValue(inSender.folder);
+    },
+
+    openFolders: function (inSender, inEvent) {
+        this.$.folderMenu.openAtEvent(inEvent);
     },
 
     closePopup: function () {
