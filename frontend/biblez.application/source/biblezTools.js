@@ -241,7 +241,7 @@ var biblezTools = {
 		}
 	},
 	
-	getNotes: function(bnumber, cnumber, inCallback) {
+	getNotes: function(bnumber, cnumber, inCallback, searchTerm) {
 		//enyo.log("NOTES: ", bnumber, cnumber);
 		var notes = [];
 		try {
@@ -253,7 +253,13 @@ var biblezTools = {
 		            transaction.executeSql(sql, [], 
 					enyo.bind(this, function (transaction, results) {
                         for (var j=0; j<results.rows.length; j++) {
-							notes.push({"bnumber": results.rows.item(j).bnumber, "cnumber": results.rows.item(j).cnumber, "vnumber": results.rows.item(j).vnumber, "note": results.rows.item(j).note, "title": results.rows.item(j).title, "folder": results.rows.item(j).folder, "tags": results.rows.item(j).tags});
+							if (searchTerm) {
+								if (results.rows.item(j).note.toLowerCase().search(searchTerm) !== -1 || results.rows.item(j).title.toLowerCase().search(searchTerm) !== -1 || results.rows.item(j).folder.toLowerCase().search(searchTerm) !== -1 || results.rows.item(j).tags.toLowerCase().search(searchTerm) !== -1 || enyo.application.bookNames[parseInt(results.rows.item(j).bnumber, 10)].abbrev.toLowerCase().search(searchTerm) !== -1) {
+									notes.push({"bnumber": results.rows.item(j).bnumber, "cnumber": results.rows.item(j).cnumber, "vnumber": results.rows.item(j).vnumber, "note": results.rows.item(j).note, "title": results.rows.item(j).title, "folder": results.rows.item(j).folder, "tags": results.rows.item(j).tags});
+								}
+							} else {
+								notes.push({"bnumber": results.rows.item(j).bnumber, "cnumber": results.rows.item(j).cnumber, "vnumber": results.rows.item(j).vnumber, "note": results.rows.item(j).note, "title": results.rows.item(j).title, "folder": results.rows.item(j).folder, "tags": results.rows.item(j).tags});
+							}						
 						}
 						inCallback(notes);
 					}),

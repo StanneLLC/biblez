@@ -173,8 +173,7 @@ a {
 }
 
 .note-passage {
-    font-size: 0.8em;
-    font-style: italic;
+    font-size: 0.9em;
 }
 
 .search-container {
@@ -182,13 +181,19 @@ a {
 }
 
 .sidebar-folder {
-    font-size: 0.8em;
+    font-size: 13px;
     color: gray;
+    font-style: italic;
 }
 
 .sidebar-tags {
-    font-size: 0.8em;
+    font-size: 13px;
     color: gray;
+    font-style: italic;
+}
+
+.sidebar-icon {
+    height: 11px;
 }
 
 /*SELECTOR */
@@ -281,9 +286,13 @@ a {
 }
 
 .popup-edit-title {
-    font-size: 1em;
+    font-size: 0.8em;
     text-align: center;
     padding-bottom: 5px;
+}
+
+.edit-popup {
+    max-width: 400px;
 }
 
 .popup-info {

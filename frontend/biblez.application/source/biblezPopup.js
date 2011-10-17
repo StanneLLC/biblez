@@ -238,7 +238,8 @@ enyo.kind({
     lazy: false,
     scrim: false,
     events: {
-      onAddNote: ""
+      onAddNote: "",
+      onEditNote: ""
     },
     published: {
 		edit: false
@@ -309,11 +310,13 @@ enyo.kind({
 	},
     
     openCenter: function() {
-        this.dismissWithClick = false;
-		this.$.btCancel.show();
+        //this.dismissWithClick = false;
+		//this.$.btCancel.show();
         //this.close()
         //this.openAtCenter();
-        this.showEditBt();
+        //this.showEditBt();
+        this.doEditNote();
+        this.close();
     },
     
     closePopup: function () {
@@ -326,13 +329,25 @@ enyo.kind({
     kind: "Popup",
     //caption: "",
     lazy: false,
+    published: {
+        showType: "note"
+    },
+    events: {
+        onNoteTap: ""
+    },
     components:[
-        {name: "noteContent", allowHtml: true, content: "", className: "popup-note"}
+        {name: "noteContent", allowHtml: true, content: "", className: "popup-note", onclick: "handleNoteTap"}
         //{kind: "Button", caption: $L("OK"), onclick: "closePopup", style: "margin-top:10px"}
     ],
     
     setNote: function (note) {
         this.$.noteContent.setContent(note.replace(/"/g,""));
+    },
+
+    handleNoteTap: function (inSender, inEvent) {
+        if (this.showType == "note") {
+            this.doNoteTap();
+        }
     },
     
     closePopup: function() {
@@ -406,14 +421,16 @@ enyo.kind({
     layoutKind:"VFlexLayout",
     lazy: false,
     scrim: true,
-    modal: true,
+    dismissWithClick: false,
     events: {
-      onEditBM: ""
+      onEditData: ""
     },
     published: {
         title: "",
         folder: "",
-        tags: ""
+        tags: "",
+        note: "",
+        editType: "bookmark"
     },
     //caption: $L("Edit Bookmark"), 
     components:[
@@ -422,6 +439,7 @@ enyo.kind({
         {name: "titleInput", kind: "Input", hint: "", components: [
             {content: $L("Title"), className: "popup-label"}
         ]},
+        {name: "noteInput", kind: "RichText", hint: $L("Add your note here."), showing: false},
         {kind: "HFlexBox", components: [
             {name: "folderInput", flex: 10, hint: "", kind: "Input", components: [
                 {content: $L("Folder"), className: "popup-label"}
@@ -434,10 +452,18 @@ enyo.kind({
         ]},
         {layoutKind: "HFlexLayout", style: "margin-top: 10px;", components: [  
             {name: "btCancel", kind: "Button", caption: $L("Cancel"), flex: 1, onclick: "closePopup"},
-            {name: "btAdd", kind: "Button", caption: $L("Edit"), flex: 1, onclick: "doEditBM", className: "enyo-button-affirmative"}
+            {name: "btAdd", kind: "Button", caption: $L("Edit"), flex: 1, onclick: "doEditData", className: "enyo-button-affirmative"}
         ]}
         
     ],
+
+    editTypeChanged: function (inSender, inEvent) {
+        if (this.editType == "bookmark") {
+            this.$.noteInput.hide();
+        } else {
+            this.$.noteInput.show();
+        }
+    },
 
     setFocus: function () {
         this.$.titleInput.forceFocusEnableKeyboard();
@@ -451,17 +477,19 @@ enyo.kind({
         this.$.btAdd.setCaption(caption);
     },
 
-    setData: function (title, folder, tags) {
+    setData: function (title, folder, tags, note) {
         var tmpTitle = (title) ? title : "";
         var tmpFolder = (folder) ? folder : "";
         var tmpTags = (tags) ? tags : "";
+        var tmpNote = (note) ? note : "";
         this.$.titleInput.setValue(tmpTitle);
         this.$.folderInput.setValue(tmpFolder);
         this.$.tagsInput.setValue(tmpTags);
+        this.$.noteInput.setValue(tmpNote);
     },
 
     getData: function () {
-        return {"title": this.$.titleInput.getValue(), "folder": this.$.folderInput.getValue(), "tags": this.$.tagsInput.getValue().replace(/<[^>]*>/g, "")};
+        return {"title": this.$.titleInput.getValue(), "folder": this.$.folderInput.getValue(), "tags": this.$.tagsInput.getValue().replace(/<[^>]*>/g, ""), "note": this.$.noteInput.getValue()};
     },
 
     handleFolders: function (folders) {
