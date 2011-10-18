@@ -336,7 +336,9 @@ enyo.kind({
         onNoteTap: ""
     },
     components:[
-        {name: "noteContent", allowHtml: true, content: "", className: "popup-note", onclick: "handleNoteTap"}
+        {kind: "BasicScroller", autoVertical: true, style: "height: auto;", flex: 1, components: [
+            {name: "noteContent", allowHtml: true, content: "", className: "popup-note", onclick: "handleNoteTap"}
+        ]}
         //{kind: "Button", caption: $L("OK"), onclick: "closePopup", style: "margin-top:10px"}
     ],
     
@@ -436,19 +438,21 @@ enyo.kind({
     components:[
         {name: "folderMenu", kind: "Menu", lazy: false},      
         {name: "popupTitle", content: $L("Edit Bookmark"), className: "popup-edit-title"},
-        {name: "titleInput", kind: "Input", hint: "", components: [
-            {content: $L("Title"), className: "popup-label"}
-        ]},
-        {name: "noteInput", kind: "RichText", hint: $L("Add your note here."), showing: false},
-        {kind: "HFlexBox", components: [
-            {name: "folderInput", flex: 10, hint: "", kind: "Input", components: [
-                {content: $L("Folder"), className: "popup-label"}
+        {kind: "BasicScroller", autoVertical: true, style: "height: auto;", flex: 1, components: [
+            {name: "titleInput", kind: "Input", hint: "", components: [
+                {content: $L("Title"), className: "popup-label"}
             ]},
-            {kind: "IconButton", flex: 1, icon: "images/folder.png", onclick: "openFolders"}
-            
-        ]},        
-        {name: "tagsInput", kind: "RichText", hint: "", components: [
-            {content: $L("Tags"), className: "popup-label"}
+            {name: "noteInput", kind: "RichText", hint: $L("Add your note here."), showing: false},
+            {kind: "HFlexBox", components: [
+                {name: "folderInput", flex: 10, hint: "", kind: "Input", components: [
+                    {content: $L("Folder"), className: "popup-label"}
+                ]},
+                {kind: "IconButton", flex: 1, icon: "images/folder.png", onclick: "openFolders"}
+                
+            ]},        
+            {name: "tagsInput", kind: "RichText", hint: "", components: [
+                {content: $L("Tags"), className: "popup-label"}
+            ]}
         ]},
         {layoutKind: "HFlexLayout", style: "margin-top: 10px;", components: [  
             {name: "btCancel", kind: "Button", caption: $L("Cancel"), flex: 1, onclick: "closePopup"},
@@ -467,6 +471,10 @@ enyo.kind({
 
     setFocus: function () {
         this.$.titleInput.forceFocusEnableKeyboard();
+    },
+
+    setNoteFocus: function () {
+        this.$.noteInput.forceFocusEnableKeyboard();
     },
 
     setCaption: function (caption) {

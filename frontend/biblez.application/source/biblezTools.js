@@ -358,11 +358,11 @@ var biblezTools = {
 		}
 	},
 
-	getBmFolders: function (inCallback) {
+	getFolders: function (inCallback) {
 		var folders = [];
 		var sql = "";
 		try {		
-			sql = "SELECT folder FROM bookmarks ORDER BY folder ASC;";
+			sql = "SELECT folder FROM bookmarks UNION SELECT folder FROM notes ORDER BY folder ASC";
 			this.db.transaction( 
 		        enyo.bind(this,(function (transaction) { 
 		            transaction.executeSql(sql, [], 

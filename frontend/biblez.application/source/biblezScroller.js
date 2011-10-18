@@ -574,7 +574,7 @@ enyo.kind({
     },
 	components: [
 		{kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
-		{name: "editBM", kind: "BibleZ.EditBookmark", onEditData: "updateData", style: "max-width: 500px;"},
+		{name: "editBM", kind: "BibleZ.EditBookmark", onEditData: "updateData", style: "max-width: 400px;"},
 		{className: "sidebar-shadow"},
 		{name: "sidebarPane", kind: "Pane", flex: 1, transitionKind: "enyo.transitions.Simple", onSelectView: "viewSelected", components: [
 			{name: "bmView", kind: "VFlexBox", components: [
@@ -684,7 +684,7 @@ enyo.kind({
 		this.getNotes();
 		this.getBookmarks();
 		this.getHighlights();
-		biblezTools.getBmFolders(enyo.bind(this.$.editBM, this.$.editBM.handleFolders));
+		biblezTools.getFolders(enyo.bind(this.$.editBM, this.$.editBM.handleFolders));
 	},
 	
 	setProgress: function (pos) {
@@ -862,7 +862,7 @@ enyo.kind({
 			this.getNotes();
 			this.doNewNote();
 		}
-		biblezTools.getBmFolders(enyo.bind(this.$.editBM, this.$.editBM.handleFolders));
+		biblezTools.getFolders(enyo.bind(this.$.editBM, this.$.editBM.handleFolders));
 	},
 
 	filterBookmarks: function (inSender, inEvent) {
@@ -1048,10 +1048,12 @@ enyo.kind({
 		}
 	},
 
-	setPopupFocus: function (inSender, inEvent) {
-		if (this.$.editBM.showing) {
+	setPopupFocus: function (focus) {
+		if (focus != "note") {
 			this.$.editBM.setFocus();
-		}		
+		} else {
+			this.$.editBM.setNoteFocus();
+		}
 	},
 	
 	bookNamesChanged: function () {

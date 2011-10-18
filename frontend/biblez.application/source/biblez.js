@@ -42,7 +42,7 @@ enyo.kind({
 				{name: "mainToolbar", kind: "Toolbar", components: [
                     //{icon: "images/modules.png", onclick: "selectModule"},
                     {kind: "HFlexBox", flex: 1, components: [
-						{kind: "ToolButton", icon: "images/font.png", onclick: "openFontMenu"},
+						{kind: "ToolButton", icon: "images/history.png", onclick: "openHistoryMenu"},
 						{kind: "Spacer"},
 						{kind: "ToolButton", name: "tbModLeft", onclick: "selectModule"}
 	                ]},
@@ -56,7 +56,7 @@ enyo.kind({
 						{kind: "ToolButton", name: "btSplitView", icon: "images/splitView.png", onclick: "openSplitMenu"},
 						{kind: "ToolButton", name: "tbModRight", onclick: "openSplitMenu", showing: false},				
 						{kind: "Spacer"},
-						{kind: "ToolButton", icon: "images/history.png", onclick: "openHistoryMenu"},
+						{kind: "ToolButton", icon: "images/font.png", onclick: "openFontMenu"},
 						{kind: "ToolButton", name: "btSidebar", icon: "images/sidebar.png", toggling: true,  onclick: "openSidebar"},
 						{kind: "ToolButton", name: "btStop", icon: "images/stop.png", showing: false, onclick: "hideSplitView"}
 	                ]}					
@@ -108,7 +108,7 @@ enyo.kind({
 		/*this.$.firstStart.hide();
 		this.$.biblezHint.hide(); */
 		this.$.sidebarContainer.hide();
-		//this.$.mainToolbar.hide();
+		this.$.mainToolbar.hide();
 
 		biblezTools.createDB();
 		this.start = 0;
@@ -219,6 +219,7 @@ enyo.kind({
 		} else {
 			this.$.noteBmSidebar.setBmMode("add");
 			this.$.noteBmSidebar.openEditPopup({name: "itemNote"}, null, passage);
+			this.$.noteBmSidebar.setPopupFocus("note");
 		}
 	},
 	
@@ -247,7 +248,7 @@ enyo.kind({
 		var passage = {"bnumber" : this.$.selector.getBnumber(), "cnumber": this.$.selector.getChapter(), "vnumber" : verseNumber};
 		this.$.noteBmSidebar.setBmMode("edit");
 		this.$.noteBmSidebar.openEditPopup({name: "itemNote"}, null, passage);
-		this.$.noteBmSidebar.setPopupFocus();
+		this.$.noteBmSidebar.setPopupFocus("note");
 		/*if (enyo.byId(noteID+verseNumber).innerHTML !== "") {
 			
 		} else {
@@ -420,7 +421,7 @@ enyo.kind({
 				//this.$.splitContainer.setBackground("scroller-night");
 			break;
 		}
-		enyo.log(this.$.mainViewPane.getClassName());
+		//enyo.log(this.$.mainViewPane.getClassName());
 	},
 	
 	changeLinebreak: function (inSender, inEvent) {
@@ -621,7 +622,7 @@ enyo.kind({
 	},
 	
 	handleVMax: function(response) {
-		enyo.log(response);
+		//enyo.log(response);
 		this.$.selector.createSection("verses", parseInt(response, 10));
 	},
 	
@@ -787,7 +788,7 @@ enyo.kind({
 	handleSelectHistory: function (inSender, inEvent) {
 		this.$.selector.setVerse(1);
 		this.getVerses(inSender.passage.passage);
-		enyo.log(this.$.mainViewPane.getViewName());
+		//enyo.log(this.$.mainViewPane.getViewName());
 		if (this.$.mainViewPane.getViewName() == "splitContainer") {
 			this.getVerses(inSender.passage.passage, this.currentSplitModule.name, "right");
 		}
