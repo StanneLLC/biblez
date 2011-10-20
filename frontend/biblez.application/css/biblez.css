@@ -242,7 +242,7 @@ a {
 .hint-small {
     font-size: 0.8em;
     text-align: center;
-    margin-top: 10px;
+    padding: 10px;
 }
 
 /* POPUP */
@@ -337,6 +337,12 @@ a {
 
 .color-button {
     height: 20px;
+}
+
+.popup-label {
+    font-size: 0.8em;
+    color: rgb(31, 117,191);
+    text-transform: uppercase;
 }
 
 /*PREFERENCES */

@@ -270,7 +270,9 @@ enyo.kind({
                     {caption: "Verdana", value: "Verdana"},
                     {caption: "Arial", value: "Arial"},
                     {caption: "Georgia", value: "Georgia"},
-                    {caption: "Times", value: "Times"}
+                    {caption: "Times", value: "Times"},
+                    {caption: $L("Greek"), value: "greek"},
+                    {caption: $L("Hebrew"), value: "hebrew"}
                    
                 ]}
             ]}
@@ -293,7 +295,13 @@ enyo.kind({
     
     setFont: function (font) {
         if (font) {
-            this.$.fontSelector.setValue(font);
+            if (font == enyo.application.hebrewFont) {
+                this.$.fontSelector.setValue("hebrew");
+            } else if (font == enyo.application.greekFont) {
+                this.$.fontSelector.setValue("greek");
+            } else {
+                this.$.fontSelector.setValue(font);
+            }            
         } else {
             this.$.fontSelector.setValue("Prelude");
         }        

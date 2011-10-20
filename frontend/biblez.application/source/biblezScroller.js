@@ -70,36 +70,6 @@ enyo.kind({
 		//enyo.log(this.$.mainView.hasNode());
 	},
 	
-	/* findLink: function(inNode, inAncestor) {
-		var n = inNode;
-		while (n && n != inAncestor) {
-			if (n.href) {
-			   return n.href;
-			}
-			n = n.parentNode;
-		}
-	},
-	
-	catchClick: function(inSender, inEvent) {
-		//enyo.keyboard.forceHide();
-		var url = this.findLink(inEvent.target, this.hasNode());
-		if (url) {
-			//enyo.log(url);
-			this.handleVerseTap(url);
-			//inEvent.preventDefault();
-			return false;
-		} else {
-			//this.doClick();
-			//inEvent.preventDefault();
-			return false;
-		}
-	},
-	
-	disableKeys: function (inSender, inEvent){
-		//inEvent.preventDefault();
-		return false;
-	}, */
-	
 	changeChapter: function (inSender, inEvent) {
 		console.log("CHANGE CHAPTER... " + this.index);
 		if (this.index == 0) {

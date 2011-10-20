@@ -406,6 +406,95 @@ var biblezTools = {
 			enyo.log("ERROR", e);
 		}
 	},
+
+	//RESTORE STUFF
+
+	restoreBookmarks: function (content, inCallback) {
+		z = 0;
+		try {
+			var sql = "DELETE FROM bookmarks";
+		    this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [], 
+					enyo.bind(this, function () {
+                        enyo.log("Successfully deleted bookmark table!");
+						var sql = "INSERT INTO bookmarks (bnumber, cnumber, vnumber, title, folder, tags) VALUES (?,?,?,?,?,?)";
+						for(var i=0; i<content.length; i++) {
+							transaction.executeSql(sql, [content[i].bnumber, content[i].cnumber, content[i].vnumber, content[i].title, content[i].folder, content[i].tags], 
+							function () {
+								z++;
+								if (z == content.length) {
+									inCallback();
+								}
+							},
+							enyo.bind(this,this.errorHandler));
+						}
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.error("ERROR", e);
+		}
+	},
+
+	restoreNotes: function (content, inCallback) {
+		z = 0;
+		try {
+			var sql = "DELETE FROM notes";
+		    this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [], 
+					enyo.bind(this, function () {
+                        enyo.log("Successfully deleted notes table!");
+						var sql = "INSERT INTO notes (bnumber, cnumber, vnumber, note, title, folder, tags) VALUES (?,?,?,?,?,?,?)";
+						for(var i=0; i<content.length; i++) {
+							transaction.executeSql(sql, [content[i].bnumber, content[i].cnumber, content[i].vnumber, content[i].note, content[i].title, content[i].folder, content[i].tags], 
+							function () {
+								z++;
+								if (z == content.length) {
+									inCallback();
+								}
+							},
+							enyo.bind(this,this.errorHandler));
+						}
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.error("ERROR", e);
+		}
+	},
+
+	restoreHighlights: function (content, inCallback) {
+		z = 0;
+		try {
+			var sql = "DELETE FROM highlights";
+		    this.db.transaction( 
+		        enyo.bind(this,(function (transaction) { 
+		            transaction.executeSql(sql, [], 
+					enyo.bind(this, function () {
+                        enyo.log("Successfully deleted highlights table!");
+						var sql = "INSERT INTO highlights (bnumber, cnumber, vnumber, color, description) VALUES (?,?,?,?,?)";
+						for(var i=0; i<content.length; i++) {
+							transaction.executeSql(sql, [content[i].bnumber, content[i].cnumber, content[i].vnumber, content[i].color, content[i].descr], 
+							function () {
+								z++;
+								if (z == content.length) {
+									inCallback();
+								}
+							},
+							enyo.bind(this,this.errorHandler));
+						}
+					}),
+                    enyo.bind(this,this.errorHandler)); 
+		        }))
+		    );
+		} catch (e) {
+			enyo.error("ERROR", e);
+		}
+	},
 	
 	errorHandler: function (transaction, error) {
 		enyo.log("ERROR", error.message);
@@ -414,7 +503,7 @@ var biblezTools = {
 	logDB: function() {
 		//enyo.log(this.db);
 		try {
-			var sql = 'SELECT * FROM modules;'
+			var sql = 'SELECT * FROM modules;';
 		    this.db.transaction( 
 		        enyo.bind(this,(function (transaction) { 
 		            transaction.executeSql(sql, [], 
@@ -427,24 +516,39 @@ var biblezTools = {
 		} catch (e) {
 			enyo.log("ERROR", e);
 		}
-	},
+	}
 };
 
 enyo.kind({
 	name: "FileService",
 	kind: enyo.Component,
-	components: [{
+	components: [
+	{
 		kind: enyo.PalmService,
 		name: "service", 
 		service: "palm://de.zefanjas.biblez.enyo.fileio/",
 		method: "writefile",
 		onSuccess: "handleSuccess",
 		onFailure: "handleError"
-	}],
+	},
+	{
+		kind: enyo.PalmService,
+		name: "readService", 
+		service: "palm://de.zefanjas.biblez.enyo.fileio/",
+		method: "readfile",
+		onSuccess: "handleSuccess",
+		onFailure: "handleError"
+	}
+	],
 	
 	writeFile: function(path, content, callback) {
 		// store the callback on the request object created by call
 		this.$.service.call({"path": path, "content": content}, {"callback": callback});
+	},
+
+	readFile: function(path, callback) {
+		// store the callback on the request object created by call
+		this.$.readService.call({"path": path}, {"callback": callback});
 	},
 	
 	handleSuccess: function(inSender, inResponse, inRequest) {

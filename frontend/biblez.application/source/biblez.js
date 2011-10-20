@@ -47,8 +47,7 @@ enyo.kind({
                     {kind: "Spinner", showing: true},
                     {kind: "Spacer"},
 					{icon: "images/font.png", onclick: "openFontMenu"},
-					{name: "btSidebar", icon: "images/sidebar.png", toggling: true,  onclick: "openSidebar"}
-                    //{icon: "images/bookmarks.png", onclick: "callFileService"}
+					{name: "btSidebar", icon: "images/sidebar.png", toggling: true,  onclick: "openSidebar"}                    
 				]},
 				{name: "modMenu", kind: "Menu", lazy: false},
 				{name: "historyMenu", kind: "Menu", lazy: false},
@@ -69,16 +68,21 @@ enyo.kind({
 			{name: "modManView", kind: "BibleZ.ModMan", onUntar: "untarModules", onUnzip: "unzipModule", onGetDetails: "getDetails", onRemove: "removeModule", onBack: "goToMainView"},
 			{name: "prefs", kind: "BibleZ.Prefs", onBack: "goToMainView", onBgChange: "changeBackground", onLbChange: "changeLinebreak"}
 		]},
-		{kind: "Hybrid", name: "plugin", executable: "pluginSword", width:"0", height:"0", onPluginReady: "handlePluginReady", style: "float: left;"}
+		{kind: "Hybrid", name: "plugin", executable: "pluginSword", width: 0, height: 0, onPluginReady: "handlePluginReady", style: "float: left;"}
 	],
 	published: {
-        dbSets: window['localStorage']
+        dbSets: window.localStorage,
+        verses: {}
     },
 	
 	pluginReady: false,
+	pluginSpeechReady: false,
 
 	create: function() {
 		this.inherited(arguments);
+
+		enyo.application.hebrewFont = "";
+		enyo.application.greekFont = "";
 		
 		this.$.firstStart.hide();
 		this.$.mainToolbar.hide();
@@ -265,13 +269,32 @@ enyo.kind({
 	},
 	
 	changeFontSize: function (inSender, inEvent) {
-		if (inSender) {this.currentFontSize = inSender.getFontSize()};
+		if (inSender) {this.currentFontSize = inSender.getFontSize();}
 		this.$.mainView.setFontSize(this.currentFontSize);
 	},
 	
 	changeFont: function (inSender, inEvent) {
-		if (inSender) {this.currentFont = inSender.getFont()};
+		if (inSender) {
+			if (inSender.getFont() == "greek") {
+				this.currentFont = enyo.application.greekFont;
+			} else if (inSender.getFont() == "hebrew") {
+				this.currentFont = enyo.application.hebrewFont;
+			} else {
+				this.currentFont = inSender.getFont();
+			}			
+		}
 		this.$.mainView.setFont(this.currentFont);
+	},
+
+	readVerses: function (inSender, inEvent) {
+		this.$.spinner.show();
+		var content = "";
+		for (var i=0;i<this.verses.length;i++) {
+			content = content + this.verses[i].content.replace(/<[^>]*>/g, "").replace(/\*x/g,"");
+		}
+		enyo.log(content);
+		this.$.spinner.hide();
+		this.readText(content);
 	},
 	
 	//PREFERENCES
@@ -295,11 +318,25 @@ enyo.kind({
 	},
 	
 	changeLinebreak: function (inSender, inEvent) {
-		this.$.mainView.setLinebreak(inSender.getLinebreak())
+		this.$.mainView.setLinebreak(inSender.getLinebreak());
 	},
 	
 	//HYBRID STUFF
 	
+	handlePluginSpeechReady: function(inSender) {
+		this.pluginSpeechReady = true;
+		enyo.log("Speech ready");
+	},
+
+	readText: function(text) {
+	    if(this.pluginSpeechReady) {
+	        var status = this.$.pluginSpeech.callPluginMethod("playAudio",text);
+	        enyo.log("status = " + status);	       
+		} else {
+			this.showError("Plugin not ready!");
+		}
+	},
+
 	handlePluginReady: function(inSender) {
 		this.pluginReady = true;
 		//this.$.plugin.hide();
@@ -363,6 +400,9 @@ enyo.kind({
 					this.changeBackground();
 					this.$.mainView.setLinebreak(lastRead.linebreak);
 					this.$.prefs.setLinebreak(lastRead.linebreak);
+					enyo.application.hebrewFont = lastRead.hebrewFont;
+					enyo.application.greekFont = lastRead.greekFont;
+					this.$.prefs.setCustomFonts(lastRead.hebrewFont, lastRead.greekFont);
 				}				
 			}
 			this.start = 1;	
@@ -377,7 +417,7 @@ enyo.kind({
 	handleSelectModules: function (inSender, inEvent) {
 		enyo.log("MODULE: " + inSender.module.name);
 		this.currentModule = inSender.module;
-		var comp = this.getComponents()
+		var comp = this.getComponents();
 		for (var j=0;j<comp.length;j++) {
 			if (comp[j].name.search(/modulesItem\d+/) != -1) {
 				comp[j].setChecked(false);
@@ -403,8 +443,9 @@ enyo.kind({
 		//this.showError(enyo.json.parse(verses));
 		//enyo.log(verses);
 		this.$.selector.setCurrentPassage(passage);
+		this.verses = enyo.json.parse(verses);
 		
-		if (enyo.json.parse(verses).length != 0) {
+		if (enyo.json.parse(verses).length !== 0) {
 			this.$.mainView.show();
 			this.$.biblezHint.hide();
 			this.$.mainView.setVerses(enyo.json.parse(verses), this.$.selector.verse);
@@ -724,7 +765,9 @@ enyo.kind({
 			"fontSize": this.currentFontSize,
 			"font": this.currentFont,
 			"background" : this.$.prefs.getBackground(),
-			"linebreak": this.$.prefs.getLinebreak()
+			"linebreak": this.$.prefs.getLinebreak(),
+			"greekFont": enyo.application.greekFont,
+			"hebrewFont": enyo.application.hebrewFont
 		};
 		//enyo.log(enyo.json.stringify(lastRead));
 		if(this.currentModule) {

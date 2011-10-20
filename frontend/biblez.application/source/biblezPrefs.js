@@ -28,7 +28,7 @@ enyo.kind({
 	},
 	components: [
 		{kind: "FileService", name: "backupService" },
-
+        {name: "filepicker", kind: "FilePicker", extensions: ["json"], fileType:["document"], allowMultiSelect:true, onPickFile: "handleFilePicker"},
         {kind: "Header", components: [
             {kind: "Button", caption: $L("Back"), onclick: "doBack"},
 			{kind: "Spacer"},
@@ -49,11 +49,28 @@ enyo.kind({
 				]}
 				
             ]},
-            {kind: "RowGroup", caption: $L("Backup"), defaultKind: "HFlexBox", style: "margin-left: auto; margin-right: auto;", className: "prefs-container", components: [
-				{kind: "VFlexBox", components: [
-					{kind: "ActivityButton", name: "btBackup", caption: $L("Backup Data"), onclick: "handleBackup"},
-					{content: "Backups are stored in '/media/internal/biblez'", className: "hint-small"}
-				]}				
+            {kind: "Group", caption: $L("Custom Fonts"), defaultKind: "HFlexBox", style: "margin-left: auto; margin-right: auto;", className: "prefs-container", components: [
+                {kind: "VFlexBox", components: [
+                    {content: $L("You need to install your font to '/usr/share/fonts' first! (<a href='http://zefanjas.de/biblez'>more Infos here</a>)."), allowHtml: true, className: "hint-small"},
+                    {name: "hebrewInput", kind: "Input", hint: "", onblur: "handleHebrewFont", components: [
+                        {content: $L("Hebrew Font"), className: "popup-label"}
+                    ]}
+                ]},
+                {kind: "VFlexBox", components: [
+                    {name: "greekInput", kind: "Input", hint: "", onblur: "handleGreekFont", components: [
+                        {content: $L("Greek Font"), className: "popup-label"}
+                    ]}
+                ]}
+            ]},
+            {kind: "RowGroup", caption: $L("Backup & Restore"), defaultKind: "HFlexBox", style: "margin-left: auto; margin-right: auto;", className: "prefs-container", components: [
+                {kind: "VFlexBox", components: [
+                    {kind: "ActivityButton", name: "btBackup", caption: $L("Backup Data"), onclick: "handleBackup"},
+                    {content: $L("Backups are stored in '/media/internal/biblez'"), className: "hint-small"}
+                ]},
+                {kind: "VFlexBox", components: [
+                    {kind: "ActivityButton", name: "btRestore", caption: $L("Restore Data"), onclick: "openFilePicker"},
+                    {content: $L("All your current data will be removed!!!"), className: "hint-small"}
+                ]}
             ]},
             {kind: "Spacer"}
         ]}
@@ -79,6 +96,21 @@ enyo.kind({
 		this.$.toggleLB.setState(this.linebreak);
 	},
 
+    handleHebrewFont: function (inSender, inEvent) {
+        //enyo.log(inSender.getValue());
+        enyo.application.hebrewFont = "'" + inSender.getValue() + "'";
+    },
+
+    handleGreekFont: function (inSender, inEvent) {
+        //enyo.log(inSender.getValue());
+        enyo.application.greekFont = "'" + inSender.getValue() + "'";
+    },
+
+    setCustomFonts: function (hebrew, greek) {
+        this.$.hebrewInput.setValue(hebrew.replace(/'/g, ""));
+        this.$.greekInput.setValue(greek.replace(/'/g, ""));
+    },
+
 	handleBackup: function (inSender, inEvent) {
 		this.$.btBackup.setActive(true);
 		var time = new Date();
@@ -103,9 +135,47 @@ enyo.kind({
 
 	callbackBackup: function (inType, inResponse) {
 		this.$.btBackup.setActive(false);
-		enyo.log("RESPONSE:", inResponse);
+		//enyo.log("RESPONSE:", inResponse);
 		if (inResponse.returnValue) {
 			enyo.windows.addBannerMessage($L("Backuped") + " " + inType, enyo.json.stringify({}));
 		}		
-	}
+	},
+
+    openFilePicker: function (inSender, inEvent) {
+        this.$.filepicker.pickFile();
+    },
+    handleFilePicker: function (inSender, files) {
+        for (var i=0;i<files.length;i++) {
+            if (files[i].fullPath.search("biblezBookmarks") != -1) {
+                this.$.backupService.readFile(files[i].fullPath, enyo.bind(this, this.callbackReadFile, "bookmarks"));
+            } else if (files[i].fullPath.search("biblezNotes") != -1) {
+                this.$.backupService.readFile(files[i].fullPath, enyo.bind(this, this.callbackReadFile, "notes"));
+            } else if (files[i].fullPath.search("biblezHighlights") != -1) {
+                this.$.backupService.readFile(files[i].fullPath, enyo.bind(this, this.callbackReadFile, "highlights"));
+            }
+        }
+    },
+
+    callbackReadFile: function (inType, inResponse) {
+        //this.$.btBackup.setActive(false);
+        //enyo.log("RESPONSE:", inType, inResponse);
+        if (inResponse.returnValue) {
+            switch (inType) {
+                case "bookmarks":
+                    biblezTools.restoreBookmarks(enyo.json.parse(inResponse.content), enyo.bind(this, this.callbackRestore, $L("Bookmarks")));
+                break;
+                case "notes":
+                    biblezTools.restoreNotes(enyo.json.parse(inResponse.content), enyo.bind(this, this.callbackRestore, $L("Notes")));
+                break;
+                case "highlights":
+                    biblezTools.restoreHighlights(enyo.json.parse(inResponse.content), enyo.bind(this, this.callbackRestore, $L("Highlights")));
+                break;
+            }
+        }       
+    },
+
+    callbackRestore: function (inType) {
+        //enyo.log("RESTORE", inType);
+        enyo.windows.addBannerMessage($L("Restored") + " " + inType, enyo.json.stringify({}));
+    }
 });
