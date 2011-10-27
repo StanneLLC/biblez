@@ -45,9 +45,10 @@ a {
 	-webkit-column-width: 250px;
 	-webkit-column-gap: 40px;
     overflow: visible;
-    /*background-color: rgba(255,0,0,0.5);
-    /* font-family:georgia,garamond,serif;
-    font-size: 22px; */
+}
+
+.view-verses-single {
+    padding: 20px;
 }
 
 .scroller-background {
@@ -272,7 +273,8 @@ a {
     border-width: 24px;
     box-sizing: border-box;
     position: absolute;
-    min-width: 348px;
+    font-size: 0.8em;
+    /* min-width: 348px; */
     -webkit-border-radius: 10px;
     /* -webkit-transition: opacity 0.2s ease-in-out; */
 }

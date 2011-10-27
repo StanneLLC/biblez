@@ -18,6 +18,7 @@ enyo.kind({
     kind: enyo.VFlexBox,
 	components: [
 		{kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
+		{kind: "ApplicationEvents", onBack: "goToMainView"},
 		{kind: "ApplicationEvents", onUnload: "savePassage"},
 		{kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open"},
 		
@@ -60,13 +61,14 @@ enyo.kind({
 						{kind: "Button", caption: $L("Open Module Manager"), className: "first-start-button", onclick: "openModuleMgr"}
 					]},
 					{name: "sidebarContainer", className: "main-sidebar",components: [
-						{name: "noteBmSidebar", kind: "BibleZ.Sidebar", onVerse: "handleSidebarVerse", onSearch: "handleSearch"}		
+						{name: "noteBmSidebar", kind: "BibleZ.Sidebar", className: "sidebar-inner", onVerse: "handleSidebarVerse", onSearch: "handleSearch"}		
 					]}
 				]}
 			]},
 			{name: "selector", kind: "BibleZ.Selector", onChapter: "getVMax", onVerse: "getPassage"},
 			{name: "modManView", kind: "BibleZ.ModMan", onUntar: "untarModules", onUnzip: "unzipModule", onGetDetails: "getDetails", onRemove: "removeModule", onBack: "goToMainView"},
-			{name: "prefs", kind: "BibleZ.Prefs", onBack: "goToMainView", onBgChange: "changeBackground", onLbChange: "changeLinebreak"}
+			{name: "prefs", kind: "BibleZ.Prefs", onBack: "goToMainView", onBgChange: "changeBackground", onLbChange: "changeLinebreak"},
+			{name: "sidebarView", kind: "BibleZ.Sidebar", onVerse: "handleSidebarVerse", onSearch: "handleSearch"}
 		]},
 		{kind: "Hybrid", name: "plugin", executable: "pluginSword", width: 0, height: 0, onPluginReady: "handlePluginReady", style: "float: left;"}
 	],
@@ -83,6 +85,7 @@ enyo.kind({
 
 		enyo.application.hebrewFont = "";
 		enyo.application.greekFont = "";
+		enyo.application.modManViewLeft = true;
 		
 		this.$.firstStart.hide();
 		this.$.mainToolbar.hide();
@@ -108,10 +111,19 @@ enyo.kind({
         this.$.plugin.addCallback("returnSearchProcess", enyo.bind(this, "handleSearchProcess"), true);
 		
         enyo.keyboard.setResizesWindow(false);
-		//enyo.log(enyo.fetchDeviceInfo().platformVersion);
+
+        window.setTimeout(enyo.bind(this, this.isPluginReady), 10000);
+
+		enyo.log(enyo.fetchAppInfo().title);
 		//enyo.log(enyo.json.stringify(new enyo.g11n.currentLocale().getLocale()));
 
 		//enyo.log(this.$.sidebarContainer);
+	},
+
+	rendered: function () {
+		this.inherited(arguments);
+		if (enyo.fetchDeviceInfo().keyboardAvailable) 
+			this.$.btSidebar.setToggling(false);
 	},
 	
 	//SERVICE STUFF
@@ -122,25 +134,34 @@ enyo.kind({
 	
 	//SIDEBAR STUFF
 	openSidebar: function () {
-		if (this.$.btSidebar.depressed == true) {
-			this.$.sidebarContainer.show();
-			//this.$.btSidebar.setState("down", true);
-			this.$.mainView.setSidebarWidth(320);
+		if (!enyo.fetchDeviceInfo().keyboardAvailable) {
+			if (this.$.btSidebar.depressed === true) {
+				this.$.sidebarContainer.show();
+				this.$.mainView.setSidebarWidth(320);
+			} else {
+				this.$.sidebarContainer.hide();
+				this.$.mainView.setSidebarWidth(0);
+			}
+			this.$.mainView.setSnappers();
+			this.$.mainView.setPrevChapter(this.$.selector.getPrevPassage().passage);
+			this.$.mainView.setNextChapter(this.$.selector.getNextPassage().passage);
+			this.$.mainView.snapTo(this.$.mainView.index);
 		} else {
-			//this.$.btSidebar.setState("down", false);
-			this.$.sidebarContainer.hide();
-			this.$.mainView.setSidebarWidth(0);
+			this.$.mainPane.selectViewByName("sidebarView");
 		}
-		this.$.mainView.setSnappers();
-		this.$.mainView.setPrevChapter(this.$.selector.getPrevPassage().passage);
-		this.$.mainView.setNextChapter(this.$.selector.getNextPassage().passage);
-		this.$.mainView.snapTo(this.$.mainView.index);
 	},
 	
 	handleSidebarVerse: function (inSender, inEvent) {
 		//enyo.log(this.$.noteBmSidebar.getPassage());
-		this.$.selector.setVerse(this.$.noteBmSidebar.getVerse());
-		this.getVerses(this.$.noteBmSidebar.getPassage());
+		if (!enyo.fetchDeviceInfo().keyboardAvailable) {
+			this.$.selector.setVerse(this.$.noteBmSidebar.getVerse());
+			this.getVerses(this.$.noteBmSidebar.getPassage());
+		} else { 
+			this.$.selector.setVerse(this.$.sidebarView.getVerse());
+			this.$.selector.setCurrentPassage(this.$.sidebarView.getPassage());
+			//this.getVerses(this.$.sidebarView.getPassage());
+			this.$.mainPane.selectViewByName("verseView");
+		}
 	},
 	
 	//POPUP STUFF
@@ -148,7 +169,10 @@ enyo.kind({
 	handleVerseTap: function(inSender, inEvent) {
 		this.$.versePopup.setTappedVerse(this.$.mainView.tappedVerse);
 		this.$.versePopup.setVerse(enyo.byId("verse"+this.$.mainView.tappedVerse).innerHTML.replace(/<[^>]*>/g, ""));
-		this.$.versePopup.openAt({top: inSender.popupTop, left: inSender.popupLeft}, true);
+		if (!enyo.fetchDeviceInfo().keyboardAvailable)
+			this.$.versePopup.openAt({top: inSender.popupTop, left: inSender.popupLeft}, true);
+		else
+			this.$.versePopup.openAtCenter();
 		if (enyo.byId("bmIcon"+this.$.mainView.tappedVerse).innerHTML !== "") {
 			this.$.versePopup.setBmCaption($L("Bookmark") + " - ");
 		} else {
@@ -182,7 +206,7 @@ enyo.kind({
 	},
 	
 	addNote: function (inSender, inEvent) {
-		if (inSender.edit == false) {
+		if (inSender.edit === false) {
 			biblezTools.addNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, enyo.json.stringify(this.$.notePopup.getNote()), "", "", "", enyo.bind(this, this.getNotes));
 		} else {
 			biblezTools.updateNote(this.$.selector.getBnumber(), this.$.selector.getChapter(), this.$.mainView.tappedVerse, enyo.json.stringify(this.$.notePopup.getNote()), "", "", "", enyo.bind(this, this.getNotes));
@@ -191,7 +215,10 @@ enyo.kind({
 	
 	getNotes: function() {
 		biblezTools.getNotes(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setNotes));
-        biblezTools.getNotes(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleNotes));
+        if (!enyo.fetchDeviceInfo().keyboardAvailable)
+        	biblezTools.getNotes(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleNotes));
+        else
+        	biblezTools.getNotes(-1,-1,enyo.bind(this.$.sidebarView, this.$.sidebarView.handleNotes));
 	},
 	
 	openShowNote: function (inSender, inEvent) {
@@ -203,7 +230,10 @@ enyo.kind({
 		this.$.notePopup.setEditMode();
 		this.$.notePopup.setDismissWithClick(true);
         this.$.notePopup.hideCancel();
-		this.$.notePopup.openAt({top: inSender.popupTop, left: inSender.popupLeft}, true);
+        if (!enyo.fetchDeviceInfo().keyboardAvailable)
+			this.$.notePopup.openAt({top: inSender.popupTop, left: inSender.popupLeft}, true);
+		else
+			this.$.notePopup.openAtCenter();
 	},
 	
 	handleBookmark: function (inSender, inEvent) {
@@ -218,7 +248,10 @@ enyo.kind({
 	
 	getBookmarks: function() {
 		biblezTools.getBookmarks(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setBookmarks));
-        biblezTools.getBookmarks(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleBookmarks));
+        if (!enyo.fetchDeviceInfo().keyboardAvailable)
+        	biblezTools.getBookmarks(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleBookmarks));
+        else
+        	biblezTools.getBookmarks(-1,-1,enyo.bind(this.$.sidebarView, this.$.sidebarView.handleBookmarks));
 	},
 	
 	handleHighlight: function (inSender, inEvent) {
@@ -234,7 +267,10 @@ enyo.kind({
 	
 	getHighlights: function() {
 		biblezTools.getHighlights(this.$.selector.bnumber, this.$.selector.chapter, enyo.bind(this.$.mainView, this.$.mainView.setHighlights));
-        biblezTools.getHighlights(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleHighlights));
+        if (!enyo.fetchDeviceInfo().keyboardAvailable)
+        	biblezTools.getHighlights(-1,-1,enyo.bind(this.$.noteBmSidebar, this.$.noteBmSidebar.handleHighlights));
+        else
+        	biblezTools.getHighlights(-1,-1,enyo.bind(this.$.sidebarView, this.$.sidebarView.handleHighlights));
 	},
 	
 	hideColors: function (inSender, inEvent) {
@@ -323,11 +359,6 @@ enyo.kind({
 	
 	//HYBRID STUFF
 	
-	handlePluginSpeechReady: function(inSender) {
-		this.pluginSpeechReady = true;
-		enyo.log("Speech ready");
-	},
-
 	readText: function(text) {
 	    if(this.pluginSpeechReady) {
 	        var status = this.$.pluginSpeech.callPluginMethod("playAudio",text);
@@ -337,7 +368,14 @@ enyo.kind({
 		}
 	},
 
+	isPluginReady: function () {
+		if (this.pluginReady !== true) {
+			this.showError($L("The SWORD Plugin is not ready! Restart the App, please!"));
+		}
+	},
+
 	handlePluginReady: function(inSender) {
+		enyo.log("plugin ready");
 		this.pluginReady = true;
 		//this.$.plugin.hide();
 		this.getModules();
@@ -348,7 +386,7 @@ enyo.kind({
 		var mods = enyo.json.parse(modules);
 		this.$.modManView.setInstalledModules(enyo.json.parse(modules));
 
-		var comp = this.getComponents()
+		var comp = this.getComponents();
 		for (var j=0;j<comp.length;j++) {
 			if (comp[j].name.search(/modulesItem\d+/) != -1) {
 				comp[j].destroy();
@@ -385,9 +423,9 @@ enyo.kind({
 			this.$.modMenu.render();
 			//this.$.modMenu.setItems(tmp); //???
 			
-			if (this.start == 0) {
-				if (this.dbSets["lastRead"]) {
-					var lastRead = enyo.json.parse(this.dbSets["lastRead"]);
+			if (this.start === 0) {
+				if (this.dbSets.lastRead) {
+					var lastRead = enyo.json.parse(this.dbSets.lastRead);
 					this.$.selector.setBnumber(lastRead.bnumber);
 					this.$.selector.setChapter(lastRead.chapter);
 					this.$.selector.setVerse(lastRead.verse);
@@ -400,9 +438,9 @@ enyo.kind({
 					this.changeBackground();
 					this.$.mainView.setLinebreak(lastRead.linebreak);
 					this.$.prefs.setLinebreak(lastRead.linebreak);
-					enyo.application.hebrewFont = lastRead.hebrewFont;
-					enyo.application.greekFont = lastRead.greekFont;
-					this.$.prefs.setCustomFonts(lastRead.hebrewFont, lastRead.greekFont);
+					enyo.application.hebrewFont = (lastRead.hebrewFont) ? lastRead.hebrewFont : "";
+					enyo.application.greekFont = (lastRead.greekFont) ? lastRead.greekFont : "";
+					this.$.prefs.setCustomFonts(enyo.application.hebrewFont, enyo.application.greekFont);
 				}				
 			}
 			this.start = 1;	
@@ -411,6 +449,7 @@ enyo.kind({
 			this.$.mainToolbar.hide();
 			this.$.mainView.hide();
 			this.$.firstStart.show();
+			//this.$.mainPane.selectViewByName("verseView");
 		}
 	},
 	
@@ -432,7 +471,10 @@ enyo.kind({
 		//enyo.log(response);
 		this.$.selector.createSection("books", enyo.json.parse(response));
 		this.$.selector.setBookNames(enyo.json.parse(response));
-		this.$.noteBmSidebar.setBookNames(enyo.json.parse(response));
+		if (!enyo.fetchDeviceInfo().keyboardAvailable)
+			this.$.noteBmSidebar.setBookNames(enyo.json.parse(response));
+		else
+			this.$.sidebarView.setBookNames(enyo.json.parse(response));
 		if (this.$.mainPane.getViewName() == "verseView") {
 		    this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), this.currentModule.name);
 		}
@@ -466,14 +508,18 @@ enyo.kind({
 		
 		//enyo.log(enyo.json.stringify(this.dbSets["history"]));
 		this.setHistory();
-		this.$.tbPassage.setCaption(this.currentModule.name + " - " + this.$.selector.getBook().name + " " + this.$.selector.getChapter());
+		if (enyo.fetchDeviceInfo().keyboardAvailable) {
+			this.$.tbPassage.setCaption(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter());		
+		} else {
+			this.$.tbPassage.setCaption(this.currentModule.name + " - " + this.$.selector.getBook().name + " " + this.$.selector.getChapter());
+		}
 		this.$.spinner.hide();
 	},
 	
 	setHistory: function () {
 		var history = [];
-		if(this.dbSets["history"]) {
-			history = enyo.json.parse(this.dbSets["history"]);
+		if(this.dbSets.history) {
+			history = enyo.json.parse(this.dbSets.history);
 			if (history.length > 10) {
 				history.splice(11,history.length-10);
 			}
@@ -605,7 +651,10 @@ enyo.kind({
     
     handleSearchResults: function (results) {
         //enyo.log("RESULTS:", results);
-        this.$.noteBmSidebar.setSearchResults(enyo.json.parse(results));
+        if (!enyo.fetchDeviceInfo().keyboardAvailable)
+        	this.$.noteBmSidebar.setSearchResults(enyo.json.parse(results));
+        else
+        	this.$.sidebarView.setSearchResults(enyo.json.parse(results));
     },
     
     handleSearchProcess: function (process) {
@@ -628,7 +677,7 @@ enyo.kind({
 	},
 	
 	getVerses:function(passage, module) {
-		if(!module) {module = this.currentModule.name}
+		if(!module) {module = this.currentModule.name;}
 		if (this.pluginReady) {
 			try {var status = this.$.plugin.callPluginMethod("getVerses", module, passage);}
 			catch (e) {this.showError("Plugin exception: " + e);}
@@ -669,10 +718,10 @@ enyo.kind({
 	
 	changeChapter: function (inSender, inEvent) {
 		//enyo.log("CHANGE CHAPTER... " + inSender.index, inSender.numberOfSnappers);
-		if (inSender.index == 0) {
+		if (inSender.index === 0) {
 			var prev = this.$.selector.getPrevPassage();
 			enyo.log(prev);
-			if (prev.prevBnumber == 0 && prev.prevChapter == 0) {
+			if (prev.prevBnumber === 0 && prev.prevChapter === 0) {
 				this.$.mainView.setIndex(1);
 			} else {
 				this.getVerses(prev.passage);
@@ -680,9 +729,7 @@ enyo.kind({
 				this.$.selector.setChapter(prev.prevChapter);
 				this.$.selector.setBnumber(prev.prevBnumber);
 				this.$.selector.setVerse(1);
-			}
-			
-			
+			}			
 		} else if (inSender.index == inSender.numberOfSnappers + 2) {
 			var next = this.$.selector.getNextPassage();
 			if (next.nextBook !== "" && next.nextChapter !== 0) {
@@ -723,8 +770,17 @@ enyo.kind({
 		this.$.selector.openSelector();
 	},
 	
-	goToMainView: function () {
-		this.$.mainPane.selectViewByName("verseView");
+	goToMainView: function (inSender, inEvent) {
+		//enyo.log(this.$.mainPane.getViewName(), inSender.name);
+		if (this.$.mainPane.getViewName() != "verseView" && enyo.application.modManViewLeft) {
+			this.$.mainPane.selectViewByName("verseView");
+			inEvent.stopPropagation();
+			inEvent.preventDefault();
+	        return -1;
+		} else {
+			//enyo.log("CARD VIEW");
+		}
+				
 	},
 	
 	viewSelected: function(inSender, inView, inPreviousView) {
@@ -733,7 +789,7 @@ enyo.kind({
 			this.$.modManView.downloadMods();
 			//this.$.modManView.getLang();
 		} else if (inView.name == "verseView") {
-			if(this.$.modManView.installedModules.length != 0) {
+			if(this.$.modManView.installedModules.length !== 0) {
 				this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), this.currentModule.name);
 			}
 			
@@ -741,7 +797,9 @@ enyo.kind({
 	},
 	
 	windowRotated: function(inSender) {
-		//this.render();
+		//enyo.log(enyo.fetchAppInfo().title);
+		if (!enyo.fetchDeviceInfo().keyboardAvailable && this.$.sidebarView)
+			this.$.sidebarView.destroy();
 	},
 	
 	openAppMenuHandler: function() {
@@ -771,7 +829,7 @@ enyo.kind({
 		};
 		//enyo.log(enyo.json.stringify(lastRead));
 		if(this.currentModule) {
-			this.dbSets["lastRead"] = enyo.json.stringify(lastRead);
+			this.dbSets.lastRead = enyo.json.stringify(lastRead);
 		}
 	}
 });

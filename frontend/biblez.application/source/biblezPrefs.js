@@ -30,7 +30,7 @@ enyo.kind({
 		{kind: "FileService", name: "backupService" },
         {name: "filepicker", kind: "FilePicker", extensions: ["json"], fileType:["document"], allowMultiSelect:true, onPickFile: "handleFilePicker"},
         {kind: "Header", components: [
-            {kind: "Button", caption: $L("Back"), onclick: "doBack"},
+            {name: "btBack", kind: "Button", caption: $L("Back"), onclick: "doBack"},
 			{kind: "Spacer"},
 			{content: $L("Preferences")},
 			{kind: "Spacer"}
@@ -75,6 +75,13 @@ enyo.kind({
             {kind: "Spacer"}
         ]}
     ],
+
+    create: function () {
+        this.inherited(arguments);
+        if (enyo.fetchDeviceInfo().keyboardAvailable) {
+            this.$.btBack.hide();
+        }
+    },
     
     itemChanged: function(inSender, inValue, inOldValue) {
         this.background = inValue;

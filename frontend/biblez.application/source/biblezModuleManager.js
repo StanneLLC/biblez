@@ -25,9 +25,13 @@ enyo.kind({
     },
 	published: {
 		installedModules: [],
-		moduleToRemove: {}
+		moduleToRemove: {},
+        dbSets: window.localStorage,
+        modulePath: "",
+        allModsPath: ""
 	},
 	components: [
+        {kind: enyo.ApplicationEvents, onBack: "goBack"},
         {kind: enyo.PalmService, 
             name: "DownloadMgr",
             service: "palm://com.palm.downloadmanager/",
@@ -38,7 +42,7 @@ enyo.kind({
             onSuccess : "downloadFinished"
         },
 		{kind: "Header", components: [
-			{kind: "Button", caption: $L("Back"), onclick: "doBack"},
+			{name: "btBack", kind: "Button", caption: $L("Back"), onclick: "doBack"},
 			{kind: "Spacer"},
 			{content: $L("Module Manager")},
 			{kind: "Spacer"},
@@ -97,7 +101,7 @@ enyo.kind({
 						{kind: "Divider", caption: $L("Copyright & License")},
 						{name: "detailsCopyright", className: "details-info"},
 						{name: "detailsLicense", className: "details-info"},
-						{name: "detailsAVN", className: "details-info"},
+						{name: "detailsAVN", className: "details-info"}
 					]}					
                 ]},
                 {kind: "Toolbar", components: [
@@ -107,17 +111,24 @@ enyo.kind({
 		]}
 	],
     
-    published: {
-        dbSets: window['localStorage'],
-		modulePath: "",
-		allModsPath: ""
-    },
-    
     create: function () {
         this.inherited(arguments);
 		this.lang = [];
 		this.modules = [];
 		this.$.detailsContainer.hide();
+
+        if (enyo.fetchDeviceInfo().keyboardAvailable) {
+            this.$.btBack.hide();
+        }
+    },
+
+    goBack: function(inSender, inEvent) {
+        if (enyo.fetchDeviceInfo().keyboardAvailable) {
+            this.$.slidingPane.back(inEvent);
+            inEvent.stopPropagation();
+            if (this.$.slidingPane.getViewName() == "left")
+                enyo.application.modManViewLeft = true;
+        }        
     },
 	
 	refreshModules: function (inSender, inEvent) {
@@ -128,7 +139,7 @@ enyo.kind({
     
     downloadMods: function(update) {
 		//console.log(enyo.json.stringify(this.dbSets["lastModUpdate"]));
-        if (!this.dbSets["lastModUpdate"]) {
+        if (!this.dbSets.lastModUpdate) {
             console.log("mods.d.tar.gz missing. Downloading now...");
 			enyo.windows.addBannerMessage($L("Downloading List of available Modules..."), enyo.json.stringify({}));
             this.$.DownloadMgr.call({target: "http://www.crosswire.org/ftpmirror/pub/sword/raw/mods.d.tar.gz", targetDir: "/media/internal/.sword/install"});
@@ -154,8 +165,8 @@ enyo.kind({
 		console.log(enyo.json.stringify(inResponse));
 		this.$.btInstall.setMaximum(inResponse.amountTotal);
 		this.$.btInstall.setPosition(inResponse.amountReceived);
-        if (inResponse.completed == true) {
-            this.log("SUCCESS", "finished download")
+        if (inResponse.completed === true) {
+            enyo.log("SUCCESS", "finished download");
 			if (inResponse.url == "http://www.crosswire.org/ftpmirror/pub/sword/raw/mods.d.tar.gz") {
 				this.allModsPath = inResponse.target;
 				this.doUntar();
@@ -201,19 +212,24 @@ enyo.kind({
     },
 	
 	getModules: function (inSender, inEvent, rowIndex) {
-		this.$.detailsContainer.hide();
+		if (enyo.fetchDeviceInfo().keyboardAvailable) {
+            this.$.slidingPane.selectViewByName("middle");
+            enyo.application.modManViewLeft = false;
+        }
+
+        this.$.detailsContainer.hide();
 		biblezTools.getModules(this.lang[rowIndex], enyo.bind(this, this.setModules));
 		this.lastLangItem = rowIndex;
 		this.lastModItem = null;
 		this.$.langList.render();
-		this.$.scrollerMiddle.scrollTo(0,0);
+		this.$.scrollerMiddle.scrollTo(0,0);        
 	},
 	
 	setModules: function (modules) {
 		//console.log(modules);
 		this.modules = modules;
 		this.$.modList.render();
-		if (modules.length != 0) {
+		if (modules.length !== 0) {
 			this.$.modHint.hide();
 		} else {
 			this.$.modHint.show();
@@ -241,12 +257,17 @@ enyo.kind({
 	
 	getDetails: function (inSender, inEvent, rowIndex) {
 		//this.$.spinner.show();
-		this.lastModItem = rowIndex;
+		if (enyo.fetchDeviceInfo().keyboardAvailable) {
+            this.$.slidingPane.selectViewByName("right");
+            enyo.application.modManViewLeft = false;
+        }
+
+        this.lastModItem = rowIndex;
 		this.$.modList.render();
 		this.$.scrollerRight.scrollTo(0,0);
-		
 		this.currentModule = this.modules[rowIndex].modName;
 		this.doGetDetails();
+
 	},
 	
 	showDetails: function (details) {

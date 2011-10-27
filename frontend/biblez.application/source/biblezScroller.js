@@ -46,8 +46,10 @@ enyo.kind({
 		{name: "firstSnapper", components: [
 			{name: "prevChapter", content: "Previous Chapter", className: "chapter-nav-left chapter-nav"}			
 		]},
-		{name: "mainView", kind: "HtmlContent", allowHtml: true, content: "", className: "view-verses", onLinkClick: "handleVerseTap"}
-        
+		{name: "mainView", kind: "HtmlContent", allowHtml: true, content: "", className: "view-verses", onLinkClick: "handleVerseTap"},
+		{kind: "Scroller", name: "mainScroller", showing: false, components: [
+			{name: "mainViewPhone", kind: "HtmlContent", allowHtml: true, content: "", className: "view-verses-single", onLinkClick: "handleVerseTap"}
+		]}
     ],
 	
 	create: function () {
@@ -60,12 +62,20 @@ enyo.kind({
 	
 	rendered: function () {
 		this.inherited(arguments);
+		if (enyo.fetchDeviceInfo().keyboardAvailable) {
+			//enyo.log("Build New mainView...");
+			this.$.mainScroller.show();
+			this.$.mainView.destroy();
+		} else {
+			this.$.mainScroller.destroy();
+		}
 		if (this.starter == 0) {
 			this.setIndex(1);
 			//this.$.mvContainer.addStyles("width: " + this.node.clientWidth + "px;");
 			this.$.firstSnapper.addStyles("width: " + this.node.clientWidth + "px;");
 		}
 		this.starter = 1;
+		
 		
 		//enyo.log(this.$.mainView.hasNode());
 	},
@@ -86,6 +96,8 @@ enyo.kind({
     setVerses: function (verses, vnumber) {
 		this.vnumber = vnumber;
 		this.setIndex(1);
+		if (enyo.fetchDeviceInfo().keyboardAvailable)
+			this.$.mainScroller.setScrollTop(0);
 		
 		//enyo.log("NODE1: ", this.node.clientWidth, this.node.clientHeight);
 		var height = this.node.clientHeight - 40;
@@ -93,8 +105,13 @@ enyo.kind({
 		//enyo.log("VARS:", width, height, widthMV,  heightMV);
 		//this.$.mvContainer.addStyles("height: " + height + "px;");
 		//this.$.mvContainer.addStyles("width: " + width + "px;");
-		this.$.mainView.addStyles("height: " + height + "px;");
-		this.$.mainView.addStyles("width: " + width + "px;");
+		if (!enyo.fetchDeviceInfo().keyboardAvailable) {
+			this.$.mainView.addStyles("height: " + height + "px;");
+			this.$.mainView.addStyles("width: " + width + "px;");
+		} else {
+			this.$.mainScroller.addStyles("width: " + window.innerWidth + "px;");
+			this.$.mainScroller.addStyles("height: " + window.innerHeight + "px;");
+		}
 		
 		var findBreak = "";
 		var content = "";
@@ -126,8 +143,10 @@ enyo.kind({
 		//var height = this.node.clientHeight - 50;
 		//this.$.mvContainer.addStyles("height: " + height + "px;");
 		//this.$.mainView.addStyles("height: " + height-20 + "px;");
-		
-		this.$.mainView.setContent(content);
+		if (!enyo.fetchDeviceInfo().keyboardAvailable) 
+			this.$.mainView.setContent(content);
+		else 
+			this.$.mainViewPhone.setContent(content);
 		this.setSnappers(vnumber);
 	},
 	
@@ -189,19 +208,31 @@ enyo.kind({
 	},
 	
 	setFontSize: function (size) {
-		this.$.mainView.addStyles("font-size: " + size + "px;");
-		//this.resized();
-		var height = this.node.clientHeight - 40;
-		this.$.mainView.addStyles("height: " + height + "px;");
-		if (this.vnumber !== 0) {this.setSnappers()};
+		if (!enyo.fetchDeviceInfo().keyboardAvailable) {
+			this.$.mainView.addStyles("font-size: " + size + "px;");
+			var height = this.node.clientHeight - 40;
+			this.$.mainView.addStyles("height: " + height + "px;");
+		} else {
+			this.$.mainViewPhone.addStyles("font-size: " + size + "px;");
+			var height = this.node.clientHeight - 40;
+			this.$.mainViewPhone.addStyles("height: " + height + "px;");
+		}
+		
+		if (this.vnumber !== 0) {this.setSnappers(this.vnumber)};
 	},
 	
 	setFont: function (font) {
-		this.$.mainView.addStyles("font-family: " + font + ";");
-		//this.resized();
-		var height = this.node.clientHeight - 40;
-		this.$.mainView.addStyles("height: " + height + "px;");
-		if (this.vnumber !== 0) {this.setSnappers()};
+		if (!enyo.fetchDeviceInfo().keyboardAvailable) {
+			this.$.mainView.addStyles("font-family: " + font + ";");
+			var height = this.node.clientHeight - 40;
+			this.$.mainView.addStyles("height: " + height + "px;");
+		} else { 
+			this.$.mainViewPhone.addStyles("font-family: " + font + ";");
+			var height = this.node.clientHeight - 40;
+			this.$.mainViewPhone.addStyles("height: " + height + "px;");
+		}
+		
+		if (this.vnumber !== 0) {this.setSnappers(this.vnumber)};
 	},
 	
 	setSnappers: function (vnumber) {		
@@ -228,38 +259,58 @@ enyo.kind({
 		}
 		//enyo.log(this.node.clientWidth);
 		this.createComponent({name: "lastSnapper", style: "width: " + this.node.clientWidth + "px;", components: [{name: "nextChapter", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}]}).render();
-		this.$.mainView.addStyles("width: " + width + "px;");
-		this.$.mainView.addStyles("height: " + height + "px;");
+		if (!enyo.fetchDeviceInfo().keyboardAvailable) {
+			this.$.mainView.addStyles("height: " + height + "px;");
+			this.$.mainView.addStyles("width: " + width + "px;");
+		} else {
+			this.$.mainScroller.addStyles("width: " + window.innerWidth + "px;");
+			this.$.mainScroller.addStyles("height: " + window.innerHeight + "px;");
+		}
 		this.$.prevChapter.show();
 		
-		if (vnumber) {
-			//enyo.log(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left);
+		if (vnumber && !enyo.fetchDeviceInfo().keyboardAvailable) {
 			this.setIndex(parseInt(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left / this.$.mainView.node.clientWidth) + 1);
+		} else if (vnumber && enyo.fetchDeviceInfo().keyboardAvailable) {
+			this.$.mainScroller.setScrollTop(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().top-60)
 		}
 		//enyo.log("CONTAINER: ", this.$.mvContainer.node.clientWidth, this.$.mvContainer.node.clientHeight);
 		//enyo.log("MAINVIEW: ", this.$.mainView.node.clientWidth, this.$.mainView.node.clientHeight);
 		
 	},
 	
-	windowRotated: function(inSender) {
-		//enyo.log("NODE1: ", this.node.clientWidth, this.node.clientHeight);
+	windowRotated: function(inSender, inEvent) {
+		//inSender.log(window.innerHeight, window.innerWidth);
 		var height = this.node.clientHeight - 30;
 		var width = this.node.clientWidth - 40;
 		//enyo.log("VARS:", width, height);
 		//this.$.mvContainer.addStyles("height: " + this.node.clientHeight + "px;");
 		//this.$.mvContainer.addStyles("width: " + this.node.clientWidth + "px;");
-		this.$.mainView.addStyles("height: " + height + "px;");
-		this.$.mainView.addStyles("width: " + width + "px;");
+		if (!enyo.fetchDeviceInfo().keyboardAvailable) {
+			this.$.mainView.addStyles("height: " + height + "px;");
+			this.$.mainView.addStyles("width: " + width + "px;");
+		} else {
+			this.$.mainScroller.addStyles("width: " + window.innerWidth + "px;");
+			this.$.mainScroller.addStyles("height: " + window.innerHeight + "px;");
+		}
 		
 		var comp = this.getComponents()
 		for (var j=0;j<comp.length;j++) {
 			if (comp[j].name.search(/snapper\d+/) != -1) {
-				comp[j].addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
+				if (!enyo.fetchDeviceInfo().keyboardAvailable)
+					comp[j].addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
+				else
+					comp[j].addStyles("width: " + window.innerWidth + "px;");
 			}
 		}
-		this.$.firstSnapper.addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
-		this.$.lastSnapper.addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
-		
+		if (!enyo.fetchDeviceInfo().keyboardAvailable) {
+			this.$.firstSnapper.addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
+			if (this.$.lastSnapper)			
+				this.$.lastSnapper.addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
+		} else {
+			this.$.firstSnapper.addStyles("width: " + window.innerWidth + "px;");
+			if (this.$.lastSnapper)			
+				this.$.lastSnapper.addStyles("width: " + window.innerWidth + "px;");
+		}
 		this.setIndex(this.index);
 		//enyo.log("NODE2: ", this.node.clientWidth, this.node.clientHeight);
 		//enyo.log("CONTAINER: ", this.$.mvContainer.node.clientWidth, this.$.mvContainer.node.clientHeight);
@@ -566,8 +617,7 @@ enyo.kind({
 enyo.kind({
 	name: "BibleZ.Sidebar",
 	kind: "VFlexBox",
-	className: "sidebar-inner",
-	width: "320px",
+	//width: "320px",
 	events: {
 		onVerse: "",
 		onSearch: ""
@@ -938,11 +988,13 @@ enyo.kind({
 	},
 	
 	windowRotated: function(inSender) {
-		//enyo.log("HEIGHT:", enyo.fetchDeviceInfo().screenHeight, enyo.fetchDeviceInfo().screenWidth, this.$.sidebarPane.height);
-		if (enyo.getWindowOrientation() == "up" || enyo.getWindowOrientation() == "down") {
-			this.setStyle("height: 685px;");
-		} else {
-			this.setStyle("height: 940px;");
+		//enyo.log("HEIGHT:", window.innerHeight, window.innerWidth, this.$.sidebarPane.height);
+		if (!enyo.fetchDeviceInfo().keyboardAvailable) {
+			if (enyo.getWindowOrientation() == "up" || enyo.getWindowOrientation() == "down") {
+				this.setStyle("height: 685px;");
+			} else {
+				this.setStyle("height: 940px;");
+			}
 		}		
 	}
 })
