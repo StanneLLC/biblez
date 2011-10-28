@@ -21,11 +21,18 @@ enyo.kind({
 		onBack: "",
 		onUnzip: "",
 		onRemove: "",
-		onGetDetails: ""
+		onGetDetails: "",
+        onGetRepos: "",
+        onGetSync: "",
+        onRefreshSource: "",
+        onListModules: ""
     },
 	published: {
 		installedModules: [],
-		moduleToRemove: {}
+		moduleToRemove: {},
+        moduleToInstall: "",
+        modulePath: "",
+        allModsPath: ""
 	},
 	components: [
         {kind: enyo.PalmService, 
@@ -42,12 +49,15 @@ enyo.kind({
 			{kind: "Spacer"},
 			{content: $L("Module Manager")},
 			{kind: "Spacer"},
-			{kind: "Spinner", showing: true}
+			{kind: "Spinner", showing: false},
+            {kind: "ListSelector", name: "repoSelector", onChange: "reloadRepo"}
 			
 		]},
+        {name: "errorDialog", kind: "BibleZ.Error"},
+        {name: "reposPopup", kind: "BibleZ.Repos", onAccept: "doGetSync", onSelectRepo: "callRefreshSource", onDenied: "doBack"},
 		{name: "slidingPane", kind: "SlidingPane", flex: 1, components: [
 			{name: "left", width: "320px", kind:"SlidingView", components: [
-                {kind: "Scroller", flex: 1, components: [
+                {name: "scrollerLeft", kind: "Scroller", flex: 1, components: [
                     {name: "langList", kind: "VirtualRepeater", onSetupRow: "getLangListItem", components: [
 						{name: "itemLang", kind: "Item", layoutKind: "HFlexLayout", tapHighlight: true, className: "list-item", components: [
 							{name: "langCode", style: "width: 60px;"},
@@ -60,7 +70,7 @@ enyo.kind({
                 {kind: "Toolbar", components: [
                     {kind: "GrabButton"},
 					{kind: "Spacer"},
-					{icon: "images/refresh.png", onclick: "refreshModules"},
+					{icon: "images/refresh.png", onclick: "doGetRepos"},
 					{kind: "Spacer"}
                 ]}
 			]},
@@ -92,13 +102,14 @@ enyo.kind({
 								{name:"btInstallCaption", content: $L("Install")}
 							]}
 						]},
+                        //{name: "btInstall", kind: "ActivityButton", caption: $L("Install"), onclick: "downloadAddIn", className: "enyo-button-affirmative modules-button-install"},
 						{name: "btRemove", caption: $L("Remove"), kind: "Button", onclick: "removeModule", className: "enyo-button-negative modules-button-remove"},
 						{kind: "Divider", caption: $L("About")},
 						{name: "detailsAbout", allowHtml: true, className: "details-info"},
 						{kind: "Divider", caption: $L("Copyright & License")},
 						{name: "detailsCopyright", className: "details-info"},
 						{name: "detailsLicense", className: "details-info"},
-						{name: "detailsAVN", className: "details-info"},
+						{name: "detailsAVN", className: "details-info"}
 					]}					
                 ]},
                 {kind: "Toolbar", components: [
@@ -107,12 +118,6 @@ enyo.kind({
 			]}
 		]}
 	],
-    
-    published: {
-        dbSets: window['localStorage'],
-		modulePath: "",
-		allModsPath: ""
-    },
     
     create: function () {
         this.inherited(arguments);
@@ -126,10 +131,57 @@ enyo.kind({
 		enyo.windows.addBannerMessage($L("Downloading List of available Modules..."), enyo.json.stringify({}));
         this.$.DownloadMgr.call({target: "http://www.crosswire.org/ftpmirror/pub/sword/raw/mods.d.tar.gz", targetDir: "/media/internal/.sword/install"});
 	},
+
+    getRepos: function () {
+        //enyo.log(enyo.application.dbSets.syncRepos);
+        if (enyo.application.dbSets.syncRepos !== "true") {
+            this.$.reposPopup.openAtCenter();
+        } else if (!enyo.application.dbSets.currentRepo) {
+            this.doGetRepos();
+        } else {
+            this.getLang();
+        }
+    },
+
+    handleGotSyncConfig: function (reponse) {
+        //enyo.log(reponse);
+        if (enyo.json.parse(reponse).returnValue) {
+            enyo.application.dbSets.syncRepos = "true";
+            this.doGetRepos();
+        } else {
+            this.showError($L("Couldn't get repositories. Please check your internet connection!"));
+            enyo.application.dbSets.syncRepos = "false";
+        }
+        this.$.reposPopup.setActivity(false);
+    },
+
+    handleGotRepos: function (reponse) {
+        //enyo.log(reponse);
+        var repos = enyo.json.parse(reponse);
+        if (repos.length !== 0) {
+            enyo.application.dbSets.remoteRepos = reponse;
+            this.$.reposPopup.setConfirmed(true);
+            this.$.reposPopup.setRepos(repos);
+            this.$.reposPopup.openAtCenter();
+        } else {
+            this.showError($L("No Repositories found :("));
+        }
+        
+    },
+
+    callRefreshSource: function () {
+        this.$.spinner.show();
+        this.doRefreshSource();
+    },
+
+    reloadRepo: function (inSender, inValue, inOldValue) {
+        enyo.application.dbSets.currentRepo = inValue;
+        this.doListModules();
+    },
     
     downloadMods: function(update) {
 		//console.log(enyo.json.stringify(this.dbSets["lastModUpdate"]));
-        if (!this.dbSets["lastModUpdate"]) {
+        if (!enyo.application.dbSets.lastModUpdate) {
             console.log("mods.d.tar.gz missing. Downloading now...");
 			enyo.windows.addBannerMessage($L("Downloading List of available Modules..."), enyo.json.stringify({}));
             this.$.DownloadMgr.call({target: "http://www.crosswire.org/ftpmirror/pub/sword/raw/mods.d.tar.gz", targetDir: "/media/internal/.sword/install"});
@@ -142,9 +194,13 @@ enyo.kind({
 	downloadAddIn: function () {
 		this.$.btInstall.setPosition(0);
 		this.$.btInstallCaption.setContent($L("Installing..."));
-		url = "http://www.crosswire.org/ftpmirror/pub/sword/packages/rawzip/" + this.currentModule + ".zip";
+		/* url = "http://www.crosswire.org/ftpmirror/pub/sword/packages/rawzip/" + this.moduleToInstall + ".zip";
 		console.log(url);
 		this.$.DownloadMgr.call({target: url, targetDir: "/media/internal/.sword/install"});
+        this.$.btInstall.setCaption($L("Installing..."));
+        this.$.btInstall.setActive(true);
+        this.$.btInstall.setDisabled(true); */
+        this.doUnzip();
 	},
     
     updateStatus: function (inSender, inResponse) {
@@ -155,8 +211,8 @@ enyo.kind({
 		console.log(enyo.json.stringify(inResponse));
 		this.$.btInstall.setMaximum(inResponse.amountTotal);
 		this.$.btInstall.setPosition(inResponse.amountReceived);
-        if (inResponse.completed == true) {
-            this.log("SUCCESS", "finished download")
+        if (inResponse.completed === true) {
+            this.log("SUCCESS", "finished download");
 			if (inResponse.url == "http://www.crosswire.org/ftpmirror/pub/sword/raw/mods.d.tar.gz") {
 				this.allModsPath = inResponse.target;
 				this.doUntar();
@@ -174,15 +230,27 @@ enyo.kind({
 	
 	getLang: function () {
 		//this.$.langList.render();
-		//console.log("Getting languages...");
-		biblezTools.getLang("crosswire", enyo.bind(this, this.setLang));
+		enyo.log("Getting languages...");
+		biblezTools.getLang(enyo.bind(this, this.setLang));
+        var repos = [];
+        var tmpRepos = enyo.json.parse(enyo.application.dbSets.remoteRepos);
+        for (var i=0;i<tmpRepos.length; i++) {
+            repos.push({caption: tmpRepos[i].name, value: tmpRepos[i].name});
+        }
+        this.$.repoSelector.setItems(repos);
+        this.$.repoSelector.setValue(enyo.application.dbSets.currentRepo);
 	},
 	
 	setLang: function(lang) {
 		//console.log(lang);
+        this.$.scrollerLeft.scrollTo(0,0);
 		this.lang = lang;
 		this.$.langList.render();
-		this.$.spinner.hide();
+		this.modules = [];
+        this.$.modList.render();
+        this.$.detailsContainer.hide();
+        this.$.spinner.hide();
+
 	},
 	
 	getLangListItem: function(inSender, inIndex) {
@@ -214,17 +282,13 @@ enyo.kind({
 		//console.log(modules);
 		this.modules = modules;
 		this.$.modList.render();
-		if (modules.length != 0) {
+		if (modules.length !== 0) {
 			this.$.modHint.hide();
 		} else {
 			this.$.modHint.show();
 			this.$.modHint.setContent($L("No Module available"));
 		}
 		
-	},
-	
-	setInstalledModules: function (modules) {
-		this.installedModules = modules;
 	},
 	
 	getModListItem: function(inSender, inIndex) {
@@ -250,7 +314,7 @@ enyo.kind({
 		this.$.modList.render();
 		this.$.scrollerRight.scrollTo(0,0);
 		
-		this.currentModule = this.modules[rowIndex].modName;
+		this.moduleToInstall = this.modules[rowIndex].modName;
 		this.doGetDetails();
 	},
 	
@@ -267,7 +331,7 @@ enyo.kind({
 		this.$.detailsSize.setContent($L("Install Size") + ": " + Math.round(parseInt(details.installSize) / 1048576 * 100) / 100 + " MB");
 		this.$.detailsVersion.setContent($L("Version") + ": " + details.version);
 		if (details.copyright) {this.$.detailsCopyright.setContent($L("Copyright") + ": " + details.copyright)};
-		if (details.distributionLicense) {this.$.detailsLicense.setContent($L("License") + ": " + details.distributionLicense)};
+		if (details.distributionLicense) {this.$.detailsLicense.setContent($L("License") + ": " + details.distributionLicense);}
 		//this.$.detailsType.setContent($L("Type") + ": " + details.category);
 		//var tmpLang = (languages[details.lang]) ? (languages[details.lang]) : details.lang;
 		//this.$.detailsLang.setContent($L("Language") + ": " + tmpLang);
@@ -289,6 +353,26 @@ enyo.kind({
 		this.$.btInstall.show();
 		this.$.btRemove.hide();
 	},
+
+    showError: function (message) {
+        this.$.errorDialog.setError(message);
+        this.$.errorDialog.openAtCenter();
+    },
+
+    setBtInstall: function () {
+        this.$.btInstallCaption.setContent($L("Installed"));
+        this.$.btInstall.setMaximum(100);
+        this.$.btInstall.setPosition(100);
+        /* this.$.btInstall.setActive(spin);
+        if (!spin)
+            this.$.btInstall.setCaption($L("Installed"));
+        */
+    },
+
+    setInstallProgress: function (total, completed) {
+        this.$.btInstall.setMaximum(total);
+        this.$.btInstall.setPosition(completed);
+    },
 	
 	stopSpinner: function () {
 		this.$.spinner.hide();

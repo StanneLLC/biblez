@@ -578,7 +578,7 @@ enyo.kind({
 		{className: "sidebar-shadow"},
 		{name: "sidebarPane", kind: "Pane", flex: 1, transitionKind: "enyo.transitions.Simple", onSelectView: "viewSelected", components: [
 			{name: "bmView", kind: "VFlexBox", components: [
-				{name: "bmSearch", kind: "SearchInput", hint: $L("Search Bookmarks"), selectAllOnFocus: true, oninput: "filterBookmarks"},
+				{name: "bmSearch", kind: "SearchInput", hint: $L("Search Bookmarks"), selectAllOnFocus: true, className: "enyo-box-input", oninput: "filterBookmarks"},
 				{name: "scrollerBm", kind: "Scroller", flex: 1,components: [
 					{name: "bmHint", content: $L("No Bookmarks available. Tap on a verse number to add one!"), className: "hint"},
 					{name: "bmList", kind: "VirtualRepeater", onSetupRow: "getBmListItem", components: [
@@ -597,7 +597,7 @@ enyo.kind({
 				]}
 			]},
 			{name: "noteView", kind: "VFlexBox", components: [
-				{name: "noteSearch", kind: "SearchInput", hint: $L("Search Notes"), selectAllOnFocus: true, oninput: "filterNotes"},
+				{name: "noteSearch", kind: "SearchInput", hint: $L("Search Notes"), selectAllOnFocus: true, className: "enyo-box-input", oninput: "filterNotes"},
 				{name: "scrollerNote", kind: "Scroller", flex: 1, components: [
 					{name: "noteHint", content: $L("No Notes available. Tap on a verse number to add one!"), className: "hint"},
 					{name: "noteList", kind: "VirtualRepeater", onSetupRow: "getNoteListItem", components: [
@@ -631,7 +631,8 @@ enyo.kind({
 			{name: "searchView", kind: "VFlexBox", components: [
 				{className: "search-container", components: [
 					{name: "searchInput", kind: "SearchInput", onkeydown: "inputKeydown"},
-					{kind: "RadioGroup", onChange: "scopeSelected", value: "nt", components: [
+					{name: "scopeSelector", kind: "RadioGroup", onChange: "scopeSelected", value: "nt", components: [
+						{name: "cb", caption: "CB", value: "book"},
 						{caption: $L("OT"), value: "ot"},
 						{caption: $L("NT"), value: "nt"},
 						{caption: $L("All"), value: "all"}
@@ -903,6 +904,12 @@ enyo.kind({
             return false;
         }
 	},
+
+	setBookName: function (name) {
+		this.$.cb.setCaption(name);
+		if (this.$.scopeSelector.getValue() == "book")
+			this.scope = enyo.application.book;
+	},
 	
 	scopeSelected: function(inSender) {
 		//this.log("Selected button" + inSender.getValue());
@@ -916,6 +923,9 @@ enyo.kind({
 			break;
 			case "all":
 				this.scope = "Gen-Rev";
+			break;
+			case "book":
+				this.scope = enyo.application.book;
 			break;
 		}
 	},

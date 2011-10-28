@@ -58,6 +58,19 @@ enyo.kind({
                     {name: "toggleFN", kind: "ToggleButton", state: true, onChange: "changeFootnote"}
                 ]}				
             ]},
+            {kind: "Group", caption: $L("Custom Fonts"), defaultKind: "HFlexBox", style: "margin-left: auto; margin-right: auto;", className: "prefs-container", components: [
+                {kind: "VFlexBox", components: [
+                    {content: $L("You need to install your font to '/usr/share/fonts' first! (<a href='http://zefanjas.de/biblez'>more Infos here</a>)."), allowHtml: true, className: "hint-small"},
+                    {name: "hebrewInput", kind: "Input", hint: "", onblur: "handleHebrewFont", components: [
+                        {content: $L("Hebrew Font"), className: "popup-label"}
+                    ]}
+                ]},
+                {kind: "VFlexBox", components: [
+                    {name: "greekInput", kind: "Input", hint: "", onblur: "handleGreekFont", components: [
+                        {content: $L("Greek Font"), className: "popup-label"}
+                    ]}
+                ]}
+            ]},
             {kind: "RowGroup", caption: $L("Backup & Restore"), defaultKind: "HFlexBox", style: "margin-left: auto; margin-right: auto;", className: "prefs-container", components: [
 				{kind: "VFlexBox", components: [
 					{kind: "ActivityButton", name: "btBackup", caption: $L("Backup Data"), onclick: "handleBackup"},
@@ -110,6 +123,21 @@ enyo.kind({
 
     footnotesChanged: function (inSender, inEvent) {
         this.$.toggleFN.setState(this.footnotes);
+    },
+
+    handleHebrewFont: function (inSender, inEvent) {
+        //enyo.log(inSender.getValue());
+        enyo.application.hebrewFont = "'" + inSender.getValue() + "'";
+    },
+
+    handleGreekFont: function (inSender, inEvent) {
+        //enyo.log(inSender.getValue());
+        enyo.application.greekFont = "'" + inSender.getValue() + "'";
+    },
+
+    setCustomFonts: function (hebrew, greek) {
+        this.$.hebrewInput.setValue(hebrew.replace(/'/g, ""));
+        this.$.greekInput.setValue(greek.replace(/'/g, ""));
     },
 
 	handleBackup: function (inSender, inEvent) {

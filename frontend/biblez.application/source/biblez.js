@@ -28,10 +28,7 @@ enyo.kind({
 			{caption: $L("Leave A Review"), onclick: "openReview"},
 			{caption: $L("About"), onclick: "openAbout"}
 		]},
-		{kind: "ModalDialog", name: "errorDialog", caption: "Error", lazy: false, components:[
-			{name: "errorMsg", content: "Error", className: "enyo-text-error warning-icon"},
-			{kind: "Button", caption: $L("OK"), onclick: "closeError", style: "margin-top:10px"}
-		]},
+		{name: "errorDialog", kind: "BibleZ.Error"},
 		{name: "notePopup", kind: "BibleZ.AddNote", onAddNote: "addNote", onEditNote: "handleEditNote"},
 		{name: "noteView", kind: "BibleZ.ShowNote", onNoteTap: "handleEditNote", style: "min-width: 100px; max-width: 300px;"},
 		{name: "versePopup", kind: "BibleZ.VersePopup", className: "verse-popup", onOpen: "hideColors", onNote: "handleNote", onBookmark: "handleBookmark", onEditBookmark: "handleEditBookmark", onHighlight: "handleHighlight", onRelease: "handleSidebarMouseRelease"},
@@ -81,7 +78,16 @@ enyo.kind({
 				]}
 			]},
 			{name: "selector", kind: "BibleZ.Selector", onChapter: "getVMax", onVerse: "getPassage"},
-			{name: "modManView", kind: "BibleZ.ModMan", onUntar: "untarModules", onUnzip: "unzipModule", onGetDetails: "getDetails", onRemove: "removeModule", onBack: "goToMainView"},
+			{name: "modManView", kind: "BibleZ.ModMan", 
+				onUntar: "untarModules", 
+				onUnzip: "installModule", 
+				onGetDetails: "getDetails", 
+				onRemove: "removeModule",
+				onGetSync: "getSyncConfig", 
+				onGetRepos: "getRemoteSources",
+				onRefreshSource: "getRefreshRemoteSource",
+				onListModules: "listRemoteModules",
+				onBack: "goToMainView"},
 			{name: "prefs", kind: "BibleZ.Prefs", onBack: "goToMainView", onBgChange: "changeBackground", onLbChange: "changeLinebreak"}
 		]},
 		{kind: "Hybrid", name: "plugin", executable: "pluginSword", width:"0", height:"0", onPluginReady: "handlePluginReady", style: "float: left;"}
@@ -104,6 +110,9 @@ enyo.kind({
 		enyo.application.splitVnumber = 0;
 		enyo.application.footnotes = true;
 		enyo.application.heading = true;
+		enyo.application.hebrewFont = "";
+		enyo.application.greekFont = "";
+		enyo.application.book = "";
 
 		/*this.$.firstStart.hide();
 		this.$.biblezHint.hide(); */
@@ -125,10 +134,15 @@ enyo.kind({
 		this.$.plugin.addCallback("returnUntar", enyo.bind(this, "handleUntar"), true);
 		this.$.plugin.addCallback("returnUnzip", enyo.bind(this, "handleUnzip"), true);
 		this.$.plugin.addCallback("returnRemove", enyo.bind(this, "handleRemove"), true);
-		this.$.plugin.addCallback("returnReadConfs", enyo.bind(this, "handleReadConfs"), true);
+		//this.$.plugin.addCallback("returnReadConfs", enyo.bind(this, "handleReadConfs"), true);
 		this.$.plugin.addCallback("returnGetDetails", enyo.bind(this, "handleGetDetails"), true);
         this.$.plugin.addCallback("returnSearch", enyo.bind(this, "handleSearchResults"), true);
-        this.$.plugin.addCallback("returnSearchProcess", enyo.bind(this, "handleSearchProcess"), true);
+        this.$.plugin.addCallback("returnProgress", enyo.bind(this, "handleProgress"), true);
+		//InstallMgr
+		this.$.plugin.addCallback("returnSyncConfig", enyo.bind(this.$.modManView, this.$.modManView.handleGotSyncConfig), true);
+		this.$.plugin.addCallback("returnRemoteSources", enyo.bind(this.$.modManView, this.$.modManView.handleGotRepos), true);
+		this.$.plugin.addCallback("returnRefreshRemoteSource", enyo.bind(this, "handleRefreshedSource"), true);
+		this.$.plugin.addCallback("returnListModules", enyo.bind(this, this.handleReadConfs), true);
 		
         enyo.keyboard.setResizesWindow(false);
 		//enyo.log(enyo.fetchDeviceInfo().platformVersion);
@@ -359,12 +373,8 @@ enyo.kind({
 	},
 	
 	showError: function (message) {
-		this.$.errorMsg.setContent(message);
+		this.$.errorDialog.setError(message);
 		this.$.errorDialog.openAtCenter();
-	},
-	
-	closeError: function (message) {
-		this.$.errorDialog.close();
 	},
 	
 	selectModule: function (inSender, inEvent) {
@@ -392,7 +402,15 @@ enyo.kind({
 	},
 	
 	changeFont: function (inSender, inEvent) {
-		if (inSender) {this.currentFont = inSender.getFont();}
+		if (inSender) {
+			if (inSender.getFont() == "greek") {
+				this.currentFont = enyo.application.greekFont;
+			} else if (inSender.getFont() == "hebrew") {
+				this.currentFont = enyo.application.hebrewFont;
+			} else {
+				this.currentFont = inSender.getFont();
+			}			
+		}
 		this.$.mainView.setFont(this.currentFont);
 		this.$.splitContainer.setFont(this.currentFont);
 	},
@@ -501,6 +519,9 @@ enyo.kind({
 					this.$.prefs.setHeading(lastRead.heading);
 					enyo.application.footnotes = lastRead.footnotes;
 					this.$.prefs.setFootnotes(lastRead.footnotes);
+					enyo.application.hebrewFont = lastRead.hebrewFont;
+					enyo.application.greekFont = lastRead.greekFont;
+					this.$.prefs.setCustomFonts(lastRead.hebrewFont, lastRead.greekFont);
 				}				
 			}
 			this.start = 1;	
@@ -656,12 +677,12 @@ enyo.kind({
 	},
 	
 	handleReadConfs: function(modules) {
-		this.log("INFO", modules.length);
+		enyo.log("Got all available modules...", this);
 		biblezTools.prepareModules(enyo.json.parse(modules), enyo.bind(this.$.modManView, this.$.modManView.getLang));
 	},
 	
 	unzipModule: function(inSender, inEvent) {
-		enyo.log(inSender.modulePath);
+		//enyo.log(inSender.modulePath);
 		if (this.pluginReady) {
 			try { var status = this.$.plugin.callPluginMethod("unzipModule", inSender.modulePath); }
 			catch (e) { this.showError("Plugin exception: " + e);}
@@ -670,19 +691,33 @@ enyo.kind({
 			this.showError("plugin not ready");
 		}
 	},
+
+	installModule: function(inSender, inEvent) {
+		//enyo.log(inSender.modulePath);
+		if (this.pluginReady) {
+			try { var status = this.$.plugin.callPluginMethod("remoteInstallModule", enyo.application.dbSets.currentRepo, inSender.getModuleToInstall()); }
+			catch (e) { this.showError("Plugin exception: " + e);}
+		}
+		else {
+			this.showError("plugin not ready");
+		}
+	},
 	
 	handleUnzip: function (response) {
-		if (response == "true") {
-			this.log("INFO", "Unzipped Module!");
+		if (enyo.json.parse(response).returnValue) {
+			enyo.log("Installed Module!");
 			enyo.windows.addBannerMessage($L("Installed Module!"), enyo.json.stringify({}));
+			this.$.modManView.setBtInstall();
 			this.getModules();
+		} else {
+			this.showError(enyo.json.parse(response).message);
 		}
 	},
 	
 	removeModule: function (inSender, inEvent) {
-		enyo.log(inSender.moduleToRemove.dataPath + "," + inSender.moduleToRemove.name.toLowerCase());
+		//enyo.log(inSender.moduleToRemove.dataPath + "," + inSender.moduleToRemove.name.toLowerCase());
 		if (this.pluginReady) {
-			try { var status = this.$.plugin.callPluginMethod("removeModule", inSender.moduleToRemove.dataPath, inSender.moduleToRemove.name.toLowerCase()); }
+			try { var status = this.$.plugin.callPluginMethod("uninstallModule", inSender.moduleToRemove.name); }
 			catch (e) { this.showError("Plugin exception: " + e);}
 		}
 		else {
@@ -692,13 +727,15 @@ enyo.kind({
 	
 	handleRemove: function (response) {
 		enyo.log("REMOVE: " + response);
-		enyo.windows.addBannerMessage($L("Uninstalled Module!"), enyo.json.stringify({}));
-		this.getModules();
+		if (enyo.json.parse(response).returnValue) {
+			enyo.windows.addBannerMessage($L("Uninstalled Module!"), enyo.json.stringify({}));
+			this.getModules();
+		}
 	},
 	
 	getDetails: function (inSender, inEvent) {
 		if (this.pluginReady) {
-			try { var status = this.$.plugin.callPluginMethod("getModuleDetails", inSender.currentModule); }
+			try { var status = this.$.plugin.callPluginMethod("getModuleDetails", inSender.getModuleToInstall(), enyo.application.dbSets.currentRepo); }
 			catch (e) { this.showError("Plugin exception: " + e);}
 		}
 		else {
@@ -712,6 +749,7 @@ enyo.kind({
 	},
     
     handleSearch: function (inSender, inValue) {
+        enyo.log(inSender.getScope());
         if (this.pluginReady) {
             enyo.log(inSender.getSearchType());
 			try { var status = this.$.plugin.callPluginMethod("search", this.currentModule.name, inSender.getSearchTerm(), inSender.getScope(), inSender.getSearchType()); }
@@ -727,8 +765,9 @@ enyo.kind({
         this.$.noteBmSidebar.setSearchResults(enyo.json.parse(results));
     },
     
-    handleSearchProcess: function (process) {
-        enyo.log("PROCESS: ", process);
+    handleProgress: function (response) {
+        //enyo.log("PROCESS: ", process);
+        this.$.modManView.setInstallProgress(parseInt(enyo.json.parse(response).total, 10), parseInt(enyo.json.parse(response).completed, 10));
     },
 	
 	getModules:function(inSender, inEvent) {
@@ -782,7 +821,59 @@ enyo.kind({
 			this.showError("plugin not ready");
 		}
 	},
+
+	//InstallMgr
+
+	getSyncConfig:function() {
+		if (this.pluginReady) {
+			try {var status = this.$.plugin.callPluginMethod("syncConfig");}
+			catch (e) {this.showError("Plugin exception: " + e);}
+		}
+		else {
+			this.showError("plugin not ready");
+		}
+	},
+
+	getRemoteSources:function() {
+		if (this.pluginReady) {
+			try {var status = this.$.plugin.callPluginMethod("listRemoteSources");}
+			catch (e) {this.showError("Plugin exception: " + e);}
+		}
+		else {
+			this.showError("plugin not ready");
+		}
+	},
+
+	getRefreshRemoteSource: function () {
+		enyo.log(enyo.application.dbSets.currentRepo);
+		if (this.pluginReady) {
+			try {var status = this.$.plugin.callPluginMethod("refreshRemoteSource", enyo.application.dbSets.currentRepo);}
+			catch (e) {this.showError("Plugin exception: " + e);}
+		}
+		else {
+			this.showError("plugin not ready");
+		}
+	},
+
+	handleRefreshedSource: function (response) {
+		enyo.log(response);
+		if (enyo.json.parse(response).returnValue)
+			this.listRemoteModules();
+		else
+			this.showError(enyo.json.parse(response).message);
+	},
 	
+	listRemoteModules: function () {
+		enyo.log(enyo.application.dbSets.currentRepo);
+		if (this.pluginReady) {
+			try {var status = this.$.plugin.callPluginMethod("remoteListModules", enyo.application.dbSets.currentRepo);}
+			catch (e) {this.showError("Plugin exception: " + e);}
+		}
+		else {
+			this.showError("plugin not ready");
+		}
+	},
+
 	//OTHER STUFF
 	
 	handleSelectHistory: function (inSender, inEvent) {
@@ -857,8 +948,8 @@ enyo.kind({
 	viewSelected: function(inSender, inView, inPreviousView) {
 		//enyo.log(inView.name);
 		if (inView.name == "modManView") {
-			this.$.modManView.downloadMods();
-			//this.$.modManView.getLang();
+			//this.$.modManView.downloadMods();
+			this.$.modManView.getRepos();
 		} else if (inView.name == "verseView") {
 			if(this.$.modManView.installedModules.length !== 0) {
 				this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), this.currentModule.name);
@@ -868,13 +959,16 @@ enyo.kind({
 
 	mainSelected: function (inSender, inView, inPreviousView) {
 		//enyo.log(inView.name);
+		this.$.tbPassage.setCaption(this.$.selector.getBook().name + " " + this.$.selector.getChapter());
+		enyo.application.book = this.$.selector.getBook().abbrev;
+		this.$.noteBmSidebar.setBookName(enyo.application.book);
 		if (inView.name == "singleContainer") {
 			this.$.btSidebar.show();
 			this.$.btStop.hide();
 			this.$.tbModRight.hide();
 			this.$.btSplitView.show();
 
-			this.$.tbPassage.setCaption(this.$.selector.getBook().name + " " + this.$.selector.getChapter());
+			
 			this.$.tbModLeft.setCaption(this.currentModule.name);
 			this.$.mainView.setVerses(this.verses, this.$.selector.verse);
 			//this.$.mainView.setSnappers(this.$.selector.verse);
@@ -889,7 +983,7 @@ enyo.kind({
 			this.$.btStop.show();
 			this.$.tbModRight.show();
 			this.$.btSplitView.hide();
-			this.$.tbPassage.setCaption(this.$.selector.getBook().name + " " + this.$.selector.getChapter());
+			//this.$.tbPassage.setCaption(this.$.selector.getBook().name + " " + this.$.selector.getChapter());
 			this.$.tbModLeft.setCaption(this.currentModule.name);
 			this.$.tbModRight.setCaption(this.currentSplitModule.name);
 			//this.$.splitContainer.windowRotated();
@@ -947,7 +1041,9 @@ enyo.kind({
 			"background" : this.$.prefs.getBackground(),
 			"linebreak": this.$.prefs.getLinebreak(),
 			"footnotes": enyo.application.footnotes,
-			"heading": enyo.application.heading
+			"heading": enyo.application.heading,
+			"greekFont": enyo.application.greekFont,
+			"hebrewFont": enyo.application.hebrewFont
 		};
 		//enyo.log(enyo.json.stringify(lastRead));
 		if(this.currentModule) {

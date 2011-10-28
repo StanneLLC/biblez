@@ -382,7 +382,9 @@ enyo.kind({
                     {caption: "Verdana", value: "Verdana"},
                     {caption: "Arial", value: "Arial"},
                     {caption: "Georgia", value: "Georgia"},
-                    {caption: "Times", value: "Times"}
+                    {caption: "Times", value: "Times"},
+                    {caption: $L("Greek"), value: "greek"},
+                    {caption: $L("Hebrew"), value: "hebrew"}
                    
                 ]}
             ]}
@@ -405,7 +407,13 @@ enyo.kind({
     
     setFont: function (font) {
         if (font) {
-            this.$.fontSelector.setValue(font);
+            if (font == enyo.application.hebrewFont) {
+                this.$.fontSelector.setValue("hebrew");
+            } else if (font == enyo.application.greekFont) {
+                this.$.fontSelector.setValue("greek");
+            } else {
+                this.$.fontSelector.setValue(font);
+            }            
         } else {
             this.$.fontSelector.setValue("Prelude");
         }        
@@ -531,17 +539,129 @@ enyo.kind({
 });
 
 enyo.kind({
+    name: "BibleZ.Repos",
+    kind: "ModalDialog",
+    layoutKind:"VFlexLayout",
+    style: "min-width: 50%;",
+    lazy: false,
+    scrim: true,
+    events: {
+      onAccept: "",
+      onSelectRepo: "",
+      onDenied: ""
+    },
+    published: {
+        repos: [],
+        confirmed: false
+    },
+    caption: $L("Warning"), 
+    components:[        
+        {kind: "BasicScroller", autoVertical: true, style: "height: auto;", flex: 1, components: [
+            {name: "warning", allowHtml: true, className: "popup-info", content: "Although Install Manager provides a convenient way for installing and upgrading SWORD components, it also uses a systematic method for accessing sites which gives packet sniffers a target to lock into for singling out users. <br><br>IF YOU LIVE IN A PERSECUTED COUNTRY AND DO NOT WISH TO RISK DETECTION, YOU SHOULD *NOT* USE INSTALL MANAGER'S REMOTE SOURCE FEATURES.<br><br>Also, Remote Sources other than CrossWire may contain less than quality modules, modules with unorthodox content, or even modules which are not legitimately distributable.  Many repositories contain wonderfully useful content.  These repositories simply are not reviewed or maintained by CrossWire and CrossWire cannot be held responsible for their content. CAVEAT EMPTOR.<br><br> If you understand this and are willing to enable remote source features then tap on 'Accept'"},
+            {name: "repoList", kind: "VirtualRepeater", onSetupRow: "getRepoItems", components: [
+                {name: "itemRepo", kind: "Item", layoutKind: "VFlexLayout", tapHighlight: true, className: "list-item", components: [
+                    {name: "repoName"}
+                ],
+                onclick: "selectRepo"
+                }]
+            }
+        ]},
+        {layoutKind: "HFlexLayout", style: "margin-top: 10px;", components: [  
+            {name: "btCancel", kind: "Button", caption: $L("Close"), flex: 1, onclick: "closePopup"},
+            {name: "btAccept", kind: "ActivityButton", caption: $L("Accept"), flex: 1, onclick: "callAccept", className: "enyo-button-affirmative"}
+        ]}
+        
+    ],
+
+    callAccept: function () {
+        this.$.btAccept.setActive(true);
+        this.doAccept();
+    },
+
+    setActivity: function (spin) {
+        this.$.btAccept.setActive(spin);
+        
+    },
+
+    getRepoItems: function(inSender, inIndex) {
+        var r = this.repos[inIndex];
+        if (r) {
+            //console.log(r + " - " + this.tmpLang);
+            this.$.repoName.setContent(r.name);
+            return true;
+        } else {
+            return false;
+        }
+    },
+
+    reposChanged: function () {
+        this.$.repoList.render();
+    },
+
+    confirmedChanged: function () {
+        if(this.confirmed) {
+            this.$.warning.hide();
+            this.$.repoList.show();
+            this.setCaption($L("Select SWORD Source"));
+            this.$.btAccept.hide();
+        } else {
+            this.$.warning.show();
+            this.$.repoList.hide();
+            this.setCaption($L("Warning"));
+            this.$.btAccept.show();
+        }
+    },
+
+    selectRepo: function (inSender, inEvent, rowIndex) {
+        enyo.application.dbSets.currentRepo = this.repos[rowIndex].name;
+        this.doSelectRepo();
+        this.close();
+    },
+    
+    closePopup: function () {
+        this.close();
+        if (this.$.btAccept.showing)
+            this.doDenied();
+    }
+});
+
+enyo.kind({
+    kind: "ModalDialog", 
+    name: "BibleZ.Error", 
+    caption: "Error", 
+    lazy: false, 
+    components:[
+        {name: "errorMsg", content: "Error", className: "enyo-text-error warning-icon"},
+        {kind: "Button", caption: $L("OK"), onclick: "closePopup", style: "margin-top:10px"}
+    ],
+
+    closePopup: function () {
+       this.close();
+    },
+
+    setError: function (message) {
+       this.$.errorMsg.setContent(message); 
+    }
+});
+
+enyo.kind({
     name: "BibleZ.About",
+    style: "max-width: 350px;",
     scrim: true,
     kind: "Popup", components: [
-       {kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open"},
-       {content: $L("About ") + enyo.fetchAppInfo().title, className: "popup-title"},
-       {content: "Version " + enyo.fetchAppInfo().version, className: "popup-version"},
-       {style: "text-align: center;", components:[{kind: "Image", src: "images/biblezHD128.png"}]},
-       {content: $L("BibleZ HD is based on the") + " <a href='http://www.crosswire.org/sword'>" + $L("SWORD Project") + "</a>.<br>" + $L("BibleZ HD is licensed  under") + " <a href='http://www.gnu.org/licenses/gpl.txt'>GPLv3</a>.<br><br>&copy; 2010-2011 by <a href='http://zefanjas.de'>zefanjas.de</a>", className: "popup-info"},      
-       {style: "text-align: center;", components:[{content: "<a href='http://www.facebook.com/pages/zefanjas/118603198178545'><img src='images/facebook_32.png'/></a>  <a href='http://twitter.com/biblez'><img src='images/twitter_32.png'/></a>"}]},
-       {kind: "Button", flex: 1, caption: $L("Send eMail"), onclick: "sendMail"},
-       {kind: "Button", flex: 1, caption: $L("Close"), onclick: "doCancel"}
+        {kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open"},
+        {kind: "BasicScroller", autoVertical: true, style: "height: auto;", flex: 1, components: [
+           {content: $L("About ") + enyo.fetchAppInfo().title, className: "popup-title"},
+           {content: "Version " + enyo.fetchAppInfo().version, className: "popup-version"},
+           {style: "text-align: center;", components:[{kind: "Image", style: "width: 80px;", src: "images/biblezHD128.png"}]},
+           {content: $L("BibleZ HD is based on the") + " <a href='http://www.crosswire.org/sword'>" + $L("SWORD Project") + "</a> " + $L("and it is licensed under") + " <a href='http://www.gnu.org/licenses/gpl.txt'>GPLv3</a>.<br>&copy; 2010-2011 by <a href='http://zefanjas.de'>zefanjas.de</a>", className: "popup-info"},
+           {style: "text-align: center;", components:[{content: "<a href='http://www.facebook.com/pages/zefanjas/118603198178545'><img src='images/facebook_32.png'/></a>  <a href='http://twitter.com/biblez'><img src='images/twitter_32.png'/></a>"}]}   
+        ]},
+        {kind: "HFlexBox", components: [
+            {kind: "Button", flex: 1, caption: $L("Close"), onclick: "doCancel"},
+            {kind: "Button", flex: 1, className: "enyo-button-affirmative", caption: $L("Send eMail"), onclick: "sendMail"}
+        ]}
+        
     ],
     
     doCancel: function () {

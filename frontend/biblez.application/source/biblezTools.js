@@ -14,12 +14,12 @@
 ### END LICENSE*/
 
 var biblezTools = {
-	dbSets: window['localStorage'],
+	//dbSets: window.localStorage,
 	
     createDB: function() {
 		try {
 			this.db = openDatabase('ext:settings', '', 'BibleZ Settings Data', 200000);
-			enyo.log("Created/Opened database")
+			enyo.log("Created/Opened database");
 		} catch (e) {
 			enyo.log("ERROR", e);		
 		}
@@ -69,33 +69,33 @@ var biblezTools = {
 	},
     
     prepareModules: function (modules, inCallback) {
-        //enyo.log(this.db);
+        enyo.log("Prepare modules", modules.length, this.db);
         try {
-			var sql = 'DROP TABLE IF EXISTS modules;'
-		    this.db.transaction( 
-		        enyo.bind(this,(function (transaction) { 
+			var sql = 'DROP TABLE IF EXISTS modules;';
+		    this.db.transaction(
+		        enyo.bind(this, function (transaction) { 
 		            transaction.executeSql(sql, [], 
 					enyo.bind(this, function () {
                         enyo.log("SUCCESS: Dropped modules table");
                         //this.importModuleData(modules);
                         try {
-                            var sql = 'CREATE TABLE IF NOT EXISTS modules (lang TEXT, modType TEXT, modName TEXT, descr TEXT, source TEXT);'
+                            var sql = 'CREATE TABLE IF NOT EXISTS modules (lang TEXT, modType TEXT, modName TEXT, descr TEXT);';
                             this.db.transaction( 
-                                enyo.bind(this,(function (transaction) { 
+                                enyo.bind(this,function (transaction) { 
                                     transaction.executeSql(sql, [], 
                                     enyo.bind(this, function () {
                                         enyo.log("SUCCESS: Created modules table");
 										this.importModuleData(modules, inCallback);
                                     }),
                                     enyo.bind(this,this.errorHandler)); 
-                                }))
+                                })
                             );
                         } catch (e) {
                             enyo.log("ERROR", e);
                         }
 					}),
                     enyo.bind(this,this.errorHandler)); 
-		        }))
+		        })
 		    );
 		} catch (e) {
 			enyo.log("ERROR", e);
@@ -109,16 +109,17 @@ var biblezTools = {
 			var sql = "";
 		    this.db.transaction( 
 		        enyo.bind(this,(function (transaction) {
-                    sql = "INSERT INTO modules (lang, modType, modName, descr, source) VALUES (?,?,?,?,?)";
+                    sql = "INSERT INTO modules (lang, modType, modName, descr) VALUES (?,?,?,?)";
+                    //enyo.log(sql);
 					for(var i=0; i<modules.length; i++) {
 						if(modules[i].datapath) {
-							transaction.executeSql(sql, [modules[i].lang, modules[i].datapath.split("/")[2], modules[i].name, modules[i].description, "crosswire"], 
+							transaction.executeSql(sql, [modules[i].lang, modules[i].datapath.split("/")[2], modules[i].name, modules[i].description], 
 							enyo.bind(this, function () {
 								//enyo.log("SUCCESS: Insert Module " + z);
 								z++;
 								if (z == modules.length) {
-									var date = new Date();
-									this.dbSets.lastModUpdate = enyo.json.stringify({"lastUpdate": date.getTime()});
+									//var date = new Date();
+									//enyo.application.dbSets.lastModUpdate = enyo.json.stringify({"lastUpdate": date.getTime()});
 									inCallback();
 								}
 							}),
@@ -134,7 +135,7 @@ var biblezTools = {
 		}
     },
 	
-	getLang: function (source, inCallback) {
+	getLang: function (inCallback) {
 		var lang = [];
 		try {
 			var sql = 'SELECT lang FROM modules ORDER BY lang ASC;';

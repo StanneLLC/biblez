@@ -37,10 +37,14 @@
 /*SWORD HEADER */
 #include <swmgr.h>
 #include <swmodule.h>
-#include <filemgr.h>
 #include <markupfiltmgr.h>
 #include <listkey.h>
 #include <versekey.h>
+#include <swlocale.h>
+#include <localemgr.h>
+#include <installmgr.h>
+#include <ftptrans.h>
+#include <filemgr.h>
 
 #define WRITEBUFFERSIZE (20971520) // 20Mb buffer
 
@@ -52,6 +56,8 @@ SWMgr *searchLibrary = 0;
 std::string searchModule = "";
 std::string searchTerm = "";
 std::string searchScope = "";
+std::string remoteSource = "";
+std::string modName = "";
 int searchType = -2;
 
 std::string convertString(std::string s) {
@@ -139,6 +145,451 @@ void refreshManagers() {
 	displayLibrary->setGlobalOption("Headings", "On");
 }
 
+/*INSTALL MANAGER STUFF */
+
+SWMgr *mgr = 0;
+InstallMgr *installMgr = 0;
+StatusReporter *statusReporter = 0;
+SWBuf baseDir;
+SWBuf confPath;
+
+void usage(const char *progName = 0, const char *error = 0);
+
+class MyInstallMgr : public InstallMgr {
+public:
+	MyInstallMgr(const char *privatePath = "./", StatusReporter *sr = 0) : InstallMgr(privatePath, sr) {}
+
+virtual bool isUserDisclaimerConfirmed() const {
+	/*static bool confirmed = false;
+        if (!confirmed) {
+		cout << "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
+		cout << "                -=+* WARNING *+=- -=+* WARNING *+=-\n\n\n";
+		cout << "Although Install Manager provides a convenient way for installing\n";
+		cout << "and upgrading SWORD components, it also uses a systematic method\n";
+		cout << "for accessing sites which gives packet sniffers a target to lock\n";
+		cout << "into for singling out users. \n\n\n";
+		cout << "IF YOU LIVE IN A PERSECUTED COUNTRY AND DO NOT WISH TO RISK DETECTION,\n";
+		cout << "YOU SHOULD *NOT* USE INSTALL MANAGER'S REMOTE SOURCE FEATURES.\n\n\n";
+		cout << "Also, Remote Sources other than CrossWire may contain less than\n";
+		cout << "quality modules, modules with unorthodox content, or even modules\n";
+		cout << "which are not legitimately distributable.  Many repositories\n";
+		cout << "contain wonderfully useful content.  These repositories simply\n";
+		cout << "are not reviewed or maintained by CrossWire and CrossWire\n";
+		cout << "cannot be held responsible for their content. CAVEAT EMPTOR.\n\n\n";
+		cout << "If you understand this and are willing to enable remote source features\n";
+		cout << "then type yes at the prompt\n\n";
+		cout << "enable? [no] ";
+
+		char prompt[10];
+		fgets(prompt, 9, stdin);
+		confirmed = (!strcmp(prompt, "yes\n"));
+		cout << "\n";
+	}
+	return confirmed; */
+	return true;
+}
+};
+
+class MyStatusReporter : public StatusReporter {
+	int last;
+        virtual void statusUpdate(double dltotal, double dlnow) {
+			/*int p = 74 * (int)(dlnow / dltotal);
+			for (;last < p; ++last) {
+				if (!last) {
+					SWBuf output;
+					output.setFormatted("[ File Bytes: %ld", (long)dltotal);
+					while (output.size() < 75) output += " ";
+					output += "]";
+					std::cout << output.c_str() << "\n ";
+				}
+				std::cout << "-";
+			}
+			std::cout.flush(); */
+		}
+
+        virtual void preStatus(long totalBytes, long completedBytes, const char *message) {
+			std::stringstream out;
+			
+			out << "{\"total\": \"" << totalBytes << "\", \"completed\": \"" << completedBytes << "\"}";
+
+			const std::string& tmp = out.str();
+			const char* cstr = tmp.c_str();
+			
+		    const char *params[1];
+			params[0] = cstr;
+			PDL_Err mjErr = PDL_CallJS("returnProgress", params, 1);
+			/*SWBuf output;
+			output.setFormatted("[ Total Bytes: %ld; Completed Bytes: %ld", totalBytes, completedBytes);
+			while (output.size() < 75) output += " ";
+			output += "]";
+			std::cout << "\n" << output.c_str() << "\n ";
+			int p = 74 * (int)((double)completedBytes/totalBytes);
+			for (int i = 0; i < p; ++i) { std::cout << "="; }
+			std::cout << "\n\n" << message << "\n";
+			last = 0; */
+		}
+};      
+
+
+void init() {
+	if (!mgr) {
+		mgr = new SWMgr();
+
+		if (!mgr->config)
+			std::cout << "ERROR: SWORD configuration not found.  Please configure SWORD before using this program.";
+
+		SWBuf baseDir = "/media/internal";
+		if (baseDir.length() < 1) baseDir = ".";
+		baseDir += "/.sword/InstallMgr";
+		//PDL_Log("HELLO " + baseDir.c_str());
+		confPath = baseDir + "/InstallMgr.conf";
+		statusReporter = new MyStatusReporter();
+		installMgr = new MyInstallMgr(baseDir, statusReporter);
+	}
+}
+
+
+// clean up and exit if status is 0 or negative error code
+void finish(int status) {
+	delete statusReporter;
+	delete installMgr;
+	delete mgr;
+
+	installMgr = 0;
+	mgr        = 0;
+
+	if (status < 1) {
+		std::cout << "\n";
+		exit(status);
+	}
+}
+
+
+void createBasicConfig(bool enableRemote, bool addCrossWire) {
+
+	FileMgr::createParent(confPath.c_str());
+	remove(confPath.c_str());
+
+	InstallSource is("FTP");
+	is.caption = "CrossWire";
+	is.source = "ftp.crosswire.org";
+	is.directory = "/pub/sword/raw";
+
+	SWConfig config(confPath.c_str());
+	config["General"]["PassiveFTP"] = "true";
+	if (enableRemote) {
+		config["Sources"]["FTPSource"] = is.getConfEnt();
+	}
+	config.Save();
+}
+
+
+void initConfig() {
+	init();
+	bool enable = true; //installMgr->isUserDisclaimerConfirmed();
+	createBasicConfig(enable, true);
+}
+
+void *syncConfig(void *foo) {
+//int syncConfig() {
+	std::stringstream sources;
+	init();
+
+	// be sure we have at least some config file already out there
+	if (!FileMgr::existsFile(confPath.c_str())) {
+		createBasicConfig(true, true);
+		finish(1); // cleanup and don't exit
+		init();    // re-init with InstallMgr which uses our new config
+	}
+
+	if (!installMgr->refreshRemoteSourceConfiguration())
+		sources << "{\"returnValue\": true}";
+	else 
+		sources << "{\"returnValue\": false}";
+
+	const std::string& tmp = sources.str();
+	const char* cstr = tmp.c_str();
+	
+    const char *params[1];
+	params[0] = cstr;
+	PDL_Err mjErr = PDL_CallJS("returnSyncConfig", params, 1);
+}
+
+PDL_bool callSyncConfig(PDL_JSParameters *parms) {
+	//initConfig();
+	pthread_t thread1;
+	int  iret1;
+    
+	char *foobar;
+	
+	iret1 = pthread_create( &thread1, NULL, syncConfig, (void *) foobar);
+    return PDL_TRUE;
+}
+
+PDL_bool uninstallModule(PDL_JSParameters *parms) {
+	//void uninstallModule(const char *modName) {
+	init();
+	const char* modName = PDL_GetJSParamString(parms, 0);
+	std::stringstream out;
+	SWModule *module;
+	ModMap::iterator it = mgr->Modules.find(modName);
+	if (it == mgr->Modules.end()) {
+		PDL_JSException(parms, "uninstallModule: Couldn't find module");
+		finish(-2);
+		return PDL_FALSE;
+	}
+	module = it->second;
+	installMgr->removeModule(mgr, module->Name());
+	out << "{\"returnValue\": true, \"message\": \"Removed module\"}";
+
+	const std::string& tmp = out.str();
+	const char* cstr = tmp.c_str();
+	
+    const char *params[1];
+	params[0] = cstr;
+	PDL_Err mjErr = PDL_CallJS("returnRemove", params, 1);
+	return PDL_TRUE;
+}
+
+
+PDL_bool listRemoteSources(PDL_JSParameters *parms) {
+	init();
+	std::stringstream sources;
+	sources << "[";
+	for (InstallSourceMap::iterator it = installMgr->sources.begin(); it != installMgr->sources.end(); it++) {
+		if (it != installMgr->sources.begin()) {
+			sources << ", ";
+		}
+		sources << "{\"name\": \"" << it->second->caption << "\", ";
+		sources << "\"type\": \"" << it->second->type << "\", ";
+		sources << "\"source\": \"" << it->second->source << "\", ";
+		sources << "\"directory\": \"" << it->second->directory << "\"}";
+	}
+	sources << "]";
+
+	const std::string& tmp = sources.str();
+	const char* cstr = tmp.c_str();
+	
+    const char *params[1];
+	params[0] = cstr;
+	PDL_Err mjErr = PDL_CallJS("returnRemoteSources", params, 1);
+	return PDL_TRUE;	
+}
+
+void *refreshRemoteSource(void *foo) {
+//void refreshRemoteSource(const char *sourceName) {
+	std::stringstream out;
+	init();
+	InstallSourceMap::iterator source = installMgr->sources.find(remoteSource.c_str());
+	if (source == installMgr->sources.end()) {
+		out << "{\"returnValue\": false, \"message\": \"Couldn't find remote source: " << remoteSource << "\"}";
+		finish(-3);
+	}
+
+	if (!installMgr->refreshRemoteSource(source->second))
+		out << "{\"returnValue\": true, \"message\": \"Remote Source Refreshed\"}";
+	else	out << "{\"returnValue\": false, \"message\": \"Error Refreshing Remote Source\"}";
+
+	const std::string& tmp = out.str();
+	const char* cstr = tmp.c_str();
+	
+    const char *params[1];
+	params[0] = cstr;
+	PDL_Err mjErr = PDL_CallJS("returnRefreshRemoteSource", params, 1);
+}
+
+PDL_bool callRefreshRemoteSource(PDL_JSParameters *parms) {
+	const char* sourceName = PDL_GetJSParamString(parms, 0);
+	pthread_t thread1;
+	int  iret1;
+    
+	char *foobar;
+	remoteSource = sourceName;
+	
+	iret1 = pthread_create( &thread1, NULL, refreshRemoteSource, (void *) foobar);
+    return PDL_TRUE;
+}
+
+
+void listModules(SWMgr *otherMgr = 0, bool onlyNewAndUpdates = false) {
+	init();
+	std::stringstream out;
+	SWModule *module;
+	if (!otherMgr) otherMgr = mgr;
+	std::map<SWModule *, int> mods = InstallMgr::getModuleStatus(*mgr, *otherMgr);
+
+	out << "[";
+
+	for (std::map<SWModule *, int>::iterator it = mods.begin(); it != mods.end(); it++) {
+		module = it->first;
+		SWBuf version = module->getConfigEntry("Version");
+		SWBuf status = " ";
+		if (it->second & InstallMgr::MODSTAT_NEW) status = "*";
+		if (it->second & InstallMgr::MODSTAT_OLDER) status = "-";
+		if (it->second & InstallMgr::MODSTAT_UPDATED) status = "+";
+
+		if (!onlyNewAndUpdates || status == "*" || status == "+") {
+			//std::cout << status << "[" << module->Name() << "]  \t(" << version << ")  \t- " << module->Description() << "\n";
+			if (it != mods.begin()) {
+				out << ", ";
+			}
+			out << "{\"name\": \"" << module->Name() << "\", ";
+			if (module->getConfigEntry("Lang")) {
+				out << "\"lang\": \"" << module->getConfigEntry("Lang") << "\", ";
+			}			
+			out << "\"datapath\": \"" << module->getConfigEntry("DataPath") << "\", ";			
+			out << "\"description\": \"" << module->getConfigEntry("Description") << "\"}";
+		}
+	}
+	out << "]";
+
+	const std::string& tmp = out.str();
+	const char* cstr = tmp.c_str();
+	
+    const char *params[1];
+	params[0] = cstr;
+	PDL_Err mjErr = PDL_CallJS("returnListModules", params, 1);
+}
+
+PDL_bool remoteListModules(PDL_JSParameters *parms) {
+//void remoteListModules(const char *sourceName, bool onlyNewAndUpdated = false) {
+	bool onlyNewAndUpdated = false;
+	const char* sourceName = PDL_GetJSParamString(parms, 0);
+
+	init();
+	InstallSourceMap::iterator source = installMgr->sources.find(sourceName);
+	if (source == installMgr->sources.end()) {
+		PDL_JSException(parms, "remoteListModules: Couldn't find remote source");
+		finish(-3);
+		return PDL_FALSE;
+	}
+	listModules(source->second->getMgr(), onlyNewAndUpdated);
+
+	return PDL_TRUE;
+}
+
+PDL_bool getModuleDetails (PDL_JSParameters *parms) {
+	/*Get information about a module*/
+	const char* moduleName = PDL_GetJSParamString(parms, 0);
+	const char* sourceName = PDL_GetJSParamString(parms, 1);
+	std::stringstream mod;
+	
+	init();
+	InstallSourceMap::iterator source = installMgr->sources.find(sourceName);
+	if (source == installMgr->sources.end()) {
+		PDL_JSException(parms, "remoteListModules: Couldn't find remote source");
+		finish(-3);
+		return PDL_FALSE;
+	}
+	
+	SWMgr* confReader = source->second->getMgr();
+	SWModule *module = confReader->getModule(moduleName);
+	if (!module) {
+		PDL_JSException(parms, "getModuleDetails: Couldn't find Module");
+		return PDL_FALSE;
+	}
+	
+	mod << "{";	
+	
+	mod << "\"name\": \"" << module->Name() << "\"";			
+	mod << ", \"datapath\": \"" << module->getConfigEntry("DataPath") << "\"";			
+	mod << ", \"description\": \"" << convertString(module->getConfigEntry("Description")) << "\"";
+	if (module->getConfigEntry("Lang")) mod << ", \"lang\": \"" << module->getConfigEntry("Lang") << "\"";
+	if (module->getConfigEntry("Versification")) mod << ", \"versification\": \"" << module->getConfigEntry("Versification") << "\"";
+	if (module->getConfigEntry("About")) mod << ", \"about\": \"" << convertString(module->getConfigEntry("About")) << "\"";
+	if (module->getConfigEntry("Version")) mod << ", \"version\": \"" << module->getConfigEntry("Version") << "\"";
+	if (module->getConfigEntry("InstallSize")) mod << ", \"installSize\": \"" << module->getConfigEntry("InstallSize") << "\"";
+	if (module->getConfigEntry("Copyright")) mod << ", \"copyright\": \"" << convertString(module->getConfigEntry("Copyright")) << "\"";
+	if (module->getConfigEntry("DistributionLicense")) mod << ", \"distributionLicense\": \"" << module->getConfigEntry("DistributionLicense") << "\"";
+	if (module->getConfigEntry("Category")) mod << ", \"category\": \"" << module->getConfigEntry("Category") << "\"";
+	
+	mod << "}";
+	
+	const std::string& tmp = mod.str();
+	const char* cstr = tmp.c_str();
+		
+	const char *params[1];
+	params[0] = cstr;
+	PDL_Err mjErr = PDL_CallJS("returnGetDetails", params, 1);
+    return PDL_TRUE;
+}
+
+
+void localDirListModules(const char *dir) {
+	std::cout << "Available Modules:\n\n";
+	SWMgr mgr(dir);
+	listModules(&mgr);
+}
+
+void *remoteInstallModule(void *foo) {
+//void remoteInstallModule(const char *sourceName, const char *modName) {
+	init();
+	std::stringstream out;
+	InstallSourceMap::iterator source = installMgr->sources.find(remoteSource.c_str());
+	if (source == installMgr->sources.end()) {
+		out << "{\"returnValue\": false, \"message\": \"Couldn't find remote source: " << remoteSource << "\"}";
+		finish(-3);
+	}
+	InstallSource *is = source->second;
+	SWMgr *rmgr = is->getMgr();
+	SWModule *module;
+	ModMap::iterator it = rmgr->Modules.find(modName.c_str());
+	if (it == rmgr->Modules.end()) {
+		out << "{\"returnValue\": false, \"message\": \"Remote source " << remoteSource << " does not make available module " << modName << "\"}";
+		finish(-4);
+	}
+	module = it->second;
+
+	int error = installMgr->installModule(mgr, 0, module->Name(), is);
+	if (error) {
+		out << "{\"returnValue\": false, \"message\": \"Error installing module: " << modName << ". (write permissions?)\"}";
+	} else out << "{\"returnValue\": true, \"message\": \"Installed module: " << modName << "\"}";
+
+	//Refresh Mgr
+	refreshManagers();
+	
+	const std::string& tmp = out.str();
+	const char* cstr = tmp.c_str();
+		
+	const char *params[1];
+	params[0] = cstr;
+	PDL_Err mjErr = PDL_CallJS("returnUnzip", params, 1);
+}
+
+PDL_bool callRemoteInstallModule(PDL_JSParameters *parms) {
+	const char* sourceName = PDL_GetJSParamString(parms, 0);
+	const char* moduleName = PDL_GetJSParamString(parms, 1);
+	pthread_t thread1;
+	int  iret1;
+    
+	char *foobar;
+	remoteSource = sourceName;
+	modName = moduleName;
+	
+	iret1 = pthread_create( &thread1, NULL, remoteInstallModule, (void *) foobar);
+    return PDL_TRUE;
+}
+
+
+void localDirInstallModule(const char *dir, const char *modName) {
+	init();
+	SWMgr lmgr(dir);
+	SWModule *module;
+	ModMap::iterator it = lmgr.Modules.find(modName);
+	if (it == lmgr.Modules.end()) {
+		fprintf(stderr, "Module [%s] not available at path [%s]\n", modName, dir);
+		finish(-4);
+	}
+	module = it->second;
+	int error = installMgr->installModule(mgr, dir, module->Name());
+	if (error) {
+		std::cout << "\nError installing module: [" << module->Name() << "] (write permissions?)\n";
+	} else std::cout << "\nInstalled module: [" << module->Name() << "]\n";
+}
+
+/*END INSTALL MANAGER STUFF */
+
+
 PDL_bool getModules(PDL_JSParameters *parms) {
 	/*Get all installed modules or all modules of a specific type. Set modType to e.g. "Biblical Texts"
 	getModules() returns a JSON string*/
@@ -179,43 +630,6 @@ PDL_bool getModules(PDL_JSParameters *parms) {
 	const char *params[1];
 	params[0] = modStr.c_str();
 	PDL_Err mjErr = PDL_CallJS("returnModules", params, 1);
-    return PDL_TRUE;
-}
-
-PDL_bool getModuleDetails (PDL_JSParameters *parms) {
-	/*Get information about a module*/
-	const char* moduleName = PDL_GetJSParamString(parms, 0);
-	std::stringstream mod;
-	SWMgr confReader("/media/internal/.sword/install", new MarkupFilterMgr(FMT_HTMLHREF));
-	
-	SWModule *module = confReader.getModule(moduleName);
-	if (!module) {
-		PDL_JSException(parms, "getModuleDetails: Couldn't find Module");
-		return PDL_FALSE;
-	}
-	
-	mod << "{";	
-	
-	mod << "\"name\": \"" << module->Name() << "\"";			
-	mod << ", \"datapath\": \"" << module->getConfigEntry("DataPath") << "\"";			
-	mod << ", \"description\": \"" << convertString(module->getConfigEntry("Description")) << "\"";
-	if (module->getConfigEntry("Lang")) mod << ", \"lang\": \"" << module->getConfigEntry("Lang") << "\"";
-	if (module->getConfigEntry("Versification")) mod << ", \"versification\": \"" << module->getConfigEntry("Versification") << "\"";
-	if (module->getConfigEntry("About")) mod << ", \"about\": \"" << convertString(module->getConfigEntry("About")) << "\"";
-	if (module->getConfigEntry("Version")) mod << ", \"version\": \"" << module->getConfigEntry("Version") << "\"";
-	if (module->getConfigEntry("InstallSize")) mod << ", \"installSize\": \"" << module->getConfigEntry("InstallSize") << "\"";
-	if (module->getConfigEntry("Copyright")) mod << ", \"copyright\": \"" << convertString(module->getConfigEntry("Copyright")) << "\"";
-	if (module->getConfigEntry("DistributionLicense")) mod << ", \"distributionLicense\": \"" << module->getConfigEntry("DistributionLicense") << "\"";
-	if (module->getConfigEntry("Category")) mod << ", \"category\": \"" << module->getConfigEntry("Category") << "\"";
-	
-	mod << "}";
-	
-	const std::string& tmp = mod.str();
-	const char* cstr = tmp.c_str();
-		
-	const char *params[1];
-	params[0] = cstr;
-	PDL_Err mjErr = PDL_CallJS("returnGetDetails", params, 1);
     return PDL_TRUE;
 }
 
@@ -467,7 +881,7 @@ PDL_bool untarMods(PDL_JSParameters *parms) {
     return PDL_TRUE;
 }
 
-PDL_bool removeModule(PDL_JSParameters *parms) {
+/*PDL_bool removeModule(PDL_JSParameters *parms) {
 	const char* pathMod = PDL_GetJSParamString(parms, 0);
 	const char* modName = PDL_GetJSParamString(parms, 1);
 	
@@ -491,7 +905,7 @@ PDL_bool removeModule(PDL_JSParameters *parms) {
 	params[0] = cstr;
 	PDL_Err mjErr = PDL_CallJS("returnRemove", params, 1);
     return PDL_TRUE;
-}
+} */
 
 PDL_bool checkPlugin(PDL_JSParameters *parms) {
 	const char *params[1];
@@ -503,10 +917,6 @@ PDL_bool checkPlugin(PDL_JSParameters *parms) {
 PDL_bool readConfs(PDL_JSParameters *parms) {
 	/*Get information about all available modules*/
 	std::stringstream mods;
-	//std::ifstream infile;
-	//std::string key;
-	//std::string value;
-	//std::string path;
 	
 	SWMgr confReader("/media/internal/.sword/install", new MarkupFilterMgr(FMT_HTMLHREF));
 	ModMap::iterator it;
@@ -515,15 +925,15 @@ PDL_bool readConfs(PDL_JSParameters *parms) {
 	
 	for (it = confReader.Modules.begin(); it != confReader.Modules.end(); it++) {
 		SWModule *module = it->second;
-			if (it != confReader.Modules.begin()) {
-				mods << ", ";
-			}
-			mods << "{\"name\": \"" << module->Name() << "\", ";
-			if (module->getConfigEntry("Lang")) {
-				mods << "\"lang\": \"" << module->getConfigEntry("Lang") << "\", ";
-			}			
-			mods << "\"datapath\": \"" << module->getConfigEntry("DataPath") << "\", ";			
-			mods << "\"description\": \"" << module->getConfigEntry("Description") << "\"}";
+		if (it != confReader.Modules.begin()) {
+			mods << ", ";
+		}
+		mods << "{\"name\": \"" << module->Name() << "\", ";
+		if (module->getConfigEntry("Lang")) {
+			mods << "\"lang\": \"" << module->getConfigEntry("Lang") << "\", ";
+		}			
+		mods << "\"datapath\": \"" << module->getConfigEntry("DataPath") << "\", ";			
+		mods << "\"description\": \"" << module->getConfigEntry("Description") << "\"}";
 	}
 
 	
@@ -714,13 +1124,23 @@ int main () {
 	PDL_RegisterJSHandler("getVMax", getVMax);
 	PDL_RegisterJSHandler("untarMods", untarMods);
 	PDL_RegisterJSHandler("unzipModule", unzipModule);
-	PDL_RegisterJSHandler("removeModule", removeModule);
+	//PDL_RegisterJSHandler("removeModule", removeModule);
 	PDL_RegisterJSHandler("readConfs", readConfs);
 	PDL_RegisterJSHandler("getModuleDetails", getModuleDetails);
     PDL_RegisterJSHandler("search", search);
+    //InstallMgr
+    PDL_RegisterJSHandler("syncConfig", callSyncConfig);
+    PDL_RegisterJSHandler("listRemoteSources", listRemoteSources);
+    PDL_RegisterJSHandler("refreshRemoteSource", callRefreshRemoteSource);
+    PDL_RegisterJSHandler("remoteListModules", remoteListModules);
+    PDL_RegisterJSHandler("remoteInstallModule", callRemoteInstallModule);
+    PDL_RegisterJSHandler("uninstallModule", uninstallModule);
+
 	PDL_JSRegistrationComplete();
 	
 	PDL_CallJS("ready", NULL, 0);
+
+
 	
 	// Event descriptor
     SDL_Event event;
