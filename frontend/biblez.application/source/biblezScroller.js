@@ -47,16 +47,18 @@ enyo.kind({
 		{name: "firstSnapper", components: [
 			{name: "prevChapter", content: "Previous Chapter", className: "chapter-nav-left chapter-nav"}			
 		]},
-		{name: "mainView", kind: "HtmlContent", allowHtml: true, content: "Das ist ein Test", className: "view-verses", onLinkClick: "handleVerseTap"}
-        
+		//{name: "mainView", kind: "HtmlContent", allowHtml: true, content: "Das ist ein Test", className: "view-verses", onLinkClick: "handleVerseTap"}
+		{kind: "Scroller", name: "mainScroller", autoHorizontal: false, horizontal: false, style: "overflow: visible;", components: [
+			{name: "mainView", kind: "HtmlContent", allowHtml: true, content: "", className: "view-verses", onLinkClick: "handleVerseTap"}
+		]}
     ],
 	
 	create: function () {
 		this.inherited(arguments);
-		this.setIndex(1);
+		enyo.application.dbSets = window.localStorage;
 		this.$.prevChapter.hide();
 		this.starter = 0;
-		//enyo.keyboard.forceHide();
+		
 	},
 	
 	rendered: function () {
@@ -67,8 +69,24 @@ enyo.kind({
 			this.$.firstSnapper.addStyles("width: " + this.node.clientWidth + "px;");
 		}
 		this.starter = 1;
+		//this.createMainView();
 		
 		//enyo.log(this.$.mainView.hasNode());
+	},
+
+	createMainView: function () {
+		//enyo.log(enyo.application.dbSets.scrolling);
+		if(enyo.application.dbSets.scrolling == "true") {
+			this.$.mainView.addRemoveClass("view-verses-single", true);
+			this.$.mainView.addRemoveClass("view-verses", false);
+			this.$.mainScroller.setVertical(true);
+			this.$.mainScroller.setAutoVertical(true);
+		} else {
+			this.$.mainView.addRemoveClass("view-verses-single", false);
+			this.$.mainView.addRemoveClass("view-verses", true);
+			this.$.mainScroller.setVertical(false);
+			this.$.mainScroller.setAutoVertical(false);
+		}
 	},
 	
 	changeChapter: function (inSender, inEvent) {
@@ -91,14 +109,11 @@ enyo.kind({
     setVerses: function (verses, vnumber) {
 		this.vnumber = vnumber;
 		this.setIndex(1);
-		//enyo.log("NODE1: ", this.node.clientWidth, this.node.clientHeight);
-		//var height = this.node.clientHeight - 40;
-		//var width = this.node.clientWidth - 40;
-		//enyo.log("VARS:", width, height, widthMV,  heightMV);
-		//this.$.mainView.addStyles("height: " + height + "px;");
-		//this.$.mainView.addStyles("width: " + width + "px;");
+		if (enyo.application.dbSets.scrolling == "true")
+			this.$.mainScroller.setScrollTop(1);
+		
+		this.$.mainView.setContent(biblezTools.renderVerses(verses, vnumber, this.linebreak));		
 
-		this.$.mainView.setContent(biblezTools.renderVerses(verses, vnumber, this.linebreak));
 		this.setSnappers(this.vnumber);
 		this.windowRotated();
 	},
@@ -125,14 +140,11 @@ enyo.kind({
 			this.popupLeft = enyo.byId("footnote" + this.tappedVerse).getBoundingClientRect().left;
 			this.doShowFootnote();
 		}
-		
-		//this.$.versePopup.openAt({top: top, left: left});
 	},
 	
 	setNotes: function(notes) {
 		this.notes = notes;
 		enyo.application.notes = notes;
-		//console.log(enyo.json.stringify(notes));
 		for (var i=0;i<notes.length; i++) {
 			enyo.byId("noteIcon"+notes[i].vnumber).innerHTML = "<a href='note://" + i + ":" + notes[i].vnumber + "'><img id='note" + i + "' src='images/note.png' /></a>";
 			//enyo.byId("noteIconLeft"+notes[i].vnumber).innerHTML = "<a href='note://" + i + ":" + notes[i].vnumber + "'><img id='note" + i + "' src='images/note.png' /></a>";
@@ -203,8 +215,8 @@ enyo.kind({
 			this.$.lastSnapper.destroy();
 		}
 		
-		var height = this.node.clientHeight - 40;
-		var width = this.node.clientWidth - 40;
+		var height = this.node.clientHeight;
+		var width = this.node.clientWidth;
 		
 		//enyo.log(this.node.clientWidth, this.node.scrollWidth, this.node.scrollWidth - this.node.clientWidth - this.sidebarWidth, parseInt((this.node.scrollWidth - this.node.clientWidth - this.sidebarWidth) / this.node.clientWidth));
 		//enyo.log(this.$.mvContainer.node.clientWidth);
@@ -216,6 +228,13 @@ enyo.kind({
 		}
 		//enyo.log(this.node.clientWidth);
 		this.createComponent({name: "lastSnapper", style: "width: " + this.node.clientWidth + "px;", components: [{name: "nextChapter", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}]}).render();
+	
+		//this.$.mainView.addStyles("height: " + height + "px;");
+		//this.$.mainView.addStyles("width: " + width + "px;");
+	
+		this.$.mainScroller.addStyles("width: " + width + "px;");
+		this.$.mainScroller.addStyles("height: " + height + "px;");
+
 		this.$.mainView.addStyles("width: " + width + "px;");
 		this.$.mainView.addStyles("height: " + height + "px;");
 		this.$.prevChapter.show();
@@ -230,13 +249,18 @@ enyo.kind({
 	
 	windowRotated: function(inSender) {
 		//enyo.log("NODE1: ", this.node.clientWidth, this.node.clientHeight);
-		var height = this.node.clientHeight - 30;
-		var width = this.node.clientWidth - 40;
+		var height = this.node.clientHeight;
+		var width = this.node.clientWidth;
 		//enyo.log("VARS:", width, height);
 		//this.$.mvContainer.addStyles("height: " + this.node.clientHeight + "px;");
 		//this.$.mvContainer.addStyles("width: " + this.node.clientWidth + "px;");
+	
 		this.$.mainView.addStyles("height: " + height + "px;");
 		this.$.mainView.addStyles("width: " + width + "px;");
+	
+		this.$.mainScroller.addStyles("width: " + width + "px;");
+		this.$.mainScroller.addStyles("height: " + height + "px;");
+	
 		
 		var comp = this.getComponents();
 		for (var j=0;j<comp.length;j++) {

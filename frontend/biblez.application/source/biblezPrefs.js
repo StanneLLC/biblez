@@ -19,13 +19,15 @@ enyo.kind({
     events: {
         onBack: "",
         onBgChange: "",
-		onLbChange: ""
+		onLbChange: "",
+        onScrollChange: ""
     },
 	published: {
 		background: "biblez",
 		linebreak: false,
         footnotes: true,
         heading: true,
+        scrolling: false,
 		backupTime: ""
 	},
 	components: [
@@ -44,6 +46,10 @@ enyo.kind({
 					{caption: $L("Paper Grayscale"), value: "grayscale"},
                     {caption: $L("Gray"), value: "palm"},
 					{caption: $L("Night View"), value: "night"}
+                ]},
+                {align: "center", components: [
+                    {flex: 1, name: "scrolling", content: $L("Enable Page Scrolling")},
+                    {name: "toggleScroll", kind: "ToggleButton", state: true, onChange: "changeScrolling"}
                 ]},
 				{align: "center", components: [
 					{flex: 1, name: "linebreak", content: $L("Enable Linebreaks")},
@@ -94,6 +100,13 @@ enyo.kind({
         this.background = value;
         this.$.generalSelector.setValue(value);
     },
+
+    changeScrolling: function (inSender, inState) {
+        //enyo.log(inState);
+        this.scrolling = !inState;
+        enyo.application.dbSets.scrolling = enyo.json.stringify(!inState);
+        this.doScrollChange();
+    },
 	
 	changeLinebreak: function (inSender, inState) {
 		//enyo.log(inState);
@@ -111,6 +124,10 @@ enyo.kind({
         //enyo.log(inState);
         this.footnotes = inState;
         enyo.application.footnotes = inState;
+    },
+
+    scrollingChanged: function (inSender, inEvent) {
+        this.$.toggleScroll.setState(this.scrolling);
     },
 	
 	linebreakChanged: function (inSender, inEvent) {

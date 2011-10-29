@@ -88,7 +88,7 @@ enyo.kind({
 				onRefreshSource: "getRefreshRemoteSource",
 				onListModules: "listRemoteModules",
 				onBack: "goToMainView"},
-			{name: "prefs", kind: "BibleZ.Prefs", onBack: "goToMainView", onBgChange: "changeBackground", onLbChange: "changeLinebreak"}
+			{name: "prefs", kind: "BibleZ.Prefs", onBack: "goToMainView", onBgChange: "changeBackground", onLbChange: "changeLinebreak", onScrollChange: "changeScrolling"}
 		]},
 		{kind: "Hybrid", name: "plugin", executable: "pluginSword", width:"0", height:"0", onPluginReady: "handlePluginReady", style: "float: left;"}
 	],
@@ -418,25 +418,22 @@ enyo.kind({
 	//PREFERENCES
 	
 	changeBackground: function () {
+		enyo.log(this.$.prefs.getBackground());
 		this.$.mainViewPane.addRemoveClass("scroller-background", false);
 		this.$.mainViewPane.addRemoveClass("scroller-grayscale", false);
 		this.$.mainViewPane.addRemoveClass("scroller-night", false);
 		switch (this.$.prefs.getBackground()) {
 			case "palm":
 				this.$.mainViewPane.addClass("");
-				//this.$.splitContainer.setBackground("");
 			break;
 			case "biblez":
 				this.$.mainViewPane.addClass("scroller-background");
-				//this.$.splitContainer.setBackground("scroller-background");
 			break;
 			case "grayscale":
 				this.$.mainViewPane.addClass("scroller-grayscale");
-				//this.$.splitContainer.setBackground("scroller-grayscale");
 			break;
 			case "night":
 				this.$.mainViewPane.addClass("scroller-night");
-				//this.$.splitContainer.setBackground("scroller-night");
 			break;
 		}
 		//enyo.log(this.$.mainViewPane.getClassName());
@@ -445,6 +442,10 @@ enyo.kind({
 	changeLinebreak: function (inSender, inEvent) {
 		this.$.mainView.setLinebreak(inSender.getLinebreak());
 		this.$.splitContainer.setLinebreak(inSender.getLinebreak());
+	},
+
+	changeScrolling: function (inSender, inEvent) {
+		this.$.mainView.createMainView();
 	},
 	
 	//HYBRID STUFF
@@ -500,8 +501,8 @@ enyo.kind({
 			this.$.splitMenu.render();
 			
 			if (this.start === 0) {
-				if (this.dbSets.lastRead) {
-					var lastRead = enyo.json.parse(this.dbSets.lastRead);
+				if (enyo.application.dbSets.lastRead) {
+					var lastRead = enyo.json.parse(enyo.application.dbSets.lastRead);
 					this.$.selector.setBnumber(lastRead.bnumber);
 					this.$.selector.setChapter(lastRead.chapter);
 					this.$.selector.setVerse(lastRead.verse);
@@ -522,6 +523,11 @@ enyo.kind({
 					enyo.application.hebrewFont = lastRead.hebrewFont;
 					enyo.application.greekFont = lastRead.greekFont;
 					this.$.prefs.setCustomFonts(lastRead.hebrewFont, lastRead.greekFont);
+					if(enyo.application.dbSets.scrolling == "true")
+						this.$.prefs.setScrolling(false);
+					else
+						this.$.prefs.setScrolling(true);
+					this.changeScrolling();
 				}				
 			}
 			this.start = 1;	
@@ -1049,7 +1055,7 @@ enyo.kind({
 		};
 		//enyo.log(enyo.json.stringify(lastRead));
 		if(this.currentModule) {
-			this.dbSets.lastRead = enyo.json.stringify(lastRead);
+			enyo.application.dbSets.lastRead = enyo.json.stringify(lastRead);
 		}
 	}
 });
