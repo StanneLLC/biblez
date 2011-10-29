@@ -128,6 +128,8 @@ var biblezTools = {
 							z++;
 						}
 					}
+					if(modules.length === 0)
+						inCallback();
 		        }))
 		    );
 		} catch (e) {

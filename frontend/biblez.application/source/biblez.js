@@ -711,11 +711,12 @@ enyo.kind({
 			this.getModules();
 		} else {
 			this.showError(enyo.json.parse(response).message);
+			this.$.modManView.stopSpinner();
 		}
 	},
 	
 	removeModule: function (inSender, inEvent) {
-		//enyo.log(inSender.moduleToRemove.dataPath + "," + inSender.moduleToRemove.name.toLowerCase());
+		enyo.log(inSender.moduleToRemove.name);
 		if (this.pluginReady) {
 			try { var status = this.$.plugin.callPluginMethod("uninstallModule", inSender.moduleToRemove.name); }
 			catch (e) { this.showError("Plugin exception: " + e);}
@@ -861,6 +862,7 @@ enyo.kind({
 			this.listRemoteModules();
 		else
 			this.showError(enyo.json.parse(response).message);
+			this.$.modManView.stopSpinner();
 	},
 	
 	listRemoteModules: function () {

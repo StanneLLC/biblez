@@ -566,20 +566,25 @@ enyo.kind({
                 }]
             }
         ]},
-        {layoutKind: "HFlexLayout", style: "margin-top: 10px;", components: [  
+        {layoutKind: "HFlexLayout", style: "margin-top: 10px;", components: [
             {name: "btCancel", kind: "Button", caption: $L("Close"), flex: 1, onclick: "closePopup"},
+            {name: "btReload", kind: "ActivityButton", caption: $L("Reload"), showing: false, flex: 1, onclick: "callAccept"},
             {name: "btAccept", kind: "ActivityButton", caption: $L("Accept"), flex: 1, onclick: "callAccept", className: "enyo-button-affirmative"}
         ]}
         
     ],
 
     callAccept: function () {
-        this.$.btAccept.setActive(true);
+        if (this.$.btAccept.showing)
+            this.$.btAccept.setActive(true);
+        if (this.$.btReload.showing)
+            this.$.btReload.setActive(true);
         this.doAccept();
     },
 
     setActivity: function (spin) {
         this.$.btAccept.setActive(spin);
+        this.$.btReload.setActive(spin);
         
     },
 
@@ -600,15 +605,18 @@ enyo.kind({
 
     confirmedChanged: function () {
         if(this.confirmed) {
+            //this.setStyle("");
             this.$.warning.hide();
             this.$.repoList.show();
             this.setCaption($L("Select SWORD Source"));
             this.$.btAccept.hide();
+            this.$.btReload.show();
         } else {
             this.$.warning.show();
             this.$.repoList.hide();
             this.setCaption($L("Warning"));
             this.$.btAccept.show();
+            this.$.btReload.hide();
         }
     },
 

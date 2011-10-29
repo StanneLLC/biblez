@@ -332,15 +332,18 @@ PDL_bool uninstallModule(PDL_JSParameters *parms) {
 	const char* modName = PDL_GetJSParamString(parms, 0);
 	std::stringstream out;
 	SWModule *module;
-	ModMap::iterator it = mgr->Modules.find(modName);
-	if (it == mgr->Modules.end()) {
+	ModMap::iterator it = searchLibrary->Modules.find(modName);
+	if (it == searchLibrary->Modules.end()) {
 		PDL_JSException(parms, "uninstallModule: Couldn't find module");
 		finish(-2);
 		return PDL_FALSE;
 	}
 	module = it->second;
-	installMgr->removeModule(mgr, module->Name());
+	installMgr->removeModule(searchLibrary, module->Name());
 	out << "{\"returnValue\": true, \"message\": \"Removed module\"}";
+
+	//Refresh Mgr
+	refreshManagers();
 
 	const std::string& tmp = out.str();
 	const char* cstr = tmp.c_str();
@@ -542,7 +545,7 @@ void *remoteInstallModule(void *foo) {
 
 	int error = installMgr->installModule(mgr, 0, module->Name(), is);
 	if (error) {
-		out << "{\"returnValue\": false, \"message\": \"Error installing module: " << modName << ". (write permissions?)\"}";
+		out << "{\"returnValue\": false, \"message\": \"Error installing module: " << modName << ". (internet connection?)\"}";
 	} else out << "{\"returnValue\": true, \"message\": \"Installed module: " << modName << "\"}";
 
 	//Refresh Mgr

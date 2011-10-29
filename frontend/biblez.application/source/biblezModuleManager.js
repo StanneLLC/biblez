@@ -65,7 +65,8 @@ enyo.kind({
 						],
 						onclick: "getModules"
 						}]
-					}
+					},
+                    {name: "langHint", showing: false, className: "hint"}
                 ]},
                 {kind: "Toolbar", components: [
                     {kind: "GrabButton"},
@@ -84,7 +85,7 @@ enyo.kind({
 						onclick: "getDetails"
 						}]
 					},
-					{name: "modHint", className: "hint"}
+					{name: "modHint", showing: false, className: "hint"}
                 ]},
                 {kind: "Toolbar", components: [
                     {kind: "GrabButton"}
@@ -156,13 +157,14 @@ enyo.kind({
     },
 
     handleGotRepos: function (reponse) {
-        //enyo.log(reponse);
+        enyo.log(this.$.reposPopup.showing);
         var repos = enyo.json.parse(reponse);
         if (repos.length !== 0) {
             enyo.application.dbSets.remoteRepos = reponse;
             this.$.reposPopup.setConfirmed(true);
             this.$.reposPopup.setRepos(repos);
-            this.$.reposPopup.openAtCenter();
+            if(!this.$.reposPopup.showing)
+                this.$.reposPopup.openAtCenter();
         } else {
             this.showError($L("No Repositories found :("));
         }
@@ -246,6 +248,12 @@ enyo.kind({
         this.$.scrollerLeft.scrollTo(0,0);
 		this.lang = lang;
 		this.$.langList.render();
+        if (lang.length !== 0) {
+            this.$.langHint.hide();
+        } else {
+            this.$.langHint.show();
+            this.$.langHint.setContent($L("No Module available. Be sure to refresh the remote source first!"));
+        }
 		this.modules = [];
         this.$.modList.render();
         this.$.detailsContainer.hide();
