@@ -41,6 +41,7 @@ a {
 	-webkit-column-width: 250px;
 	-webkit-column-gap: 40px;
     overflow: visible;
+    width: auto;
     /*background-color: rgba(255,0,0,0.5);
     /* font-family:georgia,garamond,serif;
     font-size: 22px; */
@@ -48,6 +49,7 @@ a {
 
 .view-verses-single {
     padding: 20px;
+    width: auto;
 }
 
 .splitview-verse {

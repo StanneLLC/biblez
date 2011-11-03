@@ -527,7 +527,7 @@ enyo.kind({
 						this.$.prefs.setScrolling(false);
 					else
 						this.$.prefs.setScrolling(true);
-					this.changeScrolling();
+					//this.changeScrolling();
 				}				
 			}
 			this.start = 1;	

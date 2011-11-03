@@ -48,8 +48,10 @@ enyo.kind({
 			{name: "prevChapter", content: "Previous Chapter", className: "chapter-nav-left chapter-nav"}			
 		]},
 		//{name: "mainView", kind: "HtmlContent", allowHtml: true, content: "Das ist ein Test", className: "view-verses", onLinkClick: "handleVerseTap"}
-		{kind: "Scroller", name: "mainScroller", autoHorizontal: false, horizontal: false, style: "overflow: visible;", components: [
-			{name: "mainView", kind: "HtmlContent", allowHtml: true, content: "", className: "view-verses", onLinkClick: "handleVerseTap"}
+		{kind: "VFlexBox", flex: 1, components: [
+			{kind: "BasicScroller", name: "mainScroller", autoHorizontal: false, horizontal: false, style: "overflow: visible;", components: [
+				{name: "mainView", flex: 1, kind: "HtmlContent", allowHtml: true, content: "", className: "view-verses", onLinkClick: "handleVerseTap"}
+			]}
 		]}
     ],
 	
@@ -69,7 +71,7 @@ enyo.kind({
 			this.$.firstSnapper.addStyles("width: " + this.node.clientWidth + "px;");
 		}
 		this.starter = 1;
-		//this.createMainView();
+		this.createMainView();
 		
 		//enyo.log(this.$.mainView.hasNode());
 	},
@@ -115,7 +117,7 @@ enyo.kind({
 		this.$.mainView.setContent(biblezTools.renderVerses(verses, vnumber, this.linebreak));		
 
 		this.setSnappers(this.vnumber);
-		this.windowRotated();
+		//this.windowRotated();
 	},
 	
 	handleVerseTap: function(inSender, inUrl) {
@@ -192,7 +194,7 @@ enyo.kind({
 		this.$.mainView.addStyles("font-size: " + size + "px;");
 		//this.resized();
 		var height = this.node.clientHeight - 40;
-		this.$.mainView.addStyles("height: " + height + "px;");
+		//this.$.mainView.addStyles("height: " + height + "px;");
 		if (this.vnumber !== 0) {this.setSnappers();}
 	},
 	
@@ -200,7 +202,7 @@ enyo.kind({
 		this.$.mainView.addStyles("font-family: " + font + ";");
 		//this.resized();
 		var height = this.node.clientHeight - 40;
-		this.$.mainView.addStyles("height: " + height + "px;");
+		//this.$.mainView.addStyles("height: " + height + "px;");
 		if (this.vnumber !== 0) {this.setSnappers();}
 	},
 	
@@ -215,12 +217,19 @@ enyo.kind({
 			this.$.lastSnapper.destroy();
 		}
 		
-		var height = this.node.clientHeight;
+		var height = this.node.clientHeight-30;
 		var width = this.node.clientWidth;
+
+		this.$.mainScroller.addStyles("width: " + width + "px;");
+		this.$.mainScroller.addStyles("height: " + this.node.clientHeight + "px;");
+
+		this.$.mainView.addStyles("height: " + height + "px;");
+		//this.$.mainView.addStyles("width: " + width + "px;");
 		
 		//enyo.log(this.node.clientWidth, this.node.scrollWidth, this.node.scrollWidth - this.node.clientWidth - this.sidebarWidth, parseInt((this.node.scrollWidth - this.node.clientWidth - this.sidebarWidth) / this.node.clientWidth));
-		//enyo.log(this.$.mvContainer.node.clientWidth);
-		this.numberOfSnappers = (this.node.scrollWidth - this.node.clientWidth - this.sidebarWidth > this.node.clientWidth) ? parseInt((this.node.scrollWidth - this.node.clientWidth - this.sidebarWidth) / this.node.clientWidth, 10) : 0;
+		//enyo.log(this.$.mainScroller.node.clientWidth);
+		this.numberOfSnappers = (this.node.scrollWidth - this.node.clientWidth - this.sidebarWidth > this.node.clientWidth) ? parseInt((this.node.scrollWidth - this.node.clientWidth - this.sidebarWidth) / this.node.clientWidth, 10)+1 : 1;
+		//enyo.log(this.numberOfSnappers);
 		var kindName = "";
 		for (var j=0;j<this.numberOfSnappers; j++) {
 			kindName = "snapper" + j;
@@ -228,39 +237,26 @@ enyo.kind({
 		}
 		//enyo.log(this.node.clientWidth);
 		this.createComponent({name: "lastSnapper", style: "width: " + this.node.clientWidth + "px;", components: [{name: "nextChapter", content: "Next Chapter", className: "chapter-nav-right chapter-nav"}]}).render();
-	
-		//this.$.mainView.addStyles("height: " + height + "px;");
-		//this.$.mainView.addStyles("width: " + width + "px;");
-	
-		this.$.mainScroller.addStyles("width: " + width + "px;");
-		this.$.mainScroller.addStyles("height: " + height + "px;");
 
-		this.$.mainView.addStyles("width: " + width + "px;");
-		this.$.mainView.addStyles("height: " + height + "px;");
 		this.$.prevChapter.show();
 		
 		if (vnumber) {
 			//enyo.log(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left);
 			this.setIndex(parseInt(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left / this.$.mainView.node.clientWidth, 10) + 1);
 		}
-		//enyo.log("CONTAINER: ", this.$.mvContainer.node.clientWidth, this.$.mvContainer.node.clientHeight);
-		//enyo.log("MAINVIEW: ", this.$.mainView.node.clientWidth, this.$.mainView.node.clientHeight);
 	},
 	
 	windowRotated: function(inSender) {
 		//enyo.log("NODE1: ", this.node.clientWidth, this.node.clientHeight);
-		var height = this.node.clientHeight;
+		var height = this.node.clientHeight-30;
 		var width = this.node.clientWidth;
 		//enyo.log("VARS:", width, height);
-		//this.$.mvContainer.addStyles("height: " + this.node.clientHeight + "px;");
-		//this.$.mvContainer.addStyles("width: " + this.node.clientWidth + "px;");
-	
-		this.$.mainView.addStyles("height: " + height + "px;");
-		this.$.mainView.addStyles("width: " + width + "px;");
 	
 		this.$.mainScroller.addStyles("width: " + width + "px;");
-		this.$.mainScroller.addStyles("height: " + height + "px;");
-	
+		this.$.mainScroller.addStyles("height: " + this.node.clientHeight + "px;");
+
+		this.$.mainView.addStyles("height: " + height + "px;");
+		//this.$.mainView.addStyles("width: " + width + "px;");	
 		
 		var comp = this.getComponents();
 		for (var j=0;j<comp.length;j++) {
@@ -272,9 +268,6 @@ enyo.kind({
 		this.$.lastSnapper.addStyles("width: " + this.$.mainView.node.clientWidth + "px;");
 		
 		this.setIndex(this.index);
-		//enyo.log("NODE2: ", this.node.clientWidth, this.node.clientHeight);
-		//enyo.log("CONTAINER: ", this.$.mvContainer.node.clientWidth, this.$.mvContainer.node.clientHeight);
-		//enyo.log("MAINVIEW: ", this.$.mainView.node.clientWidth, this.$.mainView.node.clientHeight);
 	},
 	
 	//WORKAROUND
