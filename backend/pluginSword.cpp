@@ -641,18 +641,15 @@ PDL_bool getVerses(PDL_JSParameters *parms) {
 	const char* moduleName = PDL_GetJSParamString(parms, 0);
 	const char* key = PDL_GetJSParamString(parms, 1);
 	const char* side = PDL_GetJSParamString(parms, 2);
-	std::string verseText;
+	std::stringstream passage;
+	std::stringstream tmpPassage;
 	std::stringstream out;
-	//int headingOn = 0;
-	//int footnotesOn = 0;
 
-	//SWModule *module = displayLibrary->getModule("GerNeUe");
+	passage << "{\"bookName\": \"" << VerseKey(key).getBookName() << "\", \"cnumber\": \"" << VerseKey(key).Chapter()  << "\", \"vnumber\": \"" << VerseKey(key).Verse() << "\"}";
+	
+	tmpPassage << VerseKey(key).getBookName() << " " << VerseKey(key).Chapter();
 	SWModule *module = displayLibrary->getModule(moduleName);
-	ListKey verses = VerseKey().ParseVerseList(key, "", true);
-	//ListKey verses = VerseKey().ParseVerseList("Gen 1:28", "", true);
-
-	//library.setGlobalOption("Footnotes","On");
-	//displayLibrary->setGlobalOption("Headings", "On");
+	ListKey verses = VerseKey().ParseVerseList(tmpPassage.str().c_str(), "", true);
 
 	AttributeTypeList::iterator i1;
 	AttributeList::iterator i2;
@@ -717,11 +714,14 @@ PDL_bool getVerses(PDL_JSParameters *parms) {
 
 	const std::string& tmp = out.str();
 	const char* cstr = tmp.c_str();
+
+	const std::string& tmp2 = passage.str();
+	const char* biblePassage = tmp2.c_str();
 	
 	const char *params[3];
 	params[0] = cstr;
 	params[1] = side;
-	params[2] = key;
+	params[2] = biblePassage;
 	PDL_Err mjErr = PDL_CallJS("returnVerses", params, 3);
     return PDL_TRUE;
 }

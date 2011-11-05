@@ -47,7 +47,6 @@ enyo.kind({
 		{name: "firstSnapper", components: [
 			{name: "prevChapter", content: "Previous Chapter", className: "chapter-nav-left chapter-nav"}			
 		]},
-		//{name: "mainView", kind: "HtmlContent", allowHtml: true, content: "Das ist ein Test", className: "view-verses", onLinkClick: "handleVerseTap"}
 		{kind: "VFlexBox", flex: 1, components: [
 			{kind: "BasicScroller", name: "mainScroller", autoHorizontal: false, horizontal: false, style: "overflow: visible;", components: [
 				{name: "mainView", flex: 1, kind: "HtmlContent", allowHtml: true, content: "", className: "view-verses", onLinkClick: "handleVerseTap"}
@@ -92,7 +91,7 @@ enyo.kind({
 	},
 	
 	changeChapter: function (inSender, inEvent) {
-		//console.log("CHANGE CHAPTER... " + this.index);
+		//enyo.log(this.index);
 		if (this.index === 0) {
 			this.doPrevChapter();
 		} else if (this.index == this.numberOfSnappers + 2) {
@@ -117,7 +116,7 @@ enyo.kind({
 		this.$.mainView.setContent(biblezTools.renderVerses(verses, vnumber, this.linebreak));		
 
 		this.setSnappers(this.vnumber);
-		//this.windowRotated();
+		this.windowRotated();
 	},
 	
 	handleVerseTap: function(inSender, inUrl) {
@@ -241,8 +240,9 @@ enyo.kind({
 		this.$.prevChapter.show();
 		
 		if (vnumber) {
-			//enyo.log(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left);
-			this.setIndex(parseInt(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left / this.$.mainView.node.clientWidth, 10) + 1);
+			//enyo.log(enyo.json.stringify(vnumber), this.index);
+			//enyo.log(parseInt(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left / this.node.clientWidth, 10) + 1, enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left);
+			this.setIndex(parseInt(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left / this.node.clientWidth, 10) + 2);
 		}
 	},
 	
@@ -256,7 +256,7 @@ enyo.kind({
 		this.$.mainScroller.addStyles("height: " + this.node.clientHeight + "px;");
 
 		this.$.mainView.addStyles("height: " + height + "px;");
-		//this.$.mainView.addStyles("width: " + width + "px;");	
+		//this.$.mainView.addStyles("width: " + width + "px;");
 		
 		var comp = this.getComponents();
 		for (var j=0;j<comp.length;j++) {
@@ -336,7 +336,7 @@ enyo.kind({
 		this.$.rgVerse.setCaption(this.verse);
 	},
 	
-	getBook: function () {
+	/*getBook: function () {
 		return this.book;
 	},
 	
@@ -346,7 +346,7 @@ enyo.kind({
 	
 	getVerse: function () {
 		return this.verse;
-	},
+	}, */
 	
 	getNextPassage: function () {
 		var nextBook = "";
@@ -402,14 +402,13 @@ enyo.kind({
 	},
 	
 	setCurrentPassage: function(passage) {
-		var book = passage.split(" ")[0];
-		this.chapter = passage.split(" ")[1];
+		var book = passage.bookName;
+		this.chapter = passage.cnumber;
+		this.verse = (parseInt(passage.vnumber, 10) != 1) ? parseInt(passage.vnumber, 10) : this.verse;
 		for (var i=0;i<this.bookNames.length;i++) {
-			//console.log(this.bookNames[i].name + " " + book);
 			if (this.bookNames[i].name == book || this.bookNames[i].abbrev == book) {
 				this.book = this.bookNames[i];
 				this.bnumber = i;
-				//console.log(enyo.json.stringify(this.book));
 			}
 		}
 	},

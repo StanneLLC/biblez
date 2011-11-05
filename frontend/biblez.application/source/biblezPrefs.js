@@ -48,8 +48,8 @@ enyo.kind({
 					{caption: $L("Night View"), value: "night"}
                 ]},
                 {align: "center", components: [
-                    {flex: 1, name: "scrolling", content: $L("Enable Page Scrolling")},
-                    {name: "toggleScroll", kind: "ToggleButton", state: true, onChange: "changeScrolling"}
+                    {flex: 1, name: "scrolling", content: $L("Scrolling Method")},
+                    {name: "toggleScroll", kind: "ToggleButton", onLabel: $L("Horizontal"), offLabel: $L("Vertical"), state: true, onChange: "changeScrolling"}
                 ]},
 				{align: "center", components: [
 					{flex: 1, name: "linebreak", content: $L("Enable Linebreaks")},

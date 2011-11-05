@@ -18,6 +18,7 @@ enyo.kind({
     kind: enyo.VFlexBox,
 	components: [
 		{kind: "ApplicationEvents", onWindowRotated: "windowRotated"},
+		{kind: "ApplicationEvents", onWindowParamsChange: "launchParamsChanged"},		
 		{kind: "ApplicationEvents", onUnload: "savePassage"},
 		{kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open"},
 		
@@ -96,7 +97,8 @@ enyo.kind({
         dbSets: window.localStorage,
         verses: {},
         versesRight: {},
-        launchParams: null
+        launchParams: null,
+        justType: null
     },
 	
 	pluginReady: false,
@@ -159,9 +161,14 @@ enyo.kind({
 		//enyo.log(this.$.mainViewPane.node);
 	},
 
-	launchParamsChanged: function () {
-		if (this.launchParams) {
-			enyo.log("Lauchned with params", this.launchParams);
+	launchParamsChanged: function (inSender) {
+		if (enyo.windowParams && inSender) {
+			if (enyo.windowParams.search) {
+				enyo.log("Lauchned with params", decodeURIComponent(enyo.windowParams.search));
+				this.justType = decodeURIComponent(enyo.windowParams.search);
+				if (this.start === 1) 
+					this.getVerses(this.justType);
+			}
 		}
 		
 	}, 
@@ -578,8 +585,11 @@ enyo.kind({
 		this.$.selector.createSection("books", enyo.application.bookNames);
 		this.$.selector.setBookNames(enyo.application.bookNames);
 		this.$.noteBmSidebar.setBookNames(enyo.application.bookNames);
-		if (this.$.mainPane.getViewName() == "verseView") {
+		if (this.$.mainPane.getViewName() == "verseView" && !this.justType) {
 		    this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), this.currentModule.name);
+		} else {
+			this.getVerses(this.justType);
+			this.justType = null;
 		}
 		
 	},
@@ -587,8 +597,8 @@ enyo.kind({
 	handleGetVerses: function(verses, side, passage) {
 		//enyo.log(verses);
 		//this.$.mainView.setPlain(verses);
-		//enyo.log(passage, side);
-		this.$.selector.setCurrentPassage(passage);
+		//enyo.log(passage);
+		this.$.selector.setCurrentPassage(enyo.json.parse(passage));
 		if (side == "right") {
 			this.versesRight = enyo.json.parse(verses);
 			enyo.application.versesRight = enyo.json.parse(verses);
@@ -894,10 +904,10 @@ enyo.kind({
 	},
 	
 	changeChapter: function (inSender, inEvent) {
-		//enyo.log("CHANGE CHAPTER... " + inSender.index);
+		//enyo.log(inSender.index);
 		if (inSender.index === 0 || inSender.getIndexLeft() === 0) {
 			var prev = this.$.selector.getPrevPassage();
-			enyo.log(prev);
+			//enyo.log(prev);
 			if (prev.prevBnumber === 0 && prev.prevChapter === 0) {
 				this.$.mainView.setIndex(1);
 			} else {
@@ -966,7 +976,7 @@ enyo.kind({
 	},
 
 	mainSelected: function (inSender, inView, inPreviousView) {
-		//enyo.log(inView.name);
+		//enyo.log(this.$.selector.verse);
 		this.$.tbPassage.setCaption(this.$.selector.getBook().name + " " + this.$.selector.getChapter());
 		enyo.application.book = this.$.selector.getBook().abbrev;
 		this.$.noteBmSidebar.setBookName(enyo.application.book);
