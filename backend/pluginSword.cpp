@@ -613,6 +613,9 @@ PDL_bool getModules(PDL_JSParameters *parms) {
 				}
 				modules << "{\"name\": \"" << module->Name() << "\", ";
 				modules << "\"modType\":\"" << module->Type() << "\", ";
+				if (module->getConfigEntry("Lang")) {
+					modules << "\"lang\": \"" << module->getConfigEntry("Lang") << "\", ";
+				}
 				modules << "\"dataPath\":\"" << module->getConfigEntry("DataPath") << "\", ";
 				modules << "\"descr\": \"" << convertString(module->Description()) << "\"}";
 			}
@@ -622,6 +625,9 @@ PDL_bool getModules(PDL_JSParameters *parms) {
 			}
 			modules << "{\"name\": \"" << module->Name() << "\", ";
 			modules << "\"modType\":\"" << module->Type() << "\", ";
+			if (module->getConfigEntry("Lang")) {
+				modules << "\"lang\": \"" << module->getConfigEntry("Lang") << "\", ";
+			}
 			modules << "\"dataPath\":\"" << module->getConfigEntry("DataPath") << "\", ";
 			modules << "\"descr\": \"" << convertString(module->Description()) << "\"}";
 		}		

@@ -52,6 +52,14 @@ a {
     width: auto;
 }
 
+.verses-ltr {
+    direction: ltr;
+}
+
+.verses-rtl {
+    direction: rtl;
+}
+
 .splitview-verse {
     padding: 20px;
 }

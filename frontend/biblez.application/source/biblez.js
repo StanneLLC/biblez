@@ -123,7 +123,7 @@ enyo.kind({
 
 		biblezTools.createDB();
 		this.start = 0;
-		this.currentModule = undefined;
+		enyo.application.currentModule = undefined;
 		this.currentSplitModule = undefined;
 		this.currentFontSize = 20;
 		this.currentFont = "Prelude";
@@ -488,17 +488,17 @@ enyo.kind({
 					}
 				}
 			}				
-			this.currentModule = (this.dbSets.lastRead && ifModule == 1)? enyo.json.parse(this.dbSets.lastRead).module : mods[0];
+			enyo.application.currentModule = (this.dbSets.lastRead && ifModule == 1)? enyo.json.parse(this.dbSets.lastRead).module : mods[0];
 			
 			//Get current Booknames
-			this.getBooknames(this.currentModule.name);
+			this.getBooknames(enyo.application.currentModule.name);
 			
-			//this.currentModule = mods[0];
+			//enyo.application.currentModule = mods[0];
 			var kindName = "";
 			for (var i=0;i<mods.length;i++) {
 				kindName = "modulesItem" + i;
 				this.$.modMenu.createComponent({name: kindName, kind: "MenuCheckItem", module: mods[i], caption: mods[i].name, onclick: "handleSelectModules", className: "module-item"}, {owner: this});
-				if (this.currentModule.name == mods[i].name) {
+				if (enyo.application.currentModule.name == mods[i].name) {
 					this.$[kindName].setChecked(true);
 				}
 				kindName = "splitItem" + i;
@@ -549,7 +549,7 @@ enyo.kind({
 	
 	handleSelectModules: function (inSender, inEvent) {
 		enyo.log("MODULE: " + inSender.module.name);
-		this.currentModule = inSender.module;
+		enyo.application.currentModule = inSender.module;
 		var comp = this.getComponents();
 		for (var j=0;j<comp.length;j++) {
 			if (comp[j].name.search(/modulesItem\d+/) != -1) {
@@ -557,7 +557,7 @@ enyo.kind({
 			}
 		}
 		inSender.setChecked(true);
-        //this.getBooknames(this.currentModule.name);
+        //this.getBooknames(enyo.application.currentModule.name);
 		this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), inSender.module.name);
 	},
 
@@ -586,7 +586,7 @@ enyo.kind({
 		this.$.selector.setBookNames(enyo.application.bookNames);
 		this.$.noteBmSidebar.setBookNames(enyo.application.bookNames);
 		if (this.$.mainPane.getViewName() == "verseView" && !this.justType) {
-		    this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), this.currentModule.name);
+		    this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), enyo.application.currentModule.name);
 		} else {
 			this.getVerses(this.justType);
 			this.justType = null;
@@ -769,7 +769,7 @@ enyo.kind({
         enyo.log(inSender.getScope());
         if (this.pluginReady) {
             enyo.log(inSender.getSearchType());
-			try { var status = this.$.plugin.callPluginMethod("search", this.currentModule.name, inSender.getSearchTerm(), inSender.getScope(), inSender.getSearchType()); }
+			try { var status = this.$.plugin.callPluginMethod("search", enyo.application.currentModule.name, inSender.getSearchTerm(), inSender.getScope(), inSender.getSearchType()); }
 			catch (e) { this.showError("Plugin exception: " + e);}
 		}
 		else {
@@ -806,7 +806,7 @@ enyo.kind({
 	},
 	
 	getVerses: function(passage, module, side) {
-		if(!module) {module = this.currentModule.name;}
+		if(!module) {module = enyo.application.currentModule.name;}
 		if(!side) {side = "left";}
 		if (this.pluginReady) {
 			try {var status = this.$.plugin.callPluginMethod("getVerses", module, passage, side);}
@@ -970,7 +970,7 @@ enyo.kind({
 			this.$.modManView.getRepos();
 		} else if (inView.name == "verseView") {
 			if(this.$.modManView.installedModules.length !== 0) {
-				this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), this.currentModule.name);
+				this.getVerses(this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(), enyo.application.currentModule.name);
 			}
 		}
 	},
@@ -987,7 +987,7 @@ enyo.kind({
 			this.$.btSplitView.show();
 
 			
-			this.$.tbModLeft.setCaption(this.currentModule.name);
+			this.$.tbModLeft.setCaption(enyo.application.currentModule.name);
 			this.$.mainView.setVerses(this.verses, this.$.selector.verse);
 			//this.$.mainView.setSnappers(this.$.selector.verse);
 			this.$.mainView.setPrevChapter(this.$.selector.getPrevPassage().passage);
@@ -1002,7 +1002,7 @@ enyo.kind({
 			this.$.tbModRight.show();
 			this.$.btSplitView.hide();
 			//this.$.tbPassage.setCaption(this.$.selector.getBook().name + " " + this.$.selector.getChapter());
-			this.$.tbModLeft.setCaption(this.currentModule.name);
+			this.$.tbModLeft.setCaption(enyo.application.currentModule.name);
 			this.$.tbModRight.setCaption(this.currentSplitModule.name);
 			//this.$.splitContainer.windowRotated();
 
@@ -1049,7 +1049,7 @@ enyo.kind({
 	savePassage: function () {
 		var lastRead = {
 			"passage" : this.$.selector.getBook().abbrev + " " + this.$.selector.getChapter(),
-			"module" : this.currentModule,
+			"module" : enyo.application.currentModule,
 			"bnumber": this.$.selector.bnumber,
 			"chapter": this.$.selector.chapter,
 			"verse": this.$.selector.verse,
@@ -1064,7 +1064,7 @@ enyo.kind({
 			"hebrewFont": enyo.application.hebrewFont
 		};
 		//enyo.log(enyo.json.stringify(lastRead));
-		if(this.currentModule) {
+		if(enyo.application.currentModule) {
 			enyo.application.dbSets.lastRead = enyo.json.stringify(lastRead);
 		}
 	}

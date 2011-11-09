@@ -111,9 +111,11 @@ enyo.kind({
 		this.vnumber = vnumber;
 		this.setIndex(1);
 		if (enyo.application.dbSets.scrolling == "true")
-			this.$.mainScroller.setScrollTop(1);
+			this.$.mainScroller.scrollIntoView(0);
 		
-		this.$.mainView.setContent(biblezTools.renderVerses(verses, vnumber, this.linebreak));		
+		//enyo.log(enyo.application.currentModule);
+		
+		this.$.mainView.setContent(biblezTools.renderVerses(verses, vnumber, this.linebreak));
 
 		this.setSnappers(this.vnumber);
 		this.windowRotated();
@@ -242,7 +244,19 @@ enyo.kind({
 		if (vnumber) {
 			//enyo.log(enyo.json.stringify(vnumber), this.index);
 			//enyo.log(parseInt(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left / this.node.clientWidth, 10) + 1, enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left);
-			this.setIndex(parseInt(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left / this.node.clientWidth, 10) + 2);
+			if(enyo.application.dbSets.scrolling == "true" && vnumber != 1) {
+				this.$.mainScroller.scrollIntoView(parseInt(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().top, 10), 0);
+			} else {
+				this.setIndex(parseInt(enyo.byId(enyo.json.stringify(vnumber)).getBoundingClientRect().left / this.node.clientWidth, 10) + 2);
+			}			
+		}
+
+		if(enyo.application.currentModule.lang == "he" && enyo.application.dbSets.scrolling == "true") {
+			this.$.mainView.addRemoveClass("verses-rtl", true);
+			//this.$.mainView.setContent("");
+			//this.$["snapper"+this.numberOfSnappers-1].setContent(biblezTools.renderVerses(enyo.application.verses, vnumber, this.linebreak));
+		} else {
+			this.$.mainView.addRemoveClass("verses-rtl", false);
 		}
 	},
 	
@@ -466,6 +480,7 @@ enyo.kind({
 						this.$.bookSelector.createComponent({kind: "Button",
 							caption: data[i].abbrev.slice(0,5),
 							onclick: "handleBooks",
+							onmousehold: "handleVerses",
 							className: "book-selector books-ot",
 							name: kindName,
 							key: i}, {owner: this});
@@ -473,6 +488,7 @@ enyo.kind({
 						this.$.bookSelector.createComponent({kind: "Button",
 							caption: data[i].abbrev.slice(0,5),
 							onclick: "handleBooks",
+							onmousehold: "handleVerses",
 							className: "book-selector books-nt",
 							name: kindName,
 							key: i}, {owner: this});
@@ -488,7 +504,7 @@ enyo.kind({
 				}				
 				for (var l=0;l<data;l++) {
 					kindName = "chapter" + l;
-					this.$.chapterSelector.createComponent({name: kindName, kind: "Button", caption: l+1, onclick: "handleChapters", className: "book-selector", book: this.book.name, chapter: l+1}, {owner: this});
+					this.$.chapterSelector.createComponent({name: kindName, kind: "Button", caption: l+1, onclick: "handleChapters", onmousehold: "handleVerses", className: "book-selector", book: this.book.name, chapter: l+1}, {owner: this});
 				}
 				this.$.chapterSelector.render();
 			break;
@@ -544,7 +560,19 @@ enyo.kind({
 	},
 	
 	handleVerses: function (inSender, inEvent) {
-		this.verse = inSender.verse;
+		//enyo.log(inEvent.type);
+		this.verse = (inSender.verse) ? inSender.verse : 1;
+		if (inEvent.type == "mousehold" && inSender.chapter)
+			this.chapter = inSender.chapter;
+		else if (inEvent.type == "mousehold" && !inSender.chapter)
+			this.chapter = 1;
+			
+		if (inSender.key) {
+			this.book = this.bookNames[inSender.key];
+			this.bnumber = inSender.key;
+		}
+		this.$.rgBook.setCaption(this.book.abbrev);
+		this.$.rgChapter.setCaption(this.chapter);
 		this.$.rgVerse.setCaption(this.verse);
 		this.doVerse();
 		this.close();
